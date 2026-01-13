@@ -1,0 +1,61 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "agentic-research"
+version = "0.0.1"
+description = "Experiments with Agentic Research"
+authors = ["BittnerPierre <pierre@bittner.fr>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.scripts]
+agentic-research = "src.main:cli_main"
+dataprep = "src.dataprep.core:main"
+mcp-dataprep-workflow = "src.dataprep.workflow:run_workflow"
+dataprep_server = "src.mcp.dataprep_server:main"
+evaluate_writer = "evaluations.write_agent_eval:eval_main"
+test_trajectory = "evaluations.write_agent_eval:test_main"
+
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pydantic = "^2.0"
+openai = "^1.74.0"
+openai-agents = {extras = ["litellm"], version = "^0.2.1"}
+dotenv = ">=0.9.9"
+fastmcp = "^2.9.2"
+mcp = "^1.9.4"
+pyyaml = "^6.0.2"
+beautifulsoup4 = "^4.13.4"
+html2text = "^2025.4.15"
+lxml = "^6.0.0"
+chardet = "^5.2.0"
+portalocker = "^2.8.2"
+langsmith = "^0.4.4"
+litellm = "~1.76.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-asyncio = "^0.24.0"
+ruff = "^0.8.0"
+poetry-audit-plugin = "^0.4.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "src"]
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q --disable-warnings --maxfail=1"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "RUF"]
+ignore = ["E501"]  # Line too long (handled by formatter)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

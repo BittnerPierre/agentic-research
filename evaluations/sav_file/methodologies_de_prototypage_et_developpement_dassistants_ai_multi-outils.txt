@@ -1,0 +1,17 @@
+Les méthodologies de prototypage et développement d'assistants AI multi-outils reposent principalement sur des approches itératives, des tests approfondis, une validation rigoureuse, et une amélioration continue. Ces systèmes multi-agents utilisent plusieurs agents autonomes coordonnés pour accomplir des tâches complexes de manière parallèle et efficace.
+
+Les principes clés incluent :
+- Approche itérative : Le système est conçu pour itérer rapidement, tester, observer les comportements des agents, et affiner les prompts ainsi que l’architecture. Les agents subordonnés (subagents) effectuent des recherches parallèles, tandis que l’agent principal (lead agent) coordonne, synthétise les résultats, et ajuste les stratégies.
+- Tests et évaluation : Les tests commencent très tôt avec des échantillons limités et se focalisent sur les résultats finaux plutôt que sur les étapes intermédiaires, reconnaissant que plusieurs chemins peuvent conduire à un bon résultat. L’évaluation flexible juge la qualité des résultats et la robustesse du processus plutôt que de forcer une séquence fixe d’actions.
+- Validation continue : L’observabilité détaillée permet de diagnostiquer les défaillances, corriger les erreurs d’outil ou de planification et améliorer la fiabilité. Les déploiements progressifs et la gestion fine des mises à jour assurent la stabilité en production.
+- Conception modulaire : Les agents sont équipés d’outils spécialisés et peuvent apprendre à combiner ces outils pour former des compétences plus complexes. L’ingénierie des prompts enseigne à l’agent comment décomposer les tâches, déléguer correctement, et gérer les contextes longs et complexes.
+- Gestion du contexte et mémoire : Pour des conversations ou recherches longues, des mécanismes de compression, mémorisation externe, et création de sous-agents avec contexte propre permettent de dépasser les limites de capacité contextuelle des modèles.
+- Amélioration continue par réflexion : Des méthodologies comme ReAct ou Reflexion permettent aux agents de raisonner, agir, s’auto-évaluer et ajuster leurs plans en fonction des erreurs ou inefficacités détectées, améliorant ainsi leur performance au fil du temps.
+
+En résumé, le développement d'assistants AI multi-outils s’appuie sur une boucle rapide d’itération, une coordination sophistiquée entre agents spécialisés, une évaluation orientée résultats, et une mise en production rigoureuse garantissant robustesse et évolutivité. Ces approches permettent d’exploiter efficacement les capacités des grands modèles en combinant leurs points forts avec des outils externes, ce qui est crucial face à la complexité et la dynamique des problèmes réels.
+
+Sources :
+- How we built our multi.md
+- Agents.md
+- LLM_Powered_Autonomous_Agents.md
+
