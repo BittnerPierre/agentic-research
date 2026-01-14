@@ -192,6 +192,86 @@ poetry run ruff format .
 poetry run ruff check --fix .
 ```
 
+## Git Workflow
+
+**IMPORTANT**: All changes must go through a proper GitHub workflow with issues and pull requests. NEVER push directly to `main`.
+
+### Standard Workflow for All Changes
+
+1. **Create a GitHub Issue**:
+   ```bash
+   # Use gh CLI to create an issue describing the change
+   gh issue create --title "Brief description" --body "Detailed description of the change/bug/feature"
+   ```
+
+2. **Create a Feature Branch**:
+   ```bash
+   # Create and checkout a new branch from main
+   git checkout main
+   git pull origin main
+   git checkout -b feature/issue-number-brief-description
+   # or
+   git checkout -b fix/issue-number-brief-description
+   ```
+
+3. **Make Changes and Commit**:
+   ```bash
+   # Make your changes, then stage and commit
+   git add <files>
+   git commit -m "Clear description of changes
+
+   Detailed explanation if needed.
+
+   Fixes #issue-number
+
+   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+   ```
+
+4. **Push Branch and Create PR**:
+   ```bash
+   # Push the branch to GitHub
+   git push origin feature/issue-number-brief-description
+
+   # Create a pull request
+   gh pr create --title "Brief PR title" \
+                --body "Description of changes
+
+   Fixes #issue-number" \
+                --base main
+   ```
+
+5. **After PR is Reviewed and Approved**:
+   ```bash
+   # Merge the PR (can be done via GitHub UI or CLI)
+   gh pr merge --merge  # or --squash or --rebase
+
+   # Clean up local branch
+   git checkout main
+   git pull origin main
+   git branch -d feature/issue-number-brief-description
+   ```
+
+### Branch Naming Conventions
+
+- `feature/issue-number-brief-description` - For new features
+- `fix/issue-number-brief-description` - For bug fixes
+- `docs/issue-number-brief-description` - For documentation updates
+- `refactor/issue-number-brief-description` - For code refactoring
+
+### Commit Message Guidelines
+
+- First line: Brief summary (50 chars or less)
+- Blank line
+- Detailed description (if needed)
+- Reference related issues with `Fixes #123` or `Relates to #123`
+- Always include `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>` for AI-assisted commits
+
+### Exception
+
+The only time it's acceptable to push directly to `main` is for:
+- Initial repository setup
+- Critical hotfixes in production emergencies (document reason in commit message)
+
 ## Important Implementation Details
 
 ### Model Compatibility and Tool Filtering
