@@ -196,6 +196,12 @@ poetry run ruff check --fix .
 
 **IMPORTANT**: All changes must go through a proper GitHub workflow with issues and pull requests. NEVER push directly to `main`.
 
+**CRITICAL**: **NEVER start working on an issue without explicit user approval.** After creating or identifying an issue, ALWAYS wait for the user to tell you to proceed before creating branches or writing code. Your role is to:
+- Analyze and document issues
+- Create GitHub issues with detailed information
+- Wait for user decision on priority and timing
+- Only proceed when explicitly asked
+
 ### Standard Workflow for All Changes
 
 1. **Create a GitHub Issue**:
