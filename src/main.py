@@ -152,7 +152,9 @@ async def main() -> None:
             name="DATAPREP_MCP_SERVER",
             params={
                 "url": "http://localhost:8001/sse",
+                "timeout": 10.0,  # HTTP request timeout (increased from default 5s)
             },
+            client_session_timeout_seconds=10.0,  # MCP tool call timeout (increased from default 5s)
         )
         logger.info("Connecting to DataPrep MCP server at http://localhost:8001/sse")
         async with fs_server, dataprep_server:
