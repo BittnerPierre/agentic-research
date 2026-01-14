@@ -18,6 +18,7 @@ from .agents.schemas import ResearchInfo
 from .agents.utils import context_aware_filter, get_vector_store_id_by_name
 from .config import get_config
 from .deep_research_manager import DeepResearchManager
+from .logging_config import setup_run_logging
 from .manager import StandardResearchManager
 from .tracing.trace_processor import FileTraceProcessor
 
@@ -69,9 +70,11 @@ async def main() -> None:
     # Get configuration (potentially with custom config file)
     config = get_config(args.config)
 
-    # Configure logging
-    logging.basicConfig(level=getattr(logging, config.logging.level), format=config.logging.format)
+    # Set up logging for this run (creates timestamped log file)
+    log_file = setup_run_logging(log_level=config.logging.level)
     logger = logging.getLogger(__name__)
+    logger.info(f"Log file for this run: {log_file}")
+    logger.info(f"Command line arguments: {vars(args)}")
 
     # Set defaults from config if not provided via CLI
     if not args.manager:
@@ -91,6 +94,7 @@ async def main() -> None:
         logger.info(f"Using custom vector store name: {args.vector_store}")
 
     # Get the appropriate manager class
+    logger.info(f"Using manager: {args.manager}")
     manager_class = get_manager_class(args.manager)
 
     if args.max_search_plan:
@@ -128,7 +132,9 @@ async def main() -> None:
     add_trace_processor(OpenAIAgentsTracingProcessor())
     add_trace_processor(FileTraceProcessor(log_dir="traces", log_file="trace.log"))
     debug_mode = config.debug.enabled
+    logger.info(f"Debug mode: {debug_mode}")
 
+    logger.info("Setting up MCP servers...")
     with tempfile.TemporaryDirectory(delete=not debug_mode) as temp_dir:
         fs_server = MCPServerStdio(
             name="FS_MCP_SERVER",
@@ -140,6 +146,7 @@ async def main() -> None:
             cache_tools_list=True,
         )
         canonical_tmp_dir = os.path.realpath(temp_dir)
+        logger.info(f"Filesystem MCP server temp directory: {canonical_tmp_dir}")
 
         dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
@@ -147,17 +154,23 @@ async def main() -> None:
                 "url": "http://localhost:8001/sse",
             },
         )
+        logger.info("Connecting to DataPrep MCP server at http://localhost:8001/sse")
         async with fs_server, dataprep_server:
+            logger.info("MCP servers connected successfully")
             # trace_id = gen_trace_id()
             # with trace(workflow_name="SSE Example", trace_id=trace_id):
+            logger.info("Setting up OpenAI vector store...")
             client = OpenAI()
             vector_store_id = get_vector_store_id_by_name(client, config.vector_store.name)
             if vector_store_id is None:
+                logger.info(f"Creating new vector store: {config.vector_store.name}")
                 vector_store_obj = client.vector_stores.create(name=config.vector_store.name)
                 config.vector_store.vector_store_id = vector_store_obj.id
+                logger.info(f"Vector store created: '{config.vector_store.vector_store_id}'")
                 print(f"Vector store created: '{config.vector_store.vector_store_id}'")
             else:
                 config.vector_store.vector_store_id = vector_store_id
+                logger.info(f"Using existing vector store: '{config.vector_store.vector_store_id}'")
                 print(f"Vector store already exists: '{config.vector_store.vector_store_id}'")
 
             research_info = ResearchInfo(
@@ -167,14 +180,23 @@ async def main() -> None:
                 max_search_plan=config.agents.max_search_plan,
                 output_dir=config.agents.output_dir,
             )
+            logger.info(f"Research info: {research_info}")
 
             # print(f"View trace: https://platform.openai.com/traces/trace?trace_id={trace_id}\n")
-            await manager_class().run(
-                dataprep_server=dataprep_server,
-                fs_server=fs_server,
-                query=query,
-                research_info=research_info,
-            )
+            logger.info(f"Starting research with manager: {manager_class.__name__}")
+            logger.info(f"Query: {query[:200]}...")  # Log first 200 chars of query
+
+            try:
+                await manager_class().run(
+                    dataprep_server=dataprep_server,
+                    fs_server=fs_server,
+                    query=query,
+                    research_info=research_info,
+                )
+                logger.info("Research completed successfully")
+            except Exception as e:
+                logger.exception(f"Research failed with error: {e}")
+                raise
 
 
 def cli_main():
