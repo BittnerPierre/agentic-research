@@ -115,7 +115,7 @@ class BaselineRunner:
         )
 
         # Run evaluation
-        async with fs_server.connect(), dataprep_server.connect():
+        async with fs_server, dataprep_server:
             evaluator = FullWorkflowEvaluator(
                 output_dir="evaluations/full_workflow_results"
             )

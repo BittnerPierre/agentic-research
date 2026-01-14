@@ -361,7 +361,7 @@ async def main():
         },
     )
 
-    async with fs_server.connect(), dataprep_server.connect():
+    async with fs_server, dataprep_server:
         evaluator = FullWorkflowEvaluator(output_dir=args.output_dir)
 
         results = await evaluator.run(
