@@ -19,23 +19,24 @@
 
 ## 📋 Implementation Phases
 
-### **Phase 1: Event Collection** 🔧 Foundation
+### **Phase 1: Structured Trace Collection** 🔧 Foundation
 
-Goal: Implement framework-agnostic event logger (works offline, no SDK dependency)
+Goal: Implement StructuredJSONTraceProcessor using Agents SDK (proven to work offline)
 
 | Task | Status | Files | Testable Output |
 |------|--------|-------|----------------|
-| 1.1 Implement EventLogger | ⬜ TODO | `src/events/event_logger.py` | Class works offline |
-| 1.2 Integrate into managers | ⬜ TODO | `src/*_manager.py` | Events logged to JSONL |
-| 1.3 Create event parsing utilities | ⬜ TODO | `evaluations/event_utils.py` | `load_events()` works |
+| 1.1 Implement StructuredJSONTraceProcessor | ⬜ TODO | `src/tracing/processors/structured_json_processor.py` | Valid JSONL file created |
+| 1.2 Integrate into main.py | ⬜ TODO | `src/main.py` | `traces/trace_<run_id>.jsonl` exists |
+| 1.3 Create trace parsing utilities | ⬜ TODO | `evaluations/trace_utils.py` | `load_traces()` works |
 
-**Acceptance**: Run workflow → events logged → parseable with `jq` → **works offline**
+**Acceptance**: Run workflow → structured traces generated → parseable with `jq` → **works offline**
 
-**Architecture Decision**: Use framework-agnostic logger instead of Agents SDK TracingProcessor
-- ✅ Works offline (DGX Spark, air-gapped)
-- ✅ Framework independent (PydanticAI, CrewAI compatible)
-- ✅ Simple implementation (~100 lines)
-- See: `tests/test_offline_tracing.py`
+**Architecture Decision**: Use Agents SDK TracingProcessor (proven to work offline)
+- ✅ Works offline (validated: `tests/test_agents_sdk_tracing_offline.py`)
+- ✅ Already integrated in codebase
+- ✅ Captures all events automatically
+- ✅ Manager-agnostic (traces any workflow)
+- ✅ Optional OpenAI Platform / LangSmith integration
 
 ---
 
@@ -132,18 +133,19 @@ poetry run eval-full-workflow --test-case trivial_research
 
 ## 🎯 Current Priority
 
-**Next Task**: Phase 1, Task 1.1 - Implement `EventLogger`
+**Next Task**: Phase 1, Task 1.1 - Implement `StructuredJSONTraceProcessor`
 
 **Why this first?**
 - Foundation for all other phases
-- ✅ **Works offline** (critical for DGX Spark)
-- ✅ **Framework agnostic** (PydanticAI, CrewAI compatible)
-- Small, focused change (~100 lines)
+- ✅ **Works offline** (proven: `tests/test_agents_sdk_tracing_offline.py`)
+- ✅ **Leverage existing SDK** (already integrated)
+- ✅ **Manager-agnostic** (traces any workflow automatically)
+- Small, focused change (~100 lines, similar to FileTraceProcessor)
 - Immediately useful for debugging (Issue #7)
 
 **Estimated Time**: 2-3 hours
 
-**Architecture**: Framework-agnostic event logger (tested in `tests/test_offline_tracing.py`)
+**Architecture**: Agents SDK TracingProcessor (extends existing pattern)
 
 ---
 
