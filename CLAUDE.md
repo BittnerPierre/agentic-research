@@ -196,6 +196,12 @@ poetry run ruff check --fix .
 
 **IMPORTANT**: All changes must go through a proper GitHub workflow with issues and pull requests. NEVER push directly to `main`.
 
+**CRITICAL**: **NEVER start working on an issue without explicit user approval.** After creating or identifying an issue, ALWAYS wait for the user to tell you to proceed before creating branches or writing code. Your role is to:
+- Analyze and document issues
+- Create GitHub issues with detailed information
+- Wait for user decision on priority and timing
+- Only proceed when explicitly asked
+
 ### Standard Workflow for All Changes
 
 1. **Create a GitHub Issue**:
@@ -214,7 +220,48 @@ poetry run ruff check --fix .
    git checkout -b fix/issue-number-brief-description
    ```
 
-3. **Make Changes and Commit**:
+3. **For Bug Fixes: Write Failing Test First (Test-Driven Development)**:
+
+   **CRITICAL**: Before fixing any bug, always write a test that reproduces the issue.
+
+   This ensures:
+   - The bug is clearly understood and reproducible
+   - The fix actually solves the problem
+   - Regression prevention - bug won't come back unnoticed
+
+   **Process**:
+   ```bash
+   # 1. Write a test that reproduces the bug (should FAIL)
+   # Create test file in tests/ directory
+   # Example: tests/test_vector_store_expiration.py
+
+   # 2. Run the test to confirm it fails
+   poetry run pytest tests/test_your_bug.py -v
+   # Expected: Test FAILS, reproducing the bug
+
+   # 3. Implement the fix
+   # Make your code changes
+
+   # 4. Run the test again to confirm it passes
+   poetry run pytest tests/test_your_bug.py -v
+   # Expected: Test PASSES, bug is fixed
+
+   # 5. Run all tests to ensure no regression
+   poetry run pytest
+   ```
+
+   **Example (Issue #3 - Parallel Upload)**:
+   ```python
+   # tests/test_mcp_parallel_upload.py
+   def test_parallel_file_attachment_timing():
+       """Test that parallel is faster than sequential."""
+       # Test implementation...
+       assert parallel_time < sequential_time / 3
+   ```
+
+   **Note**: For features (not bugs), write tests alongside implementation or after, but for bugs, test MUST come first.
+
+4. **Make Changes and Commit**:
    ```bash
    # Make your changes, then stage and commit
    git add <files>
@@ -227,7 +274,7 @@ poetry run ruff check --fix .
    Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
    ```
 
-4. **Push Branch and Create PR**:
+5. **Push Branch and Create PR**:
    ```bash
    # Push the branch to GitHub
    git push origin feature/issue-number-brief-description
@@ -240,7 +287,7 @@ poetry run ruff check --fix .
                 --base main
    ```
 
-5. **After PR is Reviewed and Approved**:
+6. **After PR is Reviewed and Approved**:
    ```bash
    # Merge the PR (can be done via GitHub UI or CLI)
    gh pr merge --merge  # or --squash or --rebase
