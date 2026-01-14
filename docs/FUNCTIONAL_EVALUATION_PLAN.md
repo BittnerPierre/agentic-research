@@ -202,7 +202,8 @@ Overall: ██████████ 14/14 tasks (100%) ⚠️ NEEDS TESTING
 
 ## ✅ Integration Testing Complete
 
-**Tested**: 2026-01-14 @ 16:58
+**Initial Testing**: 2026-01-14 @ 16:58
+**Architecture Cleanup**: 2026-01-14 @ 17:50
 
 ### Test Results:
 1. ✅ Framework executed end-to-end without crashes
@@ -210,21 +211,29 @@ Overall: ██████████ 14/14 tasks (100%) ⚠️ NEEDS TESTING
 3. ✅ Quality evaluation correctly graded empty report as E/FAIL
 4. ✅ Baseline successfully saved with diagnostic information
 5. ✅ LLM-as-a-judge reasoning accurate: "output is completely empty"
+6. ✅ **Production test with real data: All A grades, PASS judgment**
+7. ✅ **Architecture cleanup: Removed all cross-module imports**
 
 ### Test Outcome:
-**Framework works perfectly!** The workflow executed but returned empty output (due to invalid vector_store_id), and the evaluation correctly:
-- Detected all missing trajectory checkpoints
-- Graded empty output as E in all dimensions
-- Provided clear diagnostic feedback
-- Saved baseline for future comparison
+**Framework works perfectly!** Production test with MIPS research:
+- Used name-based storage lookup (`mips_agent_memory` → vector store ID)
+- Generated high-quality report (all A grades)
+- Validated against strict test case requirements (B+ minimum)
+- Saved baseline for regression testing
+
+### Architecture Validation:
+- ✅ No cross-module dependencies (`src.*` imports removed)
+- ✅ Clean name-based interface (future-proof for ChromaDB)
+- ✅ Manager-agnostic evaluation (validates OUTCOMES)
+- ✅ Inline storage lookup (no utility coupling)
 
 ### Ready for Production:
 - ✅ All code paths validated
 - ✅ Error handling works correctly
 - ✅ Output format verified
 - ✅ Two test cases available: `trivial_research`, `mips_agent_memory`
-
-**Note**: For meaningful quality evaluation, requires real vector store with content.
+- ✅ Clean architecture (no cross-module coupling)
+- ✅ Production-tested with real vector store data
 
 ---
 
@@ -308,11 +317,15 @@ Overall: ██████████ 14/14 tasks (100%) ⚠️ NEEDS TESTING
 
 ```bash
 # Run evaluation (simple!)
-poetry run baseline-eval --test-case trivial_research --save-baseline
+poetry run baseline-eval \
+    --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
+    --save-baseline
 
 # Compare against baseline (regression test)
 poetry run baseline-eval \
     --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
     --compare-baseline baseline_trivial_abc123.json
 ```
 
