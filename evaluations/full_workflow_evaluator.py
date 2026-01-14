@@ -133,6 +133,7 @@ class FullWorkflowEvaluator:
             results = {
                 "report_file": report.file_name,
                 "report_summary": report.short_summary,
+                "report_path": str(final_file_path),
                 "trajectory_report": trajectory_report,
                 "trajectory_file": trajectory_file,
                 "quality_result": quality_result.model_dump(),

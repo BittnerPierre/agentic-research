@@ -180,6 +180,16 @@ class BaselineRunner:
             "checks": {},
         }
 
+        # Prefer validating against the full markdown report if available
+        report_content = results.get("report_summary", "") or ""
+        report_path = results.get("report_path")
+        if report_path:
+            try:
+                report_content = Path(report_path).read_text(encoding="utf-8")
+            except Exception:
+                # Fall back to summary if file can't be read
+                pass
+
         # Check minimum grades
         min_grades = test_case.get("min_grades", {})
         grade_order = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
@@ -214,7 +224,6 @@ class BaselineRunner:
         # Check required sections (if specified)
         required_sections = expected.get("required_sections", [])
         if required_sections:
-            report_content = results.get("report_summary", "")
             missing_sections = []
             for section in required_sections:
                 if section not in report_content:
@@ -235,7 +244,6 @@ class BaselineRunner:
         max_word_count = expected.get("max_word_count")
 
         if min_word_count or max_word_count:
-            report_content = results.get("report_summary", "")
             word_count = len(report_content.split())
 
             if min_word_count:
@@ -261,7 +269,6 @@ class BaselineRunner:
         # Check must-mention algorithms (if specified)
         must_mention_algorithms = expected.get("must_mention_algorithms", [])
         if must_mention_algorithms:
-            report_content = results.get("report_summary", "")
             missing_algorithms = []
             for algo in must_mention_algorithms:
                 if algo not in report_content:

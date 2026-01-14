@@ -46,7 +46,10 @@ poetry-audit-plugin = "^0.4.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "src"]
+# Keep the project root on sys.path (so `import src.*` works), but DO NOT add `src/`
+# directly: it would shadow the external `agents` package (openai-agents) with our
+# local `src/agents` module.
+pythonpath = ["."]
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-q --disable-warnings --maxfail=1"
 
