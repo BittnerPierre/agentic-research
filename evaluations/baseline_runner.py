@@ -211,6 +211,72 @@ class BaselineRunner:
         if not judgment_passed:
             validation["overall_pass"] = False
 
+        # Check required sections (if specified)
+        required_sections = expected.get("required_sections", [])
+        if required_sections:
+            report_content = results.get("report_summary", "")
+            missing_sections = []
+            for section in required_sections:
+                if section not in report_content:
+                    missing_sections.append(section)
+
+            sections_passed = len(missing_sections) == 0
+            validation["checks"]["required_sections"] = {
+                "expected": f"contains {required_sections}",
+                "actual": f"missing: {missing_sections}" if missing_sections else "all present",
+                "passed": sections_passed,
+            }
+
+            if not sections_passed:
+                validation["overall_pass"] = False
+
+        # Check word count (if specified)
+        min_word_count = expected.get("min_word_count")
+        max_word_count = expected.get("max_word_count")
+
+        if min_word_count or max_word_count:
+            report_content = results.get("report_summary", "")
+            word_count = len(report_content.split())
+
+            if min_word_count:
+                min_passed = word_count >= min_word_count
+                validation["checks"]["min_word_count"] = {
+                    "expected": f">= {min_word_count}",
+                    "actual": word_count,
+                    "passed": min_passed,
+                }
+                if not min_passed:
+                    validation["overall_pass"] = False
+
+            if max_word_count:
+                max_passed = word_count <= max_word_count
+                validation["checks"]["max_word_count"] = {
+                    "expected": f"<= {max_word_count}",
+                    "actual": word_count,
+                    "passed": max_passed,
+                }
+                if not max_passed:
+                    validation["overall_pass"] = False
+
+        # Check must-mention algorithms (if specified)
+        must_mention_algorithms = expected.get("must_mention_algorithms", [])
+        if must_mention_algorithms:
+            report_content = results.get("report_summary", "")
+            missing_algorithms = []
+            for algo in must_mention_algorithms:
+                if algo not in report_content:
+                    missing_algorithms.append(algo)
+
+            algos_passed = len(missing_algorithms) == 0
+            validation["checks"]["must_mention_algorithms"] = {
+                "expected": f"mentions {must_mention_algorithms}",
+                "actual": f"missing: {missing_algorithms}" if missing_algorithms else "all present",
+                "passed": algos_passed,
+            }
+
+            if not algos_passed:
+                validation["overall_pass"] = False
+
         return validation
 
     def save_baseline(

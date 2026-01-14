@@ -36,7 +36,7 @@ from .eval_utils import (
     save_trajectory_evaluation_report,
     validate_trajectory_spec,
 )
-from .prompts import llm_as_judge_prompt_V3
+from .prompts import llm_as_judge_prompt_V1
 from .schemas import EvaluationResult
 from .trajectory_specs import FULL_WORKFLOW_TRAJECTORY_SPEC
 
@@ -285,7 +285,7 @@ class FullWorkflowEvaluator:
 
         report_quality_agent = Agent(
             name="report_quality_agent",
-            instructions=llm_as_judge_prompt_V3,
+            instructions=llm_as_judge_prompt_V1,
             model="openai/gpt-4.1-mini",
             output_type=EvaluationResult,
         )
