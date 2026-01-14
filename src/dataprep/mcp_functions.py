@@ -3,6 +3,7 @@
 import logging
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -210,47 +211,58 @@ def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str
     step3_time = time.perf_counter()
     logger.info(f"[upload_files_to_vectorstore] Step 3 completed in {step3_time - step2_time:.2f}s - Uploaded: {upload_count}, Reused: {reuse_count}")
 
-    # 4. Attachement au vector store
-    logger.debug(f"[upload_files_to_vectorstore] Step 4: Attaching {len(files_to_attach)} files to vector store")
-    files_attached = []
-    attach_success_count = 0
-    attach_failure_count = 0
+    # 4. Attachement au vector store (parallélisé pour performance)
+    logger.debug(f"[upload_files_to_vectorstore] Step 4: Attaching {len(files_to_attach)} files to vector store (parallel)")
 
-    for file_id, filename in files_to_attach:
+    def attach_single_file(file_id: str, filename: str) -> dict[str, Any]:
+        """Attach a single file to the vector store (for parallel execution)."""
         try:
             vector_store_file = client.vector_stores.files.create(
                 vector_store_id=vector_store_id, file_id=file_id
             )
-
-            # On n'attend plus le traitement complet pour éviter le timeout
-            # On retourne simplement le statut actuel du fichier
-            files_attached.append(
-                {
-                    "filename": filename,
-                    "file_id": file_id,
-                    "vector_store_file_id": vector_store_file.id,
-                    "status": vector_store_file.status,
-                }
-            )
-            attach_success_count += 1
             logger.info(
                 f"Fichier attaché au vector store: {filename} (status: {vector_store_file.status})"
             )
-
+            return {
+                "filename": filename,
+                "file_id": file_id,
+                "vector_store_file_id": vector_store_file.id,
+                "status": vector_store_file.status,
+                "success": True,
+            }
         except Exception as e:
             logger.error(f"Erreur attachement {filename}: {e}")
-            files_attached.append(
-                {
-                    "filename": filename,
-                    "file_id": file_id,
-                    "error": str(e),
-                    "status": "attach_failed",
-                }
-            )
-            attach_failure_count += 1
+            return {
+                "filename": filename,
+                "file_id": file_id,
+                "error": str(e),
+                "status": "attach_failed",
+                "success": False,
+            }
+
+    # Parallel execution using ThreadPoolExecutor
+    files_attached = []
+    attach_success_count = 0
+    attach_failure_count = 0
+
+    with ThreadPoolExecutor(max_workers=min(len(files_to_attach), 10)) as executor:
+        # Submit all tasks
+        future_to_file = {
+            executor.submit(attach_single_file, file_id, filename): (file_id, filename)
+            for file_id, filename in files_to_attach
+        }
+
+        # Collect results as they complete
+        for future in as_completed(future_to_file):
+            result = future.result()
+            files_attached.append(result)
+            if result.get("success", False):
+                attach_success_count += 1
+            else:
+                attach_failure_count += 1
 
     step4_time = time.perf_counter()
-    logger.info(f"[upload_files_to_vectorstore] Step 4 completed in {step4_time - step3_time:.2f}s - Attached: {attach_success_count}, Failed: {attach_failure_count}")
+    logger.info(f"[upload_files_to_vectorstore] Step 4 completed in {step4_time - step3_time:.2f}s (parallel) - Attached: {attach_success_count}, Failed: {attach_failure_count}")
 
     total_time = time.perf_counter() - start_time
     logger.info(f"[upload_files_to_vectorstore] TOTAL TIME: {total_time:.2f}s")
