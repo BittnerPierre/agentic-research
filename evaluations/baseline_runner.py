@@ -68,14 +68,18 @@ class BaselineRunner:
         return test_case
 
     async def run_evaluation(
-        self, test_case: dict, vector_store_id: Optional[str] = None
+        self,
+        test_case: dict,
+        vector_store_name: str,
+        vector_store_id: Optional[str] = None,
     ) -> dict:
         """
         Run evaluation for test case.
 
         Args:
             test_case: Test case dictionary
-            vector_store_id: Vector store ID (optional, uses config if not provided)
+            vector_store_name: Vector store name to lookup/create
+            vector_store_id: Vector store ID (optional, for testing with specific data - overrides name)
 
         Returns:
             Evaluation results dictionary
@@ -86,27 +90,29 @@ class BaselineRunner:
         if not syllabus:
             raise ValueError("Test case missing 'syllabus' or 'query'")
 
-        # Get or create vector store (same logic as src/main.py)
+        # Storage resolution: ID takes precedence over name
         if vector_store_id is None:
-            from openai import OpenAI
-            from src.config import get_config
-            from src.dataprep.vector_store_utils import get_vector_store_id_by_name
+            print(f"🔍 Looking up storage: '{vector_store_name}'")
 
-            config = get_config()
+            from openai import OpenAI
             client = OpenAI()
 
-            print(f"🔍 Looking for vector store: '{config.vector_store.name}'")
-            vector_store_id = get_vector_store_id_by_name(client, config.vector_store.name)
+            # Lookup vector store by name (inline to avoid cross-module imports)
+            vector_stores = client.vector_stores.list()
+            for vs in vector_stores:
+                if vs.name == vector_store_name:
+                    vector_store_id = vs.id
+                    break
 
             if vector_store_id is None:
-                print(f"📦 Creating new vector store: '{config.vector_store.name}'")
-                vector_store_obj = client.vector_stores.create(name=config.vector_store.name)
+                print(f"📦 Creating new storage: '{vector_store_name}'")
+                vector_store_obj = client.vector_stores.create(name=vector_store_name)
                 vector_store_id = vector_store_obj.id
-                print(f"✅ Vector store created: {vector_store_id}")
+                print(f"✅ Storage created: {vector_store_id}")
             else:
-                print(f"✅ Using existing vector store: {vector_store_id}")
+                print(f"✅ Found existing storage: {vector_store_id}")
         else:
-            print(f"✅ Using provided vector store: {vector_store_id}")
+            print(f"✅ Using provided storage ID: {vector_store_id}")
 
         # Create temp/output directories
         temp_dir = tempfile.mkdtemp(prefix="eval_")
@@ -364,9 +370,15 @@ async def main():
         help="Test case name (e.g., trivial_research)",
     )
     parser.add_argument(
+        "--vector-store-name",
+        type=str,
+        required=True,
+        help="Storage name to lookup/create (e.g., 'agentic_research_data')",
+    )
+    parser.add_argument(
         "--vector-store-id",
         type=str,
-        help="Vector store ID (optional, uses config.vector_store.name if not provided)",
+        help="Storage ID (optional override - for testing with specific data)",
     )
     parser.add_argument(
         "--save-baseline",
@@ -395,7 +407,11 @@ async def main():
 
     # Run evaluation
     print(f"\n🚀 Running evaluation...")
-    results = await runner.run_evaluation(test_case, args.vector_store_id)
+    results = await runner.run_evaluation(
+        test_case,
+        vector_store_name=args.vector_store_name,
+        vector_store_id=args.vector_store_id,
+    )
 
     # Validate against test case
     print(f"\n✅ Validating results...")

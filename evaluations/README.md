@@ -36,7 +36,9 @@ Runs complete research workflow and evaluates:
 **CLI Usage:**
 ```bash
 # Run evaluation (requires MCP servers running)
-poetry run eval-workflow --syllabus "Python basics" --vector-store-id vs_abc123
+poetry run eval-workflow \
+    --syllabus "Python basics" \
+    --vector-store-name "agentic_research_data"
 ```
 
 ### 3. Baseline Runner (`baseline_runner.py`)
@@ -46,11 +48,15 @@ Executes evaluations against test cases and manages baselines.
 **CLI Usage:**
 ```bash
 # Run and save new baseline
-poetry run baseline-eval --test-case trivial_research --save-baseline
+poetry run baseline-eval \
+    --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
+    --save-baseline
 
 # Compare against previous baseline
 poetry run baseline-eval \
     --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
     --compare-baseline baseline_trivial_abc123_20260114_153000.json
 ```
 
@@ -89,10 +95,11 @@ Evaluations require:
 # Set OpenAI API key
 export OPENAI_API_KEY="your-api-key"
 
-# Vector store is handled automatically:
-# - Looks up config.vector_store.name in your OpenAI account
+# Vector store name is required as CLI parameter:
+# - Uses the name from your config (e.g., "agentic_research_data")
+# - Looks up existing vector store by name
 # - Creates it if it doesn't exist
-# - Or use --vector-store-id to override (for testing)
+# - Or use --vector-store-id to override (for testing specific data)
 ```
 
 ## Usage Examples
@@ -100,12 +107,16 @@ export OPENAI_API_KEY="your-api-key"
 ### Quick Start: Run Evaluation
 
 ```bash
-# Run baseline evaluation (vector store created automatically from config)
-poetry run baseline-eval --test-case trivial_research --save-baseline
-
-# Or specify a specific vector store for testing
+# Run baseline evaluation with your vector store name
 poetry run baseline-eval \
     --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
+    --save-baseline
+
+# Or specify a specific vector store ID for testing with specific data
+poetry run baseline-eval \
+    --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
     --vector-store-id vs_abc123 \
     --save-baseline
 ```
@@ -134,10 +145,11 @@ Overall: ✅ PASS
 # After making changes, run evaluation again and compare
 poetry run baseline-eval \
     --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
     --compare-baseline baseline_trivial_abc123_20260114_153000.json
 
-# Vector store is automatically found/created from config
-# Or specify --vector-store-id to test with specific data
+# Vector store is automatically found/created by name
+# Or add --vector-store-id to test with specific data
 ```
 
 **Expected Output (if no degradation):**
@@ -196,7 +208,10 @@ baseline:
 
 Then run:
 ```bash
-poetry run baseline-eval --test-case my_custom_test --save-baseline
+poetry run baseline-eval \
+    --test-case my_custom_test \
+    --vector-store-name "agentic_research_data" \
+    --save-baseline
 ```
 
 ## Integration with CI/CD
@@ -209,6 +224,7 @@ Add to your CI pipeline:
   run: |
     poetry run baseline-eval \
       --test-case trivial_research \
+      --vector-store-name "agentic_research_data" \
       --compare-baseline evaluations/baselines/baseline_main.json
 ```
 
@@ -266,15 +282,22 @@ evaluations/
 
 ## Troubleshooting
 
-### "vector_store_id not found"
+### "Vector store not found"
 
-You need a vector store with content. Create one:
+You need a vector store with content. Create one using the normal workflow:
 
 ```bash
-# Use dataprep workflow
+# Use dataprep workflow to create and populate vector store
 poetry run mcp-dataprep-workflow \
     --syllabus "Python basics" \
     --input-files data/*.md
+
+# This creates a vector store with the name from config.yaml
+# Then use that same name in evaluation:
+poetry run baseline-eval \
+    --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
+    --save-baseline
 ```
 
 ### "MCP server connection failed"
@@ -292,7 +315,10 @@ This is expected if your changes affected quality. Review:
 
 To accept new behavior as baseline:
 ```bash
-poetry run baseline-eval --test-case trivial_research --save-baseline
+poetry run baseline-eval \
+    --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
+    --save-baseline
 ```
 
 ## Next Steps

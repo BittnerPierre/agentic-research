@@ -320,9 +320,15 @@ async def main():
         help="Research syllabus/query",
     )
     parser.add_argument(
+        "--vector-store-name",
+        type=str,
+        required=True,
+        help="Storage name to lookup/create (e.g., 'agentic_research_data')",
+    )
+    parser.add_argument(
         "--vector-store-id",
         type=str,
-        help="Vector store ID (optional, uses config.vector_store.name if not provided)",
+        help="Storage ID (optional override - for testing with specific data)",
     )
     parser.add_argument(
         "--output-dir",
@@ -333,28 +339,30 @@ async def main():
 
     args = parser.parse_args()
 
-    # Get or create vector store (same logic as src/main.py)
+    # Get or create vector store by name
     vector_store_id = args.vector_store_id
     if vector_store_id is None:
         from openai import OpenAI
-        from src.config import get_config
-        from src.dataprep.vector_store_utils import get_vector_store_id_by_name
-
-        config = get_config()
         client = OpenAI()
 
-        print(f"🔍 Looking for vector store: '{config.vector_store.name}'")
-        vector_store_id = get_vector_store_id_by_name(client, config.vector_store.name)
+        print(f"🔍 Looking up storage: '{args.vector_store_name}'")
+
+        # Lookup vector store by name (inline to avoid cross-module imports)
+        vector_stores = client.vector_stores.list()
+        for vs in vector_stores:
+            if vs.name == args.vector_store_name:
+                vector_store_id = vs.id
+                break
 
         if vector_store_id is None:
-            print(f"📦 Creating new vector store: '{config.vector_store.name}'")
-            vector_store_obj = client.vector_stores.create(name=config.vector_store.name)
+            print(f"📦 Creating new storage: '{args.vector_store_name}'")
+            vector_store_obj = client.vector_stores.create(name=args.vector_store_name)
             vector_store_id = vector_store_obj.id
-            print(f"✅ Vector store created: {vector_store_id}")
+            print(f"✅ Storage created: {vector_store_id}")
         else:
-            print(f"✅ Using existing vector store: {vector_store_id}")
+            print(f"✅ Found existing storage: {vector_store_id}")
     else:
-        print(f"✅ Using provided vector store: {vector_store_id}")
+        print(f"✅ Using provided storage ID: {vector_store_id}")
 
     # Create temp/output directories
     temp_dir = tempfile.mkdtemp(prefix="eval_")
