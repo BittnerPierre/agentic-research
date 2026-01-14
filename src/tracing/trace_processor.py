@@ -28,7 +28,7 @@ class FileTraceProcessor(TracingProcessor):
         backup_count: int = 5,
     ):
         self.log_dir = Path(log_dir)
-        self.log_dir.mkdir(exist_ok=True)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
 
         if log_file is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -55,6 +55,7 @@ class FileTraceProcessor(TracingProcessor):
             backupCount=self.backup_count,
             encoding="utf-8",
         )
+        self._file_handler = file_handler
 
         # Formatter plus compact
         formatter = logging.Formatter(
@@ -96,11 +97,13 @@ class FileTraceProcessor(TracingProcessor):
                 for file_path in files_to_delete:
                     try:
                         file_path.unlink()
-                        print(f"🗑️  Fichier de trace supprimé: {file_path.name}")
+                        # Ne pas polluer la console: pas de print ici
                     except Exception as e:
-                        print(f"⚠️  Impossible de supprimer {file_path.name}: {e}")
+                        # Ne pas polluer la console: ignorer silencieusement
+                        _ = e
         except Exception as e:
-            print(f"⚠️  Erreur lors du nettoyage des fichiers de trace: {e}")
+            # Ne pas polluer la console: ignorer silencieusement
+            _ = e
 
     def _safe_export_data(self, export_func) -> str:
         """
@@ -218,11 +221,6 @@ class FileTraceProcessor(TracingProcessor):
             self.logger.removeHandler(handler)
 
     def force_flush(self) -> None:
-        # Force le flush de la queue vers le disque
-        if hasattr(self, "log_queue"):
-            # Attendre que la queue soit vide
-            self.log_queue.join() if hasattr(self.log_queue, "join") else None
-
-        for handler in self.logger.handlers:
-            if hasattr(handler, "flush"):
-                handler.flush()
+        # Force un flush best-effort vers le disque sans risquer de bloquer sur Queue.join()
+        if hasattr(self, "_file_handler") and hasattr(self._file_handler, "flush"):
+            self._file_handler.flush()

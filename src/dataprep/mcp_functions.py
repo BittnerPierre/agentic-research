@@ -2,6 +2,7 @@
 
 import logging
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -121,11 +122,15 @@ def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str
     Returns:
         UploadResult: Résultat détaillé de l'opération
     """
+    start_time = time.perf_counter()
+    logger.info(f"[upload_files_to_vectorstore] Starting with {len(inputs)} inputs")
+
     db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
     local_dir = Path(config.data.local_storage_dir)
     client = OpenAI()
 
     # 1. Résolution inputs → KnowledgeEntry
+    logger.debug("[upload_files_to_vectorstore] Step 1: Resolving inputs to knowledge entries")
     entries_to_process = []
 
     for input_item in inputs:
@@ -149,13 +154,19 @@ def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str
 
         entries_to_process.append((entry, file_path))
 
+    step1_time = time.perf_counter()
+    logger.info(f"[upload_files_to_vectorstore] Step 1 completed in {step1_time - start_time:.2f}s - {len(entries_to_process)} entries")
+
     # 2. Créer vector store avec expiration 1 jour
+    logger.debug("[upload_files_to_vectorstore] Step 2: Creating/getting vector store")
     vector_store_manager = VectorStoreSingleton.get_instance(vectorstore_name)
     vector_store_id = vector_store_manager.get_or_create_vector_store()
 
-    logger.info(f"Vector store créé: {vector_store_id}")
+    step2_time = time.perf_counter()
+    logger.info(f"[upload_files_to_vectorstore] Step 2 completed in {step2_time - step1_time:.2f}s - Vector store: {vector_store_id}")
 
     # 3. Traitement des fichiers (upload si nécessaire)
+    logger.debug("[upload_files_to_vectorstore] Step 3: Processing files (upload if needed)")
     files_uploaded = []
     files_to_attach = []  # (file_id, filename)
     upload_count = 0
@@ -196,7 +207,11 @@ def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str
                     {"filename": entry.filename, "error": str(e), "status": "failed"}
                 )
 
+    step3_time = time.perf_counter()
+    logger.info(f"[upload_files_to_vectorstore] Step 3 completed in {step3_time - step2_time:.2f}s - Uploaded: {upload_count}, Reused: {reuse_count}")
+
     # 4. Attachement au vector store
+    logger.debug(f"[upload_files_to_vectorstore] Step 4: Attaching {len(files_to_attach)} files to vector store")
     files_attached = []
     attach_success_count = 0
     attach_failure_count = 0
@@ -233,6 +248,12 @@ def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str
                 }
             )
             attach_failure_count += 1
+
+    step4_time = time.perf_counter()
+    logger.info(f"[upload_files_to_vectorstore] Step 4 completed in {step4_time - step3_time:.2f}s - Attached: {attach_success_count}, Failed: {attach_failure_count}")
+
+    total_time = time.perf_counter() - start_time
+    logger.info(f"[upload_files_to_vectorstore] TOTAL TIME: {total_time:.2f}s")
 
     return UploadResult(
         vectorstore_id=vector_store_id,

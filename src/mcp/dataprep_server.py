@@ -11,8 +11,21 @@ from ..dataprep.mcp_functions import (
     get_knowledge_entries,
     upload_files_to_vectorstore,
 )
+from ..logging_config import setup_server_logging
 
 logger = logging.getLogger(__name__)
+
+
+def _summarize_inputs_for_log(inputs: list[str], max_items: int = 3, max_len: int = 200) -> str:
+    """
+    Résume une liste d'inputs sans logger la liste entière (peut être volumineuse/sensible).
+    """
+    preview = inputs[:max_items]
+    preview_str = ", ".join(repr(x) for x in preview)
+    if len(preview_str) > max_len:
+        preview_str = preview_str[:max_len] + "..."
+    suffix = "" if len(inputs) <= max_items else f", ... (+{len(inputs) - max_items} more)"
+    return f"[{preview_str}{suffix}]"
 
 
 def create_dataprep_server() -> FastMCP:
@@ -42,8 +55,15 @@ def create_dataprep_server() -> FastMCP:
         Returns:
             str: Nom du fichier local créé (.md)
         """
+        logger.info(f"[MCP Tool] download_and_store_url called with url={url}")
         config = get_config()
-        return download_and_store_url(url, config)
+        try:
+            result = download_and_store_url(url, config)
+            logger.info(f"[MCP Tool] download_and_store_url completed successfully: {result}")
+            return result
+        except Exception as e:
+            logger.exception(f"[MCP Tool] download_and_store_url failed: {e}")
+            raise
 
     @mcp.tool()
     def upload_files_to_vectorstore_tool(
@@ -59,9 +79,25 @@ def create_dataprep_server() -> FastMCP:
         Returns:
             Dict contenant vectorstore_id et informations sur les fichiers uploadés
         """
+        logger.info(
+            "[MCP Tool] upload_files_to_vectorstore called with "
+            f"inputs_count={len(inputs)}, inputs_preview={_summarize_inputs_for_log(inputs)}, "
+            f"vectorstore_name={vectorstore_name!r}"
+        )
         config = get_config()
-        result = upload_files_to_vectorstore(inputs, config, vectorstore_name)
-        return result.model_dump()
+        try:
+            logger.debug("[MCP Tool] Starting upload_files_to_vectorstore...")
+            result = upload_files_to_vectorstore(inputs, config, vectorstore_name)
+            logger.info(
+                f"[MCP Tool] upload_files_to_vectorstore completed: "
+                f"vectorstore_id={result.vectorstore_id}, "
+                f"upload_count={result.upload_count}, "
+                f"reuse_count={result.reuse_count}"
+            )
+            return result.model_dump()
+        except Exception as e:
+            logger.exception(f"[MCP Tool] upload_files_to_vectorstore failed: {e}")
+            raise
 
     @mcp.tool()
     def get_knowledge_entries_tool() -> list[dict[str, Any]]:
@@ -71,8 +107,15 @@ def create_dataprep_server() -> FastMCP:
         Returns:
             List[Dict]: Liste des entrées avec url, filename, title, keywords, openai_file_id
         """
+        logger.info("[MCP Tool] get_knowledge_entries called")
         config = get_config()
-        return get_knowledge_entries(config)
+        try:
+            result = get_knowledge_entries(config)
+            logger.info(f"[MCP Tool] get_knowledge_entries returned {len(result)} entries")
+            return result
+        except Exception as e:
+            logger.exception(f"[MCP Tool] get_knowledge_entries failed: {e}")
+            raise
 
     # @mcp.tool()
     # def check_vectorstore_file_status(
@@ -118,16 +161,16 @@ def create_dataprep_server() -> FastMCP:
 def start_server(host: str = "0.0.0.0", port: int = 8001):
     """Démarre le serveur MCP dataprep."""
     server = create_dataprep_server()
-    logger.info(f"Démarrage du serveur MCP DataPrep sur {host}:{port}")
+    logger.info(f"Starting DataPrep MCP Server on {host}:{port}")
+    logger.info("Server ready to accept connections")
     server.run(transport="sse", host=host, port=port)
 
 
 def main():
     """Démarre le serveur MCP dataprep."""
-    # Configuration du logging selon les mémoires [[memory:2246951870861751190]]
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    # Set up rolling file logging for long-running server
+    log_file = setup_server_logging(log_level="INFO")
+    logger.info(f"DataPrep MCP Server log file: {log_file}")
     start_server()
 
 
