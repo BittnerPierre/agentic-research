@@ -346,13 +346,19 @@ async def main():
 
     # Create MCP servers
     fs_server = MCPServerStdio(
-        "npx",
-        ["-y", "@modelcontextprotocol/server-filesystem", temp_dir, output_dir],
+        name="FS_MCP_SERVER",
+        params={
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_dir, output_dir],
+        },
     )
 
     dataprep_server = MCPServerStdio(
-        "npx",
-        ["-y", "@bpitman/mcp-server-openai"],
+        name="DATAPREP_MCP_SERVER",
+        params={
+            "command": "npx",
+            "args": ["-y", "@bpitman/mcp-server-openai"],
+        },
     )
 
     async with fs_server.connect(), dataprep_server.connect():
