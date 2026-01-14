@@ -75,7 +75,7 @@ class BaselineRunner:
 
         Args:
             test_case: Test case dictionary
-            vector_store_id: Vector store ID (optional)
+            vector_store_id: Vector store ID (optional, uses config if not provided)
 
         Returns:
             Evaluation results dictionary
@@ -86,13 +86,35 @@ class BaselineRunner:
         if not syllabus:
             raise ValueError("Test case missing 'syllabus' or 'query'")
 
+        # Get or create vector store (same logic as src/main.py)
+        if vector_store_id is None:
+            from openai import OpenAI
+            from src.config import get_config
+            from src.dataprep.vector_store_utils import get_vector_store_id_by_name
+
+            config = get_config()
+            client = OpenAI()
+
+            print(f"🔍 Looking for vector store: '{config.vector_store.name}'")
+            vector_store_id = get_vector_store_id_by_name(client, config.vector_store.name)
+
+            if vector_store_id is None:
+                print(f"📦 Creating new vector store: '{config.vector_store.name}'")
+                vector_store_obj = client.vector_stores.create(name=config.vector_store.name)
+                vector_store_id = vector_store_obj.id
+                print(f"✅ Vector store created: {vector_store_id}")
+            else:
+                print(f"✅ Using existing vector store: {vector_store_id}")
+        else:
+            print(f"✅ Using provided vector store: {vector_store_id}")
+
         # Create temp/output directories
         temp_dir = tempfile.mkdtemp(prefix="eval_")
         output_dir = tempfile.mkdtemp(prefix="eval_output_")
 
         # Create ResearchInfo
         research_info = ResearchInfo(
-            vector_store_id=vector_store_id or "vs_test_123",
+            vector_store_id=vector_store_id,
             temp_dir=temp_dir,
             output_dir=output_dir,
         )
@@ -344,7 +366,7 @@ async def main():
     parser.add_argument(
         "--vector-store-id",
         type=str,
-        help="Vector store ID",
+        help="Vector store ID (optional, uses config.vector_store.name if not provided)",
     )
     parser.add_argument(
         "--save-baseline",

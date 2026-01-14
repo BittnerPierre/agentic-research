@@ -80,8 +80,8 @@ min_grades:
 Evaluations require:
 
 1. **MCP Filesystem Server** (automatically started)
-2. **OpenAI API Key** (for LLM-as-a-judge)
-3. **Vector Store** (for research content)
+2. **OpenAI API Key** (for LLM-as-a-judge and vector store)
+3. **Vector Store** (automatically created/found from config)
 
 ### Environment Setup
 
@@ -89,8 +89,10 @@ Evaluations require:
 # Set OpenAI API key
 export OPENAI_API_KEY="your-api-key"
 
-# Optional: Configure vector store
-export VECTOR_STORE_ID="vs_your_store_id"
+# Vector store is handled automatically:
+# - Looks up config.vector_store.name in your OpenAI account
+# - Creates it if it doesn't exist
+# - Or use --vector-store-id to override (for testing)
 ```
 
 ## Usage Examples
@@ -98,8 +100,10 @@ export VECTOR_STORE_ID="vs_your_store_id"
 ### Quick Start: Run Evaluation
 
 ```bash
-# 1. Ensure you have a vector store with content
-# 2. Run baseline evaluation
+# Run baseline evaluation (vector store created automatically from config)
+poetry run baseline-eval --test-case trivial_research --save-baseline
+
+# Or specify a specific vector store for testing
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-id vs_abc123 \
@@ -130,8 +134,10 @@ Overall: ✅ PASS
 # After making changes, run evaluation again and compare
 poetry run baseline-eval \
     --test-case trivial_research \
-    --vector-store-id vs_abc123 \
     --compare-baseline baseline_trivial_abc123_20260114_153000.json
+
+# Vector store is automatically found/created from config
+# Or specify --vector-store-id to test with specific data
 ```
 
 **Expected Output (if no degradation):**
