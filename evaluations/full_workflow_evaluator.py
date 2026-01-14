@@ -371,5 +371,12 @@ async def main():
         print(f"Trajectory: {results['trajectory_file']}")
 
 
-if __name__ == "__main__":
+def cli_main():
+    """
+    Synchronous CLI entry point (for poetry scripts).
+    """
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli_main()
