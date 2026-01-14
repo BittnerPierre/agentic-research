@@ -156,8 +156,11 @@ async def main() -> None:
             },
             client_session_timeout_seconds=config.mcp.client_timeout_seconds,
         )
-        logger.info(f"Connecting to DataPrep MCP server at http://localhost:8001/sse "
-                   f"(timeout: {config.mcp.client_timeout_seconds}s)")
+        logger.info(
+            "Connecting to DataPrep MCP server at http://localhost:8001/sse "
+            f"(http timeout: {config.mcp.http_timeout_seconds}s, "
+            f"client session timeout: {config.mcp.client_timeout_seconds}s)"
+        )
         async with fs_server, dataprep_server:
             logger.info("MCP servers connected successfully")
             # trace_id = gen_trace_id()

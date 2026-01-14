@@ -245,21 +245,24 @@ def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str
     attach_success_count = 0
     attach_failure_count = 0
 
-    with ThreadPoolExecutor(max_workers=min(len(files_to_attach), 10)) as executor:
-        # Submit all tasks
-        future_to_file = {
-            executor.submit(attach_single_file, file_id, filename): (file_id, filename)
-            for file_id, filename in files_to_attach
-        }
+    if not files_to_attach:
+        logger.info("[upload_files_to_vectorstore] Step 4 skipped - No files to attach")
+    else:
+        with ThreadPoolExecutor(max_workers=min(len(files_to_attach), 10)) as executor:
+            # Submit all tasks
+            future_to_file = {
+                executor.submit(attach_single_file, file_id, filename): (file_id, filename)
+                for file_id, filename in files_to_attach
+            }
 
-        # Collect results as they complete
-        for future in as_completed(future_to_file):
-            result = future.result()
-            files_attached.append(result)
-            if result.get("success", False):
-                attach_success_count += 1
-            else:
-                attach_failure_count += 1
+            # Collect results as they complete
+            for future in as_completed(future_to_file):
+                result = future.result()
+                files_attached.append(result)
+                if result.get("success", False):
+                    attach_success_count += 1
+                else:
+                    attach_failure_count += 1
 
     step4_time = time.perf_counter()
     logger.info(f"[upload_files_to_vectorstore] Step 4 completed in {step4_time - step3_time:.2f}s (parallel) - Attached: {attach_success_count}, Failed: {attach_failure_count}")
