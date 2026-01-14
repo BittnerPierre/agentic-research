@@ -12,22 +12,30 @@
 2. ✅ Establish baseline before architectural changes
 3. ✅ Enable regression testing after migrations
 4. ✅ Automate validation without human review
+5. ✅ **Manager-agnostic**: Works with StandardManager, AgenticManager, DeepManager
+6. ✅ **Framework-agnostic**: Works offline, portable to PydanticAI/CrewAI
 
 ---
 
 ## 📋 Implementation Phases
 
-### **Phase 1: Structured Trace Collection** 🔧 Foundation
+### **Phase 1: Event Collection** 🔧 Foundation
 
-Goal: Replace text-based logs with structured JSONL using Agents SDK
+Goal: Implement framework-agnostic event logger (works offline, no SDK dependency)
 
 | Task | Status | Files | Testable Output |
 |------|--------|-------|----------------|
-| 1.1 Implement StructuredJSONTraceProcessor | ⬜ TODO | `src/tracing/processors/structured_json_processor.py` | Valid JSONL file created |
-| 1.2 Integrate into main.py | ⬜ TODO | `src/main.py` | `traces/trace_<run_id>.jsonl` exists |
-| 1.3 Create trace parsing utilities | ⬜ TODO | `evaluations/trace_utils.py` | `load_traces()` works |
+| 1.1 Implement EventLogger | ⬜ TODO | `src/events/event_logger.py` | Class works offline |
+| 1.2 Integrate into managers | ⬜ TODO | `src/*_manager.py` | Events logged to JSONL |
+| 1.3 Create event parsing utilities | ⬜ TODO | `evaluations/event_utils.py` | `load_events()` works |
 
-**Acceptance**: Run workflow → structured traces generated → parseable with `jq`
+**Acceptance**: Run workflow → events logged → parseable with `jq` → **works offline**
+
+**Architecture Decision**: Use framework-agnostic logger instead of Agents SDK TracingProcessor
+- ✅ Works offline (DGX Spark, air-gapped)
+- ✅ Framework independent (PydanticAI, CrewAI compatible)
+- ✅ Simple implementation (~100 lines)
+- See: `tests/test_offline_tracing.py`
 
 ---
 
@@ -124,15 +132,18 @@ poetry run eval-full-workflow --test-case trivial_research
 
 ## 🎯 Current Priority
 
-**Next Task**: Phase 1, Task 1.1 - Implement `StructuredJSONTraceProcessor`
+**Next Task**: Phase 1, Task 1.1 - Implement `EventLogger`
 
 **Why this first?**
 - Foundation for all other phases
-- Leverages Agents SDK tracing (as requested)
+- ✅ **Works offline** (critical for DGX Spark)
+- ✅ **Framework agnostic** (PydanticAI, CrewAI compatible)
 - Small, focused change (~100 lines)
 - Immediately useful for debugging (Issue #7)
 
 **Estimated Time**: 2-3 hours
+
+**Architecture**: Framework-agnostic event logger (tested in `tests/test_offline_tracing.py`)
 
 ---
 
