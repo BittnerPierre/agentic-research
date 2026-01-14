@@ -176,12 +176,40 @@ poetry run eval-workflow --syllabus "Python basics" --compare-baseline
 ## 📊 Progress Tracking
 
 ```
-Phase 1: ░░░░░░░░░░ 0/4 tasks (0%)
-Phase 2: ░░░░░░░░░░ 0/7 tasks (0%)
-Phase 3: ░░░░░░░░░░ 0/3 tasks (0%)
+Phase 1: ██████████ 4/4 tasks (100%) ✅ COMPLETE
+Phase 2: ██████████ 7/7 tasks (100%) ✅ COMPLETE
+Phase 3: ██████████ 3/3 tasks (100%) ✅ IMPLEMENTATION COMPLETE
 
-Overall: ░░░░░░░░░░ 0/14 tasks (0%)
+Overall: ██████████ 14/14 tasks (100%) ⚠️ NEEDS TESTING
 ```
+
+## ✅ Implemented (Not Yet Tested)
+
+### Phase 1: Trajectory Specs ✅
+- `evaluations/trajectory_specs.py` (300 lines)
+- Specs for supervisor, research, writer agents
+- 19 unit tests passing
+
+### Phase 2: Full Workflow Evaluator ✅
+- `evaluations/full_workflow_evaluator.py` (390 lines)
+- Extends write_agent_eval.py pattern
+- CLI: `poetry run eval-workflow --syllabus "..."`
+
+### Phase 3: Baseline & Regression Testing ✅
+- `evaluations/test_cases/trivial_research.yaml` (test case definition)
+- `evaluations/baseline_runner.py` (450 lines)
+- CLI: `poetry run baseline-eval --test-case trivial_research`
+
+## 🧪 Next Step: Integration Testing
+
+**Before marking complete**, need to:
+1. Run `poetry run baseline-eval --test-case trivial_research --save-baseline`
+2. Verify workflow executes without errors
+3. Verify all trajectory checkpoints pass
+4. Verify quality grades are reasonable
+5. Test regression comparison works
+
+**Estimated time**: 1-2 hours
 
 ---
 
