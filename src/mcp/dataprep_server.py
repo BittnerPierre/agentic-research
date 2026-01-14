@@ -16,6 +16,18 @@ from ..logging_config import setup_server_logging
 logger = logging.getLogger(__name__)
 
 
+def _summarize_inputs_for_log(inputs: list[str], max_items: int = 3, max_len: int = 200) -> str:
+    """
+    Résume une liste d'inputs sans logger la liste entière (peut être volumineuse/sensible).
+    """
+    preview = inputs[:max_items]
+    preview_str = ", ".join(repr(x) for x in preview)
+    if len(preview_str) > max_len:
+        preview_str = preview_str[:max_len] + "..."
+    suffix = "" if len(inputs) <= max_items else f", ... (+{len(inputs) - max_items} more)"
+    return f"[{preview_str}{suffix}]"
+
+
 def create_dataprep_server() -> FastMCP:
     """Crée le serveur MCP pour les fonctions dataprep."""
 
@@ -68,12 +80,13 @@ def create_dataprep_server() -> FastMCP:
             Dict contenant vectorstore_id et informations sur les fichiers uploadés
         """
         logger.info(
-            f"[MCP Tool] upload_files_to_vectorstore called with "
-            f"inputs={inputs}, vectorstore_name={vectorstore_name}"
+            "[MCP Tool] upload_files_to_vectorstore called with "
+            f"inputs_count={len(inputs)}, inputs_preview={_summarize_inputs_for_log(inputs)}, "
+            f"vectorstore_name={vectorstore_name!r}"
         )
         config = get_config()
         try:
-            logger.debug(f"[MCP Tool] Starting upload_files_to_vectorstore...")
+            logger.debug("[MCP Tool] Starting upload_files_to_vectorstore...")
             result = upload_files_to_vectorstore(inputs, config, vectorstore_name)
             logger.info(
                 f"[MCP Tool] upload_files_to_vectorstore completed: "
