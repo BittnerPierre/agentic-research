@@ -50,6 +50,24 @@ class LoggingConfig(BaseModel):
     format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
+class MCPConfig(BaseModel):
+    """Configuration for MCP (Model Context Protocol).
+
+    Note: http_timeout_seconds is available but not exposed in config.yaml since
+    the default (5.0s) is sufficient for HTTP connection establishment to localhost.
+    Only client_timeout_seconds needs tuning for long-running tool operations.
+    """
+
+    client_timeout_seconds: float = Field(
+        default=10.0,
+        description="Timeout for MCP tool execution (e.g., upload_files_to_vectorstore)"
+    )
+    http_timeout_seconds: float = Field(
+        default=5.0,
+        description="Timeout for HTTP connection to MCP server (usually localhost, rarely needs tuning)"
+    )
+
+
 class ModelsConfig(BaseModel):
     """Configuration for OpenAI."""
 
@@ -83,6 +101,7 @@ class Config(BaseModel):
     data: DataConfig = Field(default_factory=DataConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    mcp: MCPConfig = Field(default_factory=MCPConfig)
     models: ModelsConfig = Field(default_factory=ModelsConfig)
     manager: ManagerConfig = Field(default_factory=ManagerConfig)
     agents: AgentsConfig = Field(default_factory=AgentsConfig)
