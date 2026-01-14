@@ -1,0 +1,138 @@
+# Trivial Research Test Case
+# Purpose: Baseline evaluation for functional testing
+#
+# This is the simplest possible research task to validate that the agentic
+# research system "works as expected" before architectural changes.
+
+name: "trivial_research"
+description: "Simple research task for baseline evaluation"
+version: "1.0"
+
+# ============================================================================
+# Input
+# ============================================================================
+
+syllabus: |
+  Python programming basics:
+  - Variables and data types
+  - Functions and control flow
+  - Basic data structures (lists, dictionaries)
+
+# Alternative query format (more natural)
+query: "Research Python programming basics: variables, functions, and data structures"
+
+# ============================================================================
+# Expected Outcomes
+# ============================================================================
+
+expected_outcomes:
+  # Minimum requirements for PASS
+  min_sources: 2  # At least 2 source files collected/searched
+
+  required_sections:
+    - "Raw Notes"
+    - "Detailed Agenda"
+    - "Report"
+
+  min_word_count: 300  # Minimum total word count in report
+
+  # Topics that should be covered (for coverage validation)
+  topics_covered:
+    - "variables"
+    - "functions"
+    - "data structures"
+
+  # At least one of these should appear
+  keywords_present:
+    - "python"
+    - "programming"
+
+# ============================================================================
+# Trajectory Validation
+# ============================================================================
+
+# Expected workflow execution (manager-agnostic)
+expected_trajectory:
+  - supervisor_plans_search: true  # Supervisor created search plan
+  - supervisor_executes_search: true  # Supervisor coordinated search
+  - writer_loads_data: true  # Writer loaded search results
+  - writer_generates_sections: true  # Writer created all 3 sections
+  - report_saved: true  # Final report saved to file
+
+# ============================================================================
+# Quality Thresholds
+# ============================================================================
+
+# Minimum grades for PASS (A-E scale)
+min_grades:
+  format: "C"  # Format correctness (sections present)
+  grounding: "C"  # Grounding in Raw Notes
+  agenda: "C"  # Agenda adherence
+  usability: "C"  # Output usability
+
+# Overall judgment for PASS
+acceptable_judgments:
+  - "PASS"
+  - "BORDERLINE"  # Allow BORDERLINE for trivial case
+
+# ============================================================================
+# Test Configuration
+# ============================================================================
+
+config:
+  max_execution_time_seconds: 300  # 5 minutes max
+  vector_store_required: true  # Need vector store with Python content
+
+  # Test data preparation (if needed)
+  test_data:
+    source_files:
+      - "python_basics_variables.md"
+      - "python_basics_functions.md"
+      - "python_basics_data_structures.md"
+
+    # These files should be in vector store for search
+    expected_in_vector_store: true
+
+# ============================================================================
+# Baseline Comparison (for regression testing)
+# ============================================================================
+
+baseline:
+  # When running against baseline, these metrics should not degrade
+  metrics_to_compare:
+    - "trajectory_success_rate"  # All checkpoints passed
+    - "quality_grades"  # A-E grades for each dimension
+    - "word_count"  # Report length
+    - "execution_time"  # Performance
+
+  # Acceptable degradation thresholds
+  max_degradation:
+    grade_drop: 1  # Max 1 grade level drop (A→B, B→C)
+    word_count_drop: 0.2  # Max 20% word count reduction
+    execution_time_increase: 0.5  # Max 50% slower
+
+# ============================================================================
+# Notes
+# ============================================================================
+
+notes: |
+  This is the SIMPLEST possible test case for baseline evaluation.
+
+  Purpose:
+  - Establish baseline before file_search → vector search migration
+  - Enable regression testing after architectural changes
+  - Validate "the system works" without human review
+
+  Success Criteria:
+  - Workflow executes without errors
+  - All trajectory checkpoints pass
+  - Quality grades meet minimums (C or better)
+  - Report contains required sections and topics
+
+  Not Testing:
+  - Advanced reasoning or research depth
+  - Edge cases or error handling
+  - Performance optimization
+  - Multi-turn conversation
+
+  This is a functional test, not a quality/performance benchmark.
