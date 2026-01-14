@@ -1,0 +1,227 @@
+# MIPS in Agent Memory Test Case
+# Purpose: Structured research task with specific format requirements
+# Based on: test_files/research_test3_agents.md
+
+name: "mips_agent_memory"
+description: "Research on MIPS (Maximum Inner Product Search) in autonomous agent memory systems"
+version: "1.0"
+
+# ============================================================================
+# Input
+# ============================================================================
+
+syllabus: |
+  Research Topic: MIPS in Agent Memory
+
+  Summarize how autonomous agents use external memory retrieval through Maximum Inner Product Search (MIPS).
+  Explain why Approximate Nearest Neighbor (ANN) methods are required in this context.
+  List and briefly describe the main ANN algorithms (LSH, ANNOY, HNSW, FAISS, ScaNN), keeping each description to a single sentence.
+  Conclude with a short explanation of the trade-off between latency and recall in such systems.
+
+# Alternative query format (more natural)
+query: "How do autonomous agents use MIPS for external memory retrieval, and what are the main ANN algorithms used?"
+
+# ============================================================================
+# Source Requirements
+# ============================================================================
+
+source_requirements:
+  # Required reference URL
+  required_urls:
+    - "https://lilianweng.github.io/posts/2023-06-23-agent/"
+
+  # Must use ONLY the provided reference
+  must_use_only_provided_sources: true
+
+  # Minimum sources (just the one reference)
+  min_sources: 1
+
+# ============================================================================
+# Expected Outcomes
+# ============================================================================
+
+expected_outcomes:
+  # Structure requirements (very specific for this test)
+  required_sections:
+    - "Raw Notes"  # Framework requirement
+    - "Detailed Agenda"  # Framework requirement
+    - "Report"  # Framework requirement
+
+  # Report structure (within the Report section)
+  required_report_headers:
+    - "Definition"  # Section 1: What is MIPS in agent memory
+    - "Why ANN"  # Section 2: Why Approximate Nearest Neighbor needed
+    - "Algorithms"  # Section 3: List of 5 algorithms
+    - "Implications"  # Section 4: Latency vs recall trade-offs
+
+  # Word count (stricter than trivial case)
+  min_word_count: 200
+  max_word_count: 350
+
+  # Content requirements
+  must_mention_algorithms:
+    - "LSH"  # Locality-Sensitive Hashing
+    - "ANNOY"  # Approximate Nearest Neighbors Oh Yeah
+    - "HNSW"  # Hierarchical Navigable Small World
+    - "FAISS"  # Facebook AI Similarity Search
+    - "ScaNN"  # Scalable Nearest Neighbors
+
+  must_mention_concepts:
+    - "MIPS"  # Maximum Inner Product Search
+    - "ANN"  # Approximate Nearest Neighbor
+    - "memory"  # External memory
+    - "latency"  # Performance trade-off
+    - "recall"  # Accuracy trade-off
+
+# ============================================================================
+# Quality Thresholds
+# ============================================================================
+
+# Minimum grades for PASS (stricter than trivial case)
+min_grades:
+  format: "B"  # Must have correct structure
+  grounding: "B"  # Must cite the reference properly
+  agenda: "B"  # Must follow the 4-section structure
+  usability: "B"  # Must be factual, neutral tone
+
+# Overall judgment for PASS
+acceptable_judgments:
+  - "PASS"
+  # BORDERLINE not acceptable for this structured test
+
+# ============================================================================
+# Format Requirements
+# ============================================================================
+
+format_requirements:
+  # Tone and style
+  tone: "neutral, factual, non-conversational"
+
+  # Algorithms section structure
+  algorithms_section:
+    format: "bullet_points"
+    count: 5  # Exactly 5 algorithms
+    description_length: "single_sentence"  # Each bullet is one sentence
+
+  # Implications section structure
+  implications_section:
+    length: "single_sentence"  # Just one sentence about trade-offs
+
+# ============================================================================
+# Trajectory Validation
+# ============================================================================
+
+# Expected workflow execution
+expected_trajectory:
+  supervisor_plans_search: true
+  supervisor_executes_search: true
+  writer_loads_data: true
+  writer_generates_sections: true
+  report_saved: true
+
+  # Additional checks for this specific test
+  must_download_reference_url: true  # Must fetch the Lilian Weng article
+
+# ============================================================================
+# Test Configuration
+# ============================================================================
+
+config:
+  max_execution_time_seconds: 300  # 5 minutes max
+  vector_store_required: false  # Can work with just URL download
+
+  # Test data preparation
+  test_data:
+    source_urls:
+      - "https://lilianweng.github.io/posts/2023-06-23-agent/"
+
+    # Agent should download and process this URL
+    download_required: true
+
+# ============================================================================
+# Baseline Comparison (for regression testing)
+# ============================================================================
+
+baseline:
+  # Metrics to compare against baseline
+  metrics_to_compare:
+    - "trajectory_success_rate"  # All checkpoints passed
+    - "quality_grades"  # A-E grades for each dimension
+    - "word_count"  # Report length within range
+    - "algorithm_coverage"  # All 5 algorithms mentioned
+    - "execution_time"  # Performance
+
+  # Acceptable degradation thresholds
+  max_degradation:
+    grade_drop: 1  # Max 1 grade level drop (A→B, B→C)
+    word_count_deviation: 0.15  # Max 15% deviation from baseline
+    execution_time_increase: 0.5  # Max 50% slower
+    missing_algorithms: 0  # Cannot miss any of the 5 algorithms
+
+# ============================================================================
+# Evaluation Criteria (Detailed)
+# ============================================================================
+
+evaluation_criteria:
+  # Format correctness (35% weight)
+  format:
+    - "Has all 3 framework sections (Raw Notes, Agenda, Report)"
+    - "Report has exactly 4 subsections (Definition, Why ANN, Algorithms, Implications)"
+    - "Algorithms section has exactly 5 bullet points"
+    - "Implications section is a single sentence"
+
+  # Grounding in sources (25% weight)
+  grounding:
+    - "Information comes from Lilian Weng article"
+    - "Raw Notes contain excerpts from the reference"
+    - "No information from external sources"
+    - "Proper attribution to source"
+
+  # Agenda adherence (20% weight)
+  agenda:
+    - "Covers MIPS definition"
+    - "Explains why ANN is needed"
+    - "Lists all 5 algorithms with descriptions"
+    - "Discusses latency vs recall trade-off"
+
+  # Output usability (20% weight)
+  usability:
+    - "Neutral, factual tone (not conversational)"
+    - "Word count within 200-350 range"
+    - "Each algorithm description is one sentence"
+    - "Clear, concise, structured"
+
+# ============================================================================
+# Notes
+# ============================================================================
+
+notes: |
+  This test case is MORE COMPLEX than trivial_research:
+
+  Purpose:
+  - Test structured research with specific format requirements
+  - Validate agent can follow precise instructions
+  - Ensure proper source attribution (single reference)
+  - Test summarization and synthesis skills
+
+  Key Differences from trivial_research:
+  - Stricter word count (200-350 vs 300+)
+  - Specific section headers required
+  - Exact bullet point count (5 algorithms)
+  - Single reference URL (not multiple sources)
+  - Higher quality threshold (B vs C grades)
+
+  Success Criteria:
+  - All 4 report sections present with correct headers
+  - All 5 algorithms mentioned (LSH, ANNOY, HNSW, FAISS, ScaNN)
+  - Word count within 200-350
+  - Neutral, factual tone
+  - Properly grounded in Lilian Weng article
+
+  This tests:
+  - Instruction following
+  - Structured output generation
+  - Source attribution
+  - Concise summarization
+
+  Based on: test_files/research_test3_agents.md
