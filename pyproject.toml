@@ -17,6 +17,7 @@ mcp-dataprep-workflow = "src.dataprep.workflow:run_workflow"
 dataprep_server = "src.mcp.dataprep_server:main"
 evaluate_writer = "evaluations.write_agent_eval:eval_main"
 eval-workflow = "evaluations.full_workflow_evaluator:main"
+baseline-eval = "evaluations.baseline_runner:main"
 test_trajectory = "evaluations.write_agent_eval:test_main"
 
 
