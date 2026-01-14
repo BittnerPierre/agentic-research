@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from agents.mcp import MCPServerStdio
+from agents.mcp import MCPServerStdio, MCPServerSse
 
 from src.agents.schemas import ResearchInfo
 
@@ -106,12 +106,13 @@ class BaselineRunner:
             },
         )
 
-        dataprep_server = MCPServerStdio(
+        dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
             params={
-                "command": "npx",
-                "args": ["-y", "@bpitman/mcp-server-openai"],
+                "url": "http://localhost:8001/sse",
+                "timeout": 60,
             },
+            client_session_timeout_seconds=120,
         )
 
         # Run evaluation

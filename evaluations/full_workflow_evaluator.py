@@ -310,7 +310,7 @@ async def main():
     import argparse
     import tempfile
 
-    from agents.mcp import MCPServerStdio
+    from agents.mcp import MCPServerStdio, MCPServerSse
 
     parser = argparse.ArgumentParser(description="Evaluate full research workflow")
     parser.add_argument(
@@ -353,12 +353,13 @@ async def main():
         },
     )
 
-    dataprep_server = MCPServerStdio(
+    dataprep_server = MCPServerSse(
         name="DATAPREP_MCP_SERVER",
         params={
-            "command": "npx",
-            "args": ["-y", "@bpitman/mcp-server-openai"],
+            "url": "http://localhost:8001/sse",
+            "timeout": 60,
         },
+        client_session_timeout_seconds=120,
     )
 
     async with fs_server, dataprep_server:
