@@ -144,6 +144,8 @@ class FullWorkflowEvaluator:
                 "report_file": report.file_name,
                 "report_summary": report.short_summary,
                 "report_path": report_path,
+                "sources": list(self.research_info.search_results),
+                "sources_count": len(self.research_info.search_results),
                 "trajectory_report": trajectory_report,
                 "trajectory_file": trajectory_file,
                 "quality_result": quality_result.model_dump(),
