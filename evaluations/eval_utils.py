@@ -106,6 +106,55 @@ def _is_function_call_successful(messages: List[Dict[str, Any]], call_id: str) -
             return not ("error occurred" in output.lower() or "error:" in output.lower())
     return False
 
+
+def extract_read_multiple_files_paths(messages: List[Dict[str, Any]]) -> list[str]:
+    """
+    Extract file paths passed to read_multiple_files tool calls.
+    """
+    seen: set[str] = set()
+    ordered_paths: list[str] = []
+
+    for msg in messages:
+        if msg.get("type") != "function_call":
+            continue
+        if msg.get("name") != "read_multiple_files":
+            continue
+
+        arguments = msg.get("arguments")
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments)
+            except json.JSONDecodeError:
+                arguments = {}
+        if not isinstance(arguments, dict):
+            continue
+
+        candidates = []
+        for key in ("paths", "path", "file_paths", "files"):
+            if key in arguments:
+                candidates = arguments[key]
+                break
+
+        if isinstance(candidates, str):
+            candidates = [candidates]
+        elif not isinstance(candidates, list):
+            candidates = []
+
+        for item in candidates:
+            if isinstance(item, str):
+                path = item
+            elif isinstance(item, dict) and "path" in item:
+                path = item.get("path")
+            else:
+                path = None
+
+            if not path or path in seen:
+                continue
+            seen.add(path)
+            ordered_paths.append(path)
+
+    return ordered_paths
+
 def save_result_input_list_to_json(model_name: str, report_file_name: str, messages: list, output_report_dir: str) -> str:
     """
     Sauvegarde la liste des messages au format JSON dans le répertoire output_dir,

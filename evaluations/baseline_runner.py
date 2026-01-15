@@ -313,7 +313,13 @@ class BaselineRunner:
 
         # Check minimum sources (if specified)
         min_sources = expected.get("min_sources")
-        sources_count = results.get("sources_count")
+        sources_count = results.get("sources_read_count")
+        if sources_count is None:
+            sources_count = results.get("sources_count")
+        if sources_count is None:
+            sources = results.get("sources_read")
+            if isinstance(sources, list):
+                sources_count = len(sources)
         if sources_count is None:
             sources = results.get("sources")
             if isinstance(sources, list):

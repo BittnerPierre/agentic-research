@@ -31,6 +31,7 @@ from agentic_research.config import get_config
 from agentic_research.printer import Printer
 
 from .eval_utils import (
+    extract_read_multiple_files_paths,
     format_trajectory_report,
     load_test_case,
     save_result_input_list_to_json,
@@ -137,6 +138,7 @@ class FullWorkflowEvaluator:
             self.printer.end()
 
             # Return evaluation results
+            sources_read = extract_read_multiple_files_paths(messages)
             results = {
                 "test_case": (test_case or {}).get("name"),
                 "config_file": self._config_file,
@@ -144,6 +146,8 @@ class FullWorkflowEvaluator:
                 "report_file": report.file_name,
                 "report_summary": report.short_summary,
                 "report_path": report_path,
+                "sources_read": sources_read,
+                "sources_read_count": len(sources_read),
                 "sources": list(self.research_info.search_results),
                 "sources_count": len(self.research_info.search_results),
                 "trajectory_report": trajectory_report,
