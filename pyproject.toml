@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Experiments with Agentic Research"
 authors = ["BittnerPierre <pierre@bittner.fr>"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{include = "src"}, {include = "agentic_research"}]
 
 [tool.poetry.scripts]
 agentic-research = "src.main:cli_main"
@@ -16,6 +16,8 @@ dataprep = "src.dataprep.core:main"
 mcp-dataprep-workflow = "src.dataprep.workflow:run_workflow"
 dataprep_server = "src.mcp.dataprep_server:main"
 evaluate_writer = "evaluations.write_agent_eval:eval_main"
+eval-workflow = "evaluations.full_workflow_evaluator:cli_main"
+baseline-eval = "evaluations.baseline_runner:cli_main"
 test_trajectory = "evaluations.write_agent_eval:test_main"
 
 
@@ -44,7 +46,10 @@ poetry-audit-plugin = "^0.4.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "src"]
+# Keep the project root on sys.path (so `import src.*` works), but DO NOT add `src/`
+# directly: it would shadow the external `agents` package (openai-agents) with our
+# local `src/agents` module.
+pythonpath = ["."]
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-q --disable-warnings --maxfail=1"
 

@@ -34,10 +34,10 @@ L'outil agentic-research peut être utilisé via Poetry avec différentes option
 poetry run agentic-research
 
 # Utiliser un fichier syllabus comme requête
-poetry run agentic-research --syllabus syllabus.md
+poetry run agentic-research --syllabus test_files/syllabus.md
 
 # Spécifier un manager particulier
-poetry run agentic-research --syllabus syllabus.md --manager manager
+poetry run agentic-research --syllabus test_files/syllabus.md --manager manager
 
 # Spécifier un manager personnalisé
 poetry run agentic-research --manager custom_module.CustomManager

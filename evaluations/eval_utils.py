@@ -1,7 +1,34 @@
 import os
 import re
 import json
+from pathlib import Path
 from typing import List, Dict, Any
+
+import yaml
+
+
+def load_test_case(test_case_name: str, test_cases_dir: str = "evaluations/test_cases") -> dict:
+    """
+    Load a test case YAML file by name.
+
+    Args:
+        test_case_name: Name of test case (without .yaml)
+        test_cases_dir: Directory containing test cases
+
+    Returns:
+        Parsed test case dictionary
+    """
+    test_case_file = Path(test_cases_dir) / f"{test_case_name}.yaml"
+
+    if not test_case_file.exists():
+        available = list(Path(test_cases_dir).glob("*.yaml"))
+        raise FileNotFoundError(
+            f"Test case not found: {test_case_file}\n"
+            f"Available: {available}"
+        )
+
+    with open(test_case_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 def _extract_assistant_content(message: Dict[str, Any]) -> str:
     """
@@ -78,6 +105,55 @@ def _is_function_call_successful(messages: List[Dict[str, Any]], call_id: str) -
             # Si l'output contient une erreur, l'appel a échoué
             return not ("error occurred" in output.lower() or "error:" in output.lower())
     return False
+
+
+def extract_read_multiple_files_paths(messages: List[Dict[str, Any]]) -> list[str]:
+    """
+    Extract file paths passed to read_multiple_files tool calls.
+    """
+    seen: set[str] = set()
+    ordered_paths: list[str] = []
+
+    for msg in messages:
+        if msg.get("type") != "function_call":
+            continue
+        if msg.get("name") != "read_multiple_files":
+            continue
+
+        arguments = msg.get("arguments")
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments)
+            except json.JSONDecodeError:
+                arguments = {}
+        if not isinstance(arguments, dict):
+            continue
+
+        candidates = []
+        for key in ("paths", "path", "file_paths", "files"):
+            if key in arguments:
+                candidates = arguments[key]
+                break
+
+        if isinstance(candidates, str):
+            candidates = [candidates]
+        elif not isinstance(candidates, list):
+            candidates = []
+
+        for item in candidates:
+            if isinstance(item, str):
+                path = item
+            elif isinstance(item, dict) and "path" in item:
+                path = item.get("path")
+            else:
+                path = None
+
+            if not path or path in seen:
+                continue
+            seen.add(path)
+            ordered_paths.append(path)
+
+    return ordered_paths
 
 def save_result_input_list_to_json(model_name: str, report_file_name: str, messages: list, output_report_dir: str) -> str:
     """
