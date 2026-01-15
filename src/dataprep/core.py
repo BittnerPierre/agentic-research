@@ -174,6 +174,7 @@ def load_urls_from_file() -> list[str]:
         ValueError: Si aucune URL valide n'est trouvée dans le fichier
         Exception: Pour toute autre erreur de lecture du fichier
     """
+    config = get_config()
     # Récupérer le nom du fichier depuis la configuration
     urls_file_path = config.data.urls_file
 
@@ -219,6 +220,7 @@ def main():
     Fonction principale pour traiter les documents web et les envoyer au vector store.
     Si le mode debug est activé, sauvegarde les documents localement.
     """
+    config = get_config()
     try:
         # Chargement des URLs depuis le fichier externe configuré
         urls = load_urls_from_file()
@@ -303,7 +305,6 @@ def main():
 
                 # Upload vers le vector store
                 logger.info("Upload vers le vector store OpenAI...")
-                config = get_config()
                 client = OpenAI()
                 manager = VectorStoreManager(config.vector_store.name, client)
                 vector_store_id = manager.get_or_create_vector_store()
