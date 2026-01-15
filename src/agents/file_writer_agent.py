@@ -1,15 +1,16 @@
 # Agent used to synthesize a final report from the individual summaries.
+from typing import Any, ClassVar
+
 from pydantic import BaseModel
 
 from agents import Agent, RunContextWrapper
-from agents.agent import StopAtTools
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
 from .schemas import ReportData, ResearchInfo
-from .utils import extract_model_name, load_prompt_from_file, save_report
+from .utils import extract_model_name, load_prompt_from_file
 
 prompt_file = "write_prompt.md"
 
@@ -49,7 +50,7 @@ class WriterDirective(BaseModel):
     """List of filenames resulting from research (e.g., .txt, .md, .pdf files)."""
 
     class Config:
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict[str, Any]] = {
             "example": {
                 "search_results": [
                     "impact_ai_education.pdf",
@@ -77,28 +78,16 @@ class WriterDirective(BaseModel):
         # }
 
 
-def create_writer_agent(mcp_servers: list[MCPServer] = None, do_save_report: bool = True):
-    mcp_servers = mcp_servers if mcp_servers else []
+def create_writer_agent(
+    mcp_servers: list[MCPServer] | None = None, do_save_report: bool = True
+):
+    mcp_servers = mcp_servers or []
 
     config = get_config()
     model = config.models.writer_model
 
     model_name = extract_model_name(model)
     model_settings = get_default_model_settings(model_name)
-
-    save_agent = None
-    if do_save_report:
-        save_agent = Agent(
-            name="save_agent",
-            instructions="Save the report",
-            model=model,
-            output_type=ReportData,
-            tools=[
-                save_report,
-            ],
-            tool_use_behavior=StopAtTools(stop_at_tool_names=["save_report"]),
-            model_settings=model_settings,
-        )
 
     writer_agent = Agent(
         name="writer_agent",

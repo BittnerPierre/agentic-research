@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel
@@ -52,9 +52,6 @@ class FileFinalReport(BaseModel):
 
     follow_up_questions: list[str]
     "Les questions suivantes à explorer."
-
-
-from dataclasses import field
 
 
 @dataclass

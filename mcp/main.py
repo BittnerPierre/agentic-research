@@ -7,15 +7,15 @@ capabilities designed to work with ChatGPT's deep research feature.
 """
 
 import logging
-from typing import Dict, List, Any
+import os
+from typing import Any
+
 from fastmcp import FastMCP
 from openai import OpenAI
 
-import os
-
 # Load environment variables from .env file
 try:
-    from dotenv import load_dotenv, find_dotenv
+    from dotenv import find_dotenv, load_dotenv
     load_dotenv(find_dotenv())
 except ImportError:
     pass  # python-dotenv not available, skip loading
@@ -46,7 +46,7 @@ def create_server():
         """)
 
     @mcp.tool()
-    async def search(query: str) -> Dict[str, List[Dict[str, Any]]]:
+    async def search(query: str) -> dict[str, list[dict[str, Any]]]:
         """
         Search for documents using OpenAI Vector Store search.
         
@@ -116,7 +116,7 @@ def create_server():
         return {"results": results}
 
     @mcp.tool()
-    async def fetch(id: str) -> Dict[str, Any]:
+    async def fetch(id: str) -> dict[str, Any]:
         """
         Retrieve complete document content by ID for detailed analysis and citation.
         

@@ -24,12 +24,10 @@ import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-
-from agents.mcp import MCPServerStdio, MCPServerSse
 
 from agentic_research.agents.schemas import ResearchInfo
 from agentic_research.config import get_config
+from agents.mcp import MCPServerSse, MCPServerStdio
 
 from .eval_utils import load_test_case as load_test_case_yaml
 from .full_workflow_evaluator import FullWorkflowEvaluator
@@ -55,7 +53,7 @@ class BaselineRunner:
         self,
         test_case: dict,
         vector_store_name: str,
-        vector_store_id: Optional[str] = None,
+        vector_store_id: str | None = None,
         config_file: str = "config.yaml",
     ) -> dict:
         """
@@ -372,7 +370,7 @@ class BaselineRunner:
         self,
         test_case_name: str,
         results: dict,
-        commit_hash: Optional[str] = None,
+        commit_hash: str | None = None,
         config_file: str = "config.yaml",
     ) -> str:
         """
@@ -442,7 +440,7 @@ class BaselineRunner:
         if not baseline_path.exists():
             raise FileNotFoundError(f"Baseline not found: {baseline_path}")
 
-        with open(baseline_path, "r", encoding="utf-8") as f:
+        with open(baseline_path, encoding="utf-8") as f:
             baseline = json.load(f)
 
         return baseline
@@ -573,7 +571,7 @@ async def main():
     print(f"   Description: {test_case.get('description', 'N/A')}")
 
     # Run evaluation
-    print(f"\n🚀 Running evaluation...")
+    print("\n🚀 Running evaluation...")
     results = await runner.run_evaluation(
         test_case,
         vector_store_name=args.vector_store_name,
@@ -582,10 +580,10 @@ async def main():
     )
 
     # Validate against test case
-    print(f"\n✅ Validating results...")
+    print("\n✅ Validating results...")
     validation = runner.validate_against_test_case(results, test_case)
 
-    print(f"\n=== VALIDATION RESULTS ===")
+    print("\n=== VALIDATION RESULTS ===")
     print(f"Overall: {'✅ PASS' if validation['overall_pass'] else '❌ FAIL'}")
     for check_name, check_result in validation["checks"].items():
         status = "✅" if check_result["passed"] else "❌"
@@ -595,21 +593,22 @@ async def main():
 
     # Save baseline if requested
     if args.save_baseline:
-        print(f"\n💾 Saving baseline...")
+        print("\n💾 Saving baseline...")
         baseline_file = runner.save_baseline(
             args.test_case,
             results,
             args.commit_hash,
             config_file=args.config,
         )
+        print(f"Baseline saved: {baseline_file}")
 
     # Compare against baseline if requested
     if args.compare_baseline:
-        print(f"\n📊 Comparing against baseline...")
+        print("\n📊 Comparing against baseline...")
         baseline = runner.load_baseline(args.compare_baseline)
         comparison = runner.compare_against_baseline(results, baseline, test_case)
 
-        print(f"\n=== BASELINE COMPARISON ===")
+        print("\n=== BASELINE COMPARISON ===")
         print(f"Baseline: {comparison['baseline_commit']} @ {comparison['baseline_timestamp']}")
         print(
             f"Degradation: {'❌ DETECTED' if comparison['degradation_detected'] else '✅ NONE'}"
