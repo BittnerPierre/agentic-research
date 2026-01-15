@@ -230,6 +230,24 @@ class BaselineRunner:
             if not sections_passed:
                 validation["overall_pass"] = False
 
+        # Check required report headers (if specified)
+        required_report_headers = expected.get("required_report_headers", [])
+        if required_report_headers:
+            missing_headers = []
+            for header in required_report_headers:
+                if header not in report_content:
+                    missing_headers.append(header)
+
+            headers_passed = len(missing_headers) == 0
+            validation["checks"]["required_report_headers"] = {
+                "expected": f"contains {required_report_headers}",
+                "actual": f"missing: {missing_headers}" if missing_headers else "all present",
+                "passed": headers_passed,
+            }
+
+            if not headers_passed:
+                validation["overall_pass"] = False
+
         # Check word count (if specified)
         min_word_count = expected.get("min_word_count")
         max_word_count = expected.get("max_word_count")
@@ -273,6 +291,73 @@ class BaselineRunner:
             }
 
             if not algos_passed:
+                validation["overall_pass"] = False
+
+        # Check must-mention concepts (if specified)
+        must_mention_concepts = expected.get("must_mention_concepts", [])
+        if must_mention_concepts:
+            missing_concepts = []
+            for concept in must_mention_concepts:
+                if concept not in report_content:
+                    missing_concepts.append(concept)
+
+            concepts_passed = len(missing_concepts) == 0
+            validation["checks"]["must_mention_concepts"] = {
+                "expected": f"mentions {must_mention_concepts}",
+                "actual": f"missing: {missing_concepts}" if missing_concepts else "all present",
+                "passed": concepts_passed,
+            }
+
+            if not concepts_passed:
+                validation["overall_pass"] = False
+
+        # Check minimum sources (if specified)
+        min_sources = expected.get("min_sources")
+        sources_count = results.get("sources_count")
+        if sources_count is None:
+            sources = results.get("sources")
+            if isinstance(sources, list):
+                sources_count = len(sources)
+
+        if min_sources is not None and sources_count is not None:
+            sources_passed = sources_count >= min_sources
+            validation["checks"]["min_sources"] = {
+                "expected": f">= {min_sources}",
+                "actual": sources_count,
+                "passed": sources_passed,
+            }
+            if not sources_passed:
+                validation["overall_pass"] = False
+
+        # Check topics covered (if specified)
+        topics_covered = expected.get("topics_covered", [])
+        if topics_covered:
+            missing_topics = []
+            for topic in topics_covered:
+                if topic not in report_content:
+                    missing_topics.append(topic)
+
+            topics_passed = len(missing_topics) == 0
+            validation["checks"]["topics_covered"] = {
+                "expected": f"covers {topics_covered}",
+                "actual": f"missing: {missing_topics}" if missing_topics else "all present",
+                "passed": topics_passed,
+            }
+
+            if not topics_passed:
+                validation["overall_pass"] = False
+
+        # Check keywords present (if specified)
+        keywords_present = expected.get("keywords_present", [])
+        if keywords_present:
+            keyword_found = any(keyword in report_content for keyword in keywords_present)
+            validation["checks"]["keywords_present"] = {
+                "expected": f"contains one of {keywords_present}",
+                "actual": "found" if keyword_found else "missing",
+                "passed": keyword_found,
+            }
+
+            if not keyword_found:
                 validation["overall_pass"] = False
 
         return validation

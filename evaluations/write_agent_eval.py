@@ -36,7 +36,7 @@ import re
 from typing import List, Dict, Any
 import sys
 from .schemas import EvaluationResult
-from .prompts import llm_as_judge_prompt_V2
+from .prompts import llm_as_judge_prompt_V1
 
 
 
@@ -192,7 +192,7 @@ class EvaluationManager:
         input = (  
                     "Utilise l'agenda suivant ainsi que les contenus des fichiers attachés pour rédiger un rapport de recherche exhaustif et détaillé"
                     " sur le thème \"Agent Engineer Fondations Course\" avec focus sur les systèmes multi-agents en IA."
-                    f"\n\nAgenda: ß\n- "+ "\n- ".join(agenda) + "\n"
+                    f"\n\nAgenda:\n- "+ "\n- ".join(agenda) + "\n"
                     f"\n\nSearch results: \n- "+ "\n- ".join(search_results) + "\n"
                 )
         
@@ -277,7 +277,7 @@ class EvaluationManager:
 
         report_quality_agent = Agent(
             name="report_quality_agent",
-            instructions=llm_as_judge_prompt_V2,
+            instructions=llm_as_judge_prompt_V1,
             model="openai/gpt-4.1-mini",
             output_type=EvaluationResult,   
         )
