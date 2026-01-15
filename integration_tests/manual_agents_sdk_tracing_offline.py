@@ -26,138 +26,6 @@ def check_internet_connection() -> bool:
     test_sites = [
         ("www.google.com", 80),
         ("api.openai.com", 443),
-        ("1.1.1.1", 80),
-    ]
-    for host, port in test_sites:
-        try:
-            socket.create_connection((host, port), timeout=2)
-            return True
-        except (socket.timeout, socket.error, OSError):
-            continue
-    return False
-
-
-def verify_offline() -> None:
-    """Raise if internet is still available."""
-    if check_internet_connection():
-        raise RuntimeError(
-            "Internet connection detected. Disconnect Wi-Fi/Ethernet to run this offline test."
-        )
-
-
-class OfflineJSONTraceProcessor(TracingProcessor):
-    """TracingProcessor that writes to JSONL (minimal + abstract methods implemented)."""
-
-    def __init__(self, output_file: str):
-        self.output_file = Path(output_file)
-
-    def _write_event(self, event: dict) -> None:
-        with open(self.output_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(event, default=str) + "\n")
-
-    def on_trace_start(self, trace: Trace) -> None:
-        self._write_event(
-            {
-                "timestamp": datetime.now().isoformat(),
-                "event_type": "trace_start",
-                "trace_id": trace.trace_id,
-                "name": trace.name,
-            }
-        )
-
-    def on_trace_end(self, trace: Trace) -> None:
-        self._write_event(
-            {
-                "timestamp": datetime.now().isoformat(),
-                "event_type": "trace_end",
-                "trace_id": trace.trace_id,
-            }
-        )
-
-    def on_span_start(self, span: Span[Any]) -> None:
-        self._write_event(
-            {
-                "timestamp": datetime.now().isoformat(),
-                "event_type": "span_start",
-                "span_id": span.span_id,
-                "trace_id": span.trace_id,
-            }
-        )
-
-    def on_span_end(self, span: Span[Any]) -> None:
-        exported = span.export() if hasattr(span, "export") else {}
-        self._write_event(
-            {
-                "timestamp": datetime.now().isoformat(),
-                "event_type": "span_end",
-                "span_id": span.span_id,
-                "trace_id": span.trace_id,
-                "span_type": type(span).__name__,
-                "data": exported,
-            }
-        )
-
-    def force_flush(self) -> None:
-        pass
-
-    def shutdown(self, timeout: float | None = None) -> None:
-        pass
-
-
-def main() -> int:
-    verify_offline()
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
-        trace_file = f.name
-
-    processor = OfflineJSONTraceProcessor(trace_file)
-    set_trace_processors([processor])
-
-    model = LitellmModel(model="ollama/qwen3:8b", base_url="http://localhost:11434")
-    agent = Agent(
-        name="SimpleBot",
-        model=model,
-        instructions="Answer directly and concisely in one sentence.",
-    )
-
-    _ = Runner.run_sync(agent, "Say hello", max_turns=3)
-
-    events = Path(trace_file).read_text(encoding="utf-8").strip().splitlines()
-    print(f"Captured {len(events)} events in {trace_file}")
-    return 0 if len(events) > 0 else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-
-"""
-Manual test: Does Agents SDK tracing work offline with Ollama?
-
-Why it's manual:
-- Requires Ollama running locally
-- Requires internet to be disconnected
-- Not suitable for CI / unit test suite
-
-Run manually:
-  poetry run python integration_tests/manual_agents_sdk_tracing_offline.py
-"""
-
-import json
-import socket
-import tempfile
-from datetime import datetime
-from pathlib import Path
-from typing import Any
-
-from agents import Agent, Runner, Span, Trace, TracingProcessor, set_trace_processors
-from agents.extensions.models.litellm_model import LitellmModel
-
-
-def check_internet_connection() -> bool:
-    """Return True if online, False if offline (best-effort)."""
-    test_sites = [
-        ("www.google.com", 80),
-        ("api.openai.com", 443),
         ("1.1.1.1", 80),  # Cloudflare DNS
     ]
 
@@ -165,7 +33,7 @@ def check_internet_connection() -> bool:
         try:
             socket.create_connection((host, port), timeout=2)
             return True
-        except (socket.timeout, socket.error, OSError):
+        except (TimeoutError, OSError):
             continue
 
     return False
@@ -295,7 +163,7 @@ def test_tracing_offline_with_ollama() -> bool:
             print("   (This is OK - we're testing tracing, not agent behavior)")
 
         print("\n📊 Checking trace file...")
-        with open(trace_file, "r", encoding="utf-8") as f:
+        with open(trace_file, encoding="utf-8") as f:
             events = [json.loads(line) for line in f]
 
         print(f"   Events captured: {len(events)}")

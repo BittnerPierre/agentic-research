@@ -35,8 +35,8 @@ def dynamic_instructions(
     )
 
 
-def create_knowledge_preparation_agent(mcp_servers: list[MCPServer] = None):
-    mcp_servers = mcp_servers if mcp_servers else []
+def create_knowledge_preparation_agent(mcp_servers: list[MCPServer] | None = None):
+    mcp_servers = mcp_servers or []
 
     config = get_config()
 

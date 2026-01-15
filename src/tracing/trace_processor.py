@@ -22,7 +22,7 @@ class FileTraceProcessor(TracingProcessor):
     def __init__(
         self,
         log_dir: str = "traces",
-        log_file: str = None,
+        log_file: str | None = None,
         max_files: int = 10,
         max_bytes: int = 10 * 1024 * 1024,  # 10MB
         backup_count: int = 5,

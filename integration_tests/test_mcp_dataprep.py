@@ -1,16 +1,19 @@
 """Tests d'intégration pour le module MCP DataPrep."""
 
-import pytest
 import tempfile
-import json
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
 from pydantic import ValidationError
 
-from src.dataprep.mcp_functions import download_and_store_url, upload_files_to_vectorstore, get_knowledge_entries
-from src.dataprep.knowledge_db import KnowledgeDBManager
-from src.dataprep.models import KnowledgeEntry, KnowledgeDatabase
 from src.config import get_config
+from src.dataprep.knowledge_db import KnowledgeDBManager
+from src.dataprep.mcp_functions import (
+    download_and_store_url,
+    get_knowledge_entries,
+)
+from src.dataprep.models import KnowledgeDatabase, KnowledgeEntry
 
 
 class TestMCPDataprepIntegration:

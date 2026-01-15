@@ -1,25 +1,35 @@
+import argparse
 import asyncio
 import os
-import time
-import argparse
-import tempfile
-from pathlib import Path
 import shutil
+import sys
+import tempfile
+import time
+from pathlib import Path
 
-from agentic_research.agents.schemas import ReportData, ResearchInfo
-from agentic_research.agents.file_writer_agent import create_writer_agent
-from agents import Agent, Runner, RunConfig, TResponseInputItem, gen_trace_id, trace
-from agents.mcp import MCPServerStdio,  MCPServer
-from rich.console import Console
-from agentic_research.printer import Printer
 from langsmith.wrappers import OpenAIAgentsTracingProcessor
-from agents import add_trace_processor
-from agentic_research.config import get_config
+from rich.console import Console
+
+from agentic_research.agents.file_writer_agent import create_writer_agent
+from agentic_research.agents.schemas import ReportData, ResearchInfo
 from agentic_research.agents.utils import (
     context_aware_filter,
     generate_final_report_filename,
-    load_prompt_from_file,
 )
+from agentic_research.config import get_config
+from agentic_research.printer import Printer
+from agentic_research.tracing.trace_processor import FileTraceProcessor
+from agents import (
+    Agent,
+    RunConfig,
+    Runner,
+    TResponseInputItem,
+    add_trace_processor,
+    gen_trace_id,
+    trace,
+)
+from agents.mcp import MCPServer, MCPServerStdio
+
 from .eval_utils import (
     format_trajectory_report,
     load_test_case,
@@ -28,17 +38,8 @@ from .eval_utils import (
     test_trajectory_from_existing_files,
     validate_trajectory_spec,
 )
-from agentic_research.tracing.trace_processor import FileTraceProcessor
-import pprint
-import json
-import pprint
-import re
-from typing import List, Dict, Any
-import sys
+from .prompts import llm_as_judge_prompt_v1
 from .schemas import EvaluationResult
-from .prompts import llm_as_judge_prompt_V1
-
-
 
 DEFAULT_SEARCH_DIR = Path("evaluations/temp_search_dir")
 
@@ -192,8 +193,8 @@ class EvaluationManager:
         input = (  
                     "Utilise l'agenda suivant ainsi que les contenus des fichiers attachés pour rédiger un rapport de recherche exhaustif et détaillé"
                     " sur le thème \"Agent Engineer Fondations Course\" avec focus sur les systèmes multi-agents en IA."
-                    f"\n\nAgenda:\n- "+ "\n- ".join(agenda) + "\n"
-                    f"\n\nSearch results: \n- "+ "\n- ".join(search_results) + "\n"
+                    "\n\nAgenda:\n- "+ "\n- ".join(agenda) + "\n"
+                    "\n\nSearch results: \n- "+ "\n- ".join(search_results) + "\n"
                 )
         
         # Désactiver le tracing automatique pour cet appel
@@ -277,7 +278,7 @@ class EvaluationManager:
 
         report_quality_agent = Agent(
             name="report_quality_agent",
-            instructions=llm_as_judge_prompt_V1,
+            instructions=llm_as_judge_prompt_v1,
             model="openai/gpt-4.1-mini",
             output_type=EvaluationResult,   
         )
@@ -444,7 +445,7 @@ def test_main():
     
     try:
         # Lire le contenu du rapport
-        with open(report_file, 'r', encoding='utf-8') as f:
+        with open(report_file, encoding='utf-8') as f:
             report_content = f.read()
         
         # Créer un objet ReportData minimal pour l'évaluation

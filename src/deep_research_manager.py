@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 import time
 
-from openai.types.responses import ResponseTextDeltaEvent
 from rich.console import Console
 
 from agents import Runner, custom_span, gen_trace_id, trace

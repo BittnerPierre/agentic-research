@@ -1,28 +1,5 @@
 #!/usr/bin/env python3
 """
-Manual smoke test for the research workflow.
-
-This is NOT a unit test (requires environment + MCP servers).
-
-Run manually:
-  poetry run python integration_tests/manual_file_search_smoke.py
-"""
-
-import asyncio
-
-
-async def main() -> None:
-    raise SystemExit(
-        "Smoke test manuel: instancier les serveurs MCP et appeler le manager "
-        "comme dans `src/main.py`."
-    )
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-#!/usr/bin/env python3
-"""
 Smoke test (manual) for file search / research manager.
 
 NOTE:
@@ -34,9 +11,6 @@ Run manually:
 """
 
 import asyncio
-
-from src.agents.schemas import ResearchInfo
-from src.manager import StandardResearchManager
 
 
 async def main() -> None:

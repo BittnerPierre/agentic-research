@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Script pour inspecter et télécharger le contenu d'un vector store."""
 
-import sys
 import argparse
-from pathlib import Path
+import sys
 
 from .dataprep.inspector import VectorStoreInspector
 
@@ -42,8 +41,8 @@ Examples:
         print("🔍 Listing vector store files...")
         
         # Obtenir l'ID du vector store
-        from vector_store_manager import VectorStoreManager
         from openai import OpenAI
+        from vector_store_manager import VectorStoreManager
         
         client = OpenAI()
         manager = VectorStoreManager(client)
@@ -80,7 +79,7 @@ Examples:
         try:
             stats = inspector.download_vector_store_content(args.output_dir)
             
-            print(f"\n📊 Download Report:")
+            print("\n📊 Download Report:")
             print(f"Vector Store ID: {stats['vector_store_id']}")
             print(f"Output Directory: {stats['output_directory']}")
             print(f"Files Found: {stats['files_found']}")
@@ -89,20 +88,20 @@ Examples:
             print(f"Total Downloaded: {stats['total_bytes']} bytes")
             
             if stats['files_downloaded'] > 0:
-                print(f"\n📁 Downloaded Files:")
+                print("\n📁 Downloaded Files:")
                 for file_info in stats['files']:
                     if file_info.get('status') == 'success':
                         print(f"  ✅ {file_info['filename']} ({file_info['bytes']} bytes)")
                         print(f"     -> {file_info['local_path']}")
             
             if stats['files_failed'] > 0:
-                print(f"\n❌ Failed Downloads:")
+                print("\n❌ Failed Downloads:")
                 for file_info in stats['files']:
                     if file_info.get('status') == 'failed':
                         print(f"  ❌ {file_info.get('filename', 'unknown')}: {file_info.get('error', 'unknown error')}")
             
             print(f"\n📋 Full report saved to: {stats['output_directory']}/download_report.json")
-            print(f"\n💡 Tip: You can now inspect the downloaded .md files to see what's in your vector store!")
+            print("\n💡 Tip: You can now inspect the downloaded .md files to see what's in your vector store!")
             
         except Exception as e:
             print(f"❌ Error during inspection: {e}")

@@ -14,12 +14,8 @@ Manager-agnostic: Works with AgenticManager, DeepManager, etc.
 
 import asyncio
 import os
-import time
 from pathlib import Path
-from typing import Optional
 
-from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
-from agents.mcp import MCPServer
 from rich.console import Console
 
 from agentic_research.agents.agentic_research_agent import create_research_supervisor_agent
@@ -29,6 +25,8 @@ from agentic_research.agents.file_writer_agent import create_writer_agent
 from agentic_research.agents.schemas import ReportData, ResearchInfo
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
+from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
+from agents.mcp import MCPServer
 
 from .eval_utils import (
     extract_read_multiple_files_paths,
@@ -38,7 +36,7 @@ from .eval_utils import (
     save_trajectory_evaluation_report,
     validate_trajectory_spec,
 )
-from .prompts import llm_as_judge_prompt_V1
+from .prompts import llm_as_judge_prompt_v1
 from .schemas import EvaluationResult
 from .trajectory_specs import FULL_WORKFLOW_TRAJECTORY_SPEC
 
@@ -68,7 +66,7 @@ class FullWorkflowEvaluator:
         dataprep_server: MCPServer,
         research_info: ResearchInfo,
         syllabus: str,
-        test_case: Optional[dict] = None,
+        test_case: dict | None = None,
     ) -> dict:
         """
         Run full workflow evaluation.
@@ -302,7 +300,7 @@ class FullWorkflowEvaluator:
 
         report_quality_agent = Agent(
             name="report_quality_agent",
-            instructions=llm_as_judge_prompt_V1,
+            instructions=llm_as_judge_prompt_v1,
             model="openai/gpt-4.1-mini",
             output_type=EvaluationResult,
         )
@@ -327,7 +325,7 @@ async def main():
     import argparse
     import tempfile
 
-    from agents.mcp import MCPServerStdio, MCPServerSse
+    from agents.mcp import MCPServerSse, MCPServerStdio
 
     parser = argparse.ArgumentParser(description="Evaluate full research workflow")
     parser.add_argument(

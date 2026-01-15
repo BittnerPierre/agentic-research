@@ -2,8 +2,10 @@
 
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from openai import OpenAI
+
 from ..config import get_config
 from ..vector_store_manager import VectorStoreManager
 
@@ -13,11 +15,11 @@ logger = logging.getLogger(__name__)
 class VectorStoreInspector:
     """Inspecte et télécharge le contenu d'un vector store OpenAI."""
     
-    def __init__(self, client: Optional[OpenAI] = None):
+    def __init__(self, client: OpenAI | None = None):
         self.config = get_config()
         self.client = client or OpenAI()
         
-    def list_vector_store_files(self, vector_store_id: str) -> List[Dict[str, Any]]:
+    def list_vector_store_files(self, vector_store_id: str) -> list[dict[str, Any]]:
         """
         Liste tous les fichiers attachés à un vector store.
         
@@ -54,7 +56,7 @@ class VectorStoreInspector:
             logger.error(f"Error listing vector store files: {e}")
             return []
     
-    def retrieve_file_content(self, file_id: str) -> Optional[str]:
+    def retrieve_file_content(self, file_id: str) -> str | None:
         """
         Récupère le contenu d'un fichier par son ID.
         
@@ -77,7 +79,7 @@ class VectorStoreInspector:
             logger.error(f"Error retrieving file content for {file_id}: {e}")
             return None
     
-    def get_file_metadata(self, file_id: str) -> Optional[Dict[str, Any]]:
+    def get_file_metadata(self, file_id: str) -> dict[str, Any] | None:
         """
         Récupère les métadonnées d'un fichier.
         
@@ -101,7 +103,7 @@ class VectorStoreInspector:
             logger.error(f"Error retrieving file metadata for {file_id}: {e}")
             return None
     
-    def download_vector_store_content(self, output_dir: Optional[str] = None) -> Dict[str, Any]:
+    def download_vector_store_content(self, output_dir: str | None = None) -> dict[str, Any]:
         """
         Télécharge tout le contenu d'un vector store dans un dossier local.
         
@@ -228,7 +230,6 @@ class VectorStoreInspector:
 
 def main():
     """Fonction principale pour télécharger le contenu du vector store."""
-    import time as import_time
     
     inspector = VectorStoreInspector()
     
@@ -238,7 +239,7 @@ def main():
         # Télécharger tout le contenu
         stats = inspector.download_vector_store_content()
         
-        print(f"\n📊 Rapport de téléchargement :")
+        print("\n📊 Rapport de téléchargement :")
         print(f"Vector Store ID: {stats['vector_store_id']}")
         print(f"Dossier de sortie: {stats['output_directory']}")
         print(f"Fichiers trouvés: {stats['files_found']}")
@@ -247,14 +248,14 @@ def main():
         print(f"Total téléchargé: {stats['total_bytes']} bytes")
         
         if stats['files_downloaded'] > 0:
-            print(f"\n📁 Fichiers téléchargés :")
+            print("\n📁 Fichiers téléchargés :")
             for file_info in stats['files']:
                 if file_info.get('status') == 'success':
                     print(f"  ✅ {file_info['filename']} ({file_info['bytes']} bytes)")
                     print(f"     -> {file_info['local_path']}")
         
         if stats['files_failed'] > 0:
-            print(f"\n❌ Échecs :")
+            print("\n❌ Échecs :")
             for file_info in stats['files']:
                 if file_info.get('status') == 'failed':
                     print(f"  ❌ {file_info.get('filename', 'unknown')}: {file_info.get('error', 'unknown error')}")
