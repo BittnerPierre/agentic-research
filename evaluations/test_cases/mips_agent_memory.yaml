@@ -108,6 +108,23 @@ format_requirements:
     length: "single_sentence"  # Just one sentence about trade-offs
 
 # ============================================================================
+# Writer Agent Evaluation Inputs
+# ============================================================================
+
+writer_eval:
+  agenda:
+    - "Definition of MIPS in agent memory"
+    - "Why ANN is needed for retrieval"
+    - "Key ANN algorithms used in practice"
+    - "Latency vs recall trade-offs"
+  search_results:
+    - name: "mips_agent_memory_notes.txt"
+      content: |
+        MIPS retrieval uses vector similarity to access external memory. ANN methods
+        (LSH, ANNOY, HNSW, FAISS, ScaNN) trade accuracy for speed and help scale memory search.
+        Latency and recall trade off as indexes grow.
+
+# ============================================================================
 # Trajectory Validation
 # ============================================================================
 

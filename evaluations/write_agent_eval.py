@@ -1,21 +1,34 @@
 import asyncio
-import tempfile
 import os
 import time
 import argparse
+import tempfile
+from pathlib import Path
+import shutil
 
-from src.agents.schemas import ReportData, ResearchInfo
-from src.agents.file_writer_agent import create_writer_agent
+from agentic_research.agents.schemas import ReportData, ResearchInfo
+from agentic_research.agents.file_writer_agent import create_writer_agent
 from agents import Agent, Runner, RunConfig, TResponseInputItem, gen_trace_id, trace
 from agents.mcp import MCPServerStdio,  MCPServer
 from rich.console import Console
-from src.printer import Printer
+from agentic_research.printer import Printer
 from langsmith.wrappers import OpenAIAgentsTracingProcessor
 from agents import add_trace_processor
-from src.config import get_config
-from src.agents.utils import context_aware_filter, generate_final_report_filename, load_prompt_from_file
-from .eval_utils import validate_trajectory_spec, format_trajectory_report, test_trajectory_from_existing_files, save_result_input_list_to_json, save_trajectory_evaluation_report
-from src.tracing.trace_processor import FileTraceProcessor
+from agentic_research.config import get_config
+from agentic_research.agents.utils import (
+    context_aware_filter,
+    generate_final_report_filename,
+    load_prompt_from_file,
+)
+from .eval_utils import (
+    format_trajectory_report,
+    load_test_case,
+    save_result_input_list_to_json,
+    save_trajectory_evaluation_report,
+    test_trajectory_from_existing_files,
+    validate_trajectory_spec,
+)
+from agentic_research.tracing.trace_processor import FileTraceProcessor
 import pprint
 import json
 import pprint
@@ -27,34 +40,49 @@ from .prompts import llm_as_judge_prompt_V2
 
 
 
-# Files used as knowledge base to generate the report
-# it is the result of file_search_agent
-# it is generated with a RAG pipeline using the vector store on which we have loaded the raw transcript
-# files are in temp_dir
-SEARCH_RESULTS = [
-     "architecture_fondamentale_des_systemes_multi_agents_ai.txt",
-    #  "mecanismes_avances_de_planification_coordination_et_orchestration_dans_les_systemes_multi_agents_intelligents.txt",
-    #  "gestion_de_la_memoire_dans_les_systemes_multi_agents_ai.txt",
-    #  "outils_et_frameworks_de_developpement_pour_systemes_multi_agents_ai.txt",
-    #  "mecanismes_de_collaboration_inter_agents.txt",
-    #  "etudes_de_cas_reels_de_systemes_multi_agents_ai.txt",
-    #  "defis_techniques_et_limitations_des_systemes_multi_agents_ai.txt",
-    #  "methodologies_de_prototypage_et_developpement_d_assistants_ai_multi_outils_approches_iteratives_tests_validation_et_amelioration_continue.txt",
-    #  "perspectives_theoriques_et_prospectives_des_systemes_multi_agents_modeles_computationnels_intelligence_collective_emergence_et_implications_philosophiques.txt"
-]
+DEFAULT_SEARCH_DIR = Path("evaluations/temp_search_dir")
 
-# Agenda of the report as should be proposed by the lead researcher agent
-AGENDA = [
-    "Fondamentaux des agents intelligents et leurs architectures",
-    # "Concepts avancés de planification multi-agent et orchestration",
-    # "Workflow de gestion de la mémoire (courte et longue durée) dans les agents",
-    # "Utilisation pratique des outils dans les agents AI",
-    # "Collaboration et coordination entre plusieurs agents",
-    # "Exemples concrets et études de cas comme le système multi-agent d'Anthropic",
-    # "Défis techniques et solutions pour la mise en œuvre",
-    # "Méthodes de prototypage et développement d'assistants AI multi-outils",
-    # "Aspects théoriques et pratiques du système"
-]
+
+def _placeholder_content(test_case: dict, file_name: str) -> str:
+    syllabus = test_case.get("syllabus") or test_case.get("query") or "Placeholder content"
+    return f"{file_name}\n\n{syllabus}\n"
+
+
+def _prepare_writer_inputs(test_case: dict) -> tuple[list[str], list[str], Path]:
+    writer_eval = test_case.get("writer_eval", {})
+    agenda = writer_eval.get("agenda") or []
+    search_results = writer_eval.get("search_results") or []
+
+    if not agenda or not search_results:
+        raise ValueError("Test case missing writer_eval.agenda or writer_eval.search_results")
+
+    search_results_dir = Path(writer_eval.get("search_results_dir", DEFAULT_SEARCH_DIR))
+    temp_dir = Path(tempfile.mkdtemp(prefix="writer_eval_"))
+
+    prepared_files: list[str] = []
+    for entry in search_results:
+        if isinstance(entry, str):
+            source_path = search_results_dir / entry
+            dest_path = temp_dir / entry
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            if source_path.exists():
+                shutil.copyfile(source_path, dest_path)
+            else:
+                dest_path.write_text(_placeholder_content(test_case, entry), encoding="utf-8")
+            prepared_files.append(entry)
+        elif isinstance(entry, dict):
+            name = entry.get("name")
+            if not name:
+                raise ValueError("writer_eval.search_results entries must include 'name'")
+            content = entry.get("content") or _placeholder_content(test_case, name)
+            dest_path = temp_dir / name
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            dest_path.write_text(content, encoding="utf-8")
+            prepared_files.append(name)
+        else:
+            raise TypeError("writer_eval.search_results entries must be strings or dicts")
+
+    return agenda, prepared_files, temp_dir
 
 # ✅ ORDRE CORRIGÉ : read_multiple_files PUIS save_report PUIS generations
 TRAJECTORY_SPEC = {
@@ -97,8 +125,6 @@ TRAJECTORY_SPEC = {
 
 spec = TRAJECTORY_SPEC["trajectory_spec"]
 
-# répertoire où charger les notes intermédiaires de recherche
-temp_search_dir = "evaluations/temp_search_dir"
 # répertoire où enregistrer le rapport final
 output_report_dir = "evaluations/output_report_dir"
 
@@ -110,7 +136,13 @@ class EvaluationManager:
         self.printer = Printer(self.console)
 
 
-    async def run(self, fs_server: MCPServer, research_info: ResearchInfo) -> None:
+    async def run(
+        self,
+        fs_server: MCPServer,
+        research_info: ResearchInfo,
+        agenda: list[str],
+        search_results: list[str],
+    ) -> None:
         self.fs_server = fs_server
         self.research_info = research_info
 
@@ -132,7 +164,7 @@ class EvaluationManager:
 
             self.writer_agent = create_writer_agent([self.fs_server])
 
-            report, messages = await self._write_report(AGENDA, SEARCH_RESULTS)
+            report, messages = await self._write_report(agenda, search_results)
 
             final_report = f"Report summary\n\n{report.short_summary}"
 
@@ -153,12 +185,14 @@ class EvaluationManager:
             self.printer.end()
 
 
-    async def _write_report(self, query: str, search_results: list[str]) -> tuple[ReportData, list[TResponseInputItem]]:
+    async def _write_report(
+        self, agenda: list[str], search_results: list[str]
+    ) -> tuple[ReportData, list[TResponseInputItem]]:
         self.printer.update_item("writing", "Thinking about report...")
         input = (  
                     "Utilise l'agenda suivant ainsi que les contenus des fichiers attachés pour rédiger un rapport de recherche exhaustif et détaillé"
                     " sur le thème \"Agent Engineer Fondations Course\" avec focus sur les systèmes multi-agents en IA."
-                    f"\n\nAgenda: ß\n- "+ "\n- ".join(query) + "\n"
+                    f"\n\nAgenda: ß\n- "+ "\n- ".join(agenda) + "\n"
                     f"\n\nSearch results: \n- "+ "\n- ".join(search_results) + "\n"
                 )
         
@@ -258,7 +292,11 @@ class EvaluationManager:
         return evaluation_result
 
 
-async def main(writer_model: str = None) -> None:
+async def main(
+    writer_model: str | None = None,
+    test_case_name: str | None = None,
+    config_file: str = "config.yaml",
+) -> None:
     """
     Fonction principale pour l'évaluation de l'agent writer.
     
@@ -268,7 +306,13 @@ async def main(writer_model: str = None) -> None:
     # add_trace_processor(OpenAIAgentsTracingProcessor())
     add_trace_processor(FileTraceProcessor(log_dir="traces"))
 
-    config = get_config()
+    if not test_case_name:
+        raise ValueError("test_case_name is required")
+
+    test_case = load_test_case(test_case_name)
+    agenda, search_results, temp_dir = _prepare_writer_inputs(test_case)
+
+    config = get_config(config_file)
     # anthropic models does not seems to work (issue with json output)
     # "litellm/anthropic/claude-3-7-sonnet-latest"
     #"litellm/anthropic/claude-3-5-haiku-latest"
@@ -282,17 +326,15 @@ async def main(writer_model: str = None) -> None:
 
     print(f"Writer model: {config.models.writer_model}")
 
-    canonical_tmp_dir = os.path.realpath(temp_search_dir)
+    Path(output_report_dir).mkdir(parents=True, exist_ok=True)
+    canonical_tmp_dir = os.path.realpath(str(temp_dir))
     print(f"Canonical tmp dir: {canonical_tmp_dir}")
-    if not os.path.exists(canonical_tmp_dir):
-        print("temp_dir does not exist, exiting")
-        return
 
     fs_server = MCPServerStdio(
         name="FS_MCP_SERVER",
         params={
             "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_search_dir],
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", canonical_tmp_dir],
         },
         tool_filter=context_aware_filter,
         cache_tools_list=True
@@ -306,7 +348,7 @@ async def main(writer_model: str = None) -> None:
             output_dir=output_report_dir)
         
         evaluation_manager = EvaluationManager()
-        await evaluation_manager.run(fs_server, research_info)
+        await evaluation_manager.run(fs_server, research_info, agenda, search_results)
 
 def eval_main():
     """
@@ -315,16 +357,35 @@ def eval_main():
     """
     parser = argparse.ArgumentParser(description="Évaluation de l'agent writer")
     parser.add_argument(
-        "--writer-model", 
-        type=str, 
+        "--writer-model",
+        type=str,
         help="Modèle à utiliser pour l'agent writer. "
-             "Valeurs recommandées: openai/gpt-5-mini, litellm/mistral/mistral-medium-latest, openai/gpt-4.1"
+             "Valeurs recommandées: openai/gpt-5-mini, "
+             "litellm/mistral/mistral-medium-latest, openai/gpt-4.1",
+    )
+    parser.add_argument(
+        "--test-case",
+        type=str,
+        required=True,
+        help="Test case name in evaluations/test_cases (without .yaml)",
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.yaml",
+        help="Config file to use (e.g., 'configs/config-gpt-4.1-mini.yaml')",
     )
     
     # Parse seulement les arguments connus pour éviter les erreurs avec d'autres arguments
     args, unknown = parser.parse_known_args()
-    
-    asyncio.run(main(writer_model=args.writer_model))
+
+    asyncio.run(
+        main(
+            writer_model=args.writer_model,
+            test_case_name=args.test_case,
+            config_file=args.config,
+        )
+    )
 
 def test_main():
     """

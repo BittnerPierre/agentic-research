@@ -22,16 +22,17 @@ from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
 from agents.mcp import MCPServer
 from rich.console import Console
 
-from src.agents.agentic_research_agent import create_research_supervisor_agent
-from src.agents.file_search_agent import create_file_search_agent
-from src.agents.file_search_planning_agent import create_file_planner_agent
-from src.agents.file_writer_agent import create_writer_agent
-from src.agents.schemas import ReportData, ResearchInfo
-from src.config import get_config
-from src.printer import Printer
+from agentic_research.agents.agentic_research_agent import create_research_supervisor_agent
+from agentic_research.agents.file_search_agent import create_file_search_agent
+from agentic_research.agents.file_search_planning_agent import create_file_planner_agent
+from agentic_research.agents.file_writer_agent import create_writer_agent
+from agentic_research.agents.schemas import ReportData, ResearchInfo
+from agentic_research.config import get_config
+from agentic_research.printer import Printer
 
 from .eval_utils import (
     format_trajectory_report,
+    load_test_case,
     save_result_input_list_to_json,
     save_trajectory_evaluation_report,
     validate_trajectory_spec,
@@ -48,12 +49,17 @@ class FullWorkflowEvaluator:
     Follows the pattern from write_agent_eval.py but extends to full workflow.
     """
 
-    def __init__(self, output_dir: str = "evaluations/full_workflow_results"):
+    def __init__(
+        self,
+        output_dir: str = "evaluations/full_workflow_results",
+        config_file: str = "config.yaml",
+    ):
         self.console = Console()
         self.printer = Printer(self.console)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self._config = get_config()
+        self._config_file = config_file
+        self._config = get_config(config_file)
 
     async def run(
         self,
@@ -61,6 +67,7 @@ class FullWorkflowEvaluator:
         dataprep_server: MCPServer,
         research_info: ResearchInfo,
         syllabus: str,
+        test_case: Optional[dict] = None,
     ) -> dict:
         """
         Run full workflow evaluation.
@@ -108,7 +115,7 @@ class FullWorkflowEvaluator:
             )
 
             # Evaluate trajectory
-            trajectory_report, trajectory_file = await self._evaluate_trajectory(
+            trajectory_report, trajectory_file, report_path = await self._evaluate_trajectory(
                 report, messages
             )
 
@@ -131,9 +138,12 @@ class FullWorkflowEvaluator:
 
             # Return evaluation results
             results = {
+                "test_case": (test_case or {}).get("name"),
+                "config_file": self._config_file,
+                "config_name": self._config.config_name,
                 "report_file": report.file_name,
                 "report_summary": report.short_summary,
-                "report_path": str(final_file_path),
+                "report_path": report_path,
                 "trajectory_report": trajectory_report,
                 "trajectory_file": trajectory_file,
                 "quality_result": quality_result.model_dump(),
@@ -198,7 +208,7 @@ class FullWorkflowEvaluator:
 
     async def _evaluate_trajectory(
         self, report: ReportData, messages: list[TResponseInputItem]
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, str]:
         """
         Evaluate workflow trajectory.
 
@@ -264,7 +274,7 @@ class FullWorkflowEvaluator:
             "trajectory", "Trajectory validated", is_done=True
         )
 
-        return human_readable_report, evaluation_report_file
+        return human_readable_report, evaluation_report_file, str(final_file_path)
 
     async def _evaluate_quality(self, report: ReportData) -> EvaluationResult:
         """
@@ -317,8 +327,12 @@ async def main():
     parser.add_argument(
         "--syllabus",
         type=str,
-        required=True,
-        help="Research syllabus/query",
+        help="Research syllabus/query (ignored if --test-case is provided)",
+    )
+    parser.add_argument(
+        "--test-case",
+        type=str,
+        help="Test case name in evaluations/test_cases (without .yaml)",
     )
     parser.add_argument(
         "--vector-store-name",
@@ -337,8 +351,26 @@ async def main():
         default="evaluations/full_workflow_results",
         help="Output directory for results",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.yaml",
+        help="Config file to use (e.g., 'configs/config-gpt-4.1-mini.yaml')",
+    )
 
     args = parser.parse_args()
+
+    test_case = None
+    if args.test_case:
+        test_case = load_test_case(args.test_case)
+        syllabus = test_case.get("syllabus") or test_case.get("query")
+        if not syllabus:
+            raise ValueError("Test case missing 'syllabus' or 'query'")
+    else:
+        syllabus = args.syllabus
+
+    if not syllabus:
+        raise ValueError("Provide --syllabus or --test-case")
 
     # Get or create vector store by name
     vector_store_id = args.vector_store_id
@@ -395,13 +427,17 @@ async def main():
     )
 
     async with fs_server, dataprep_server:
-        evaluator = FullWorkflowEvaluator(output_dir=args.output_dir)
+        evaluator = FullWorkflowEvaluator(
+            output_dir=args.output_dir,
+            config_file=args.config,
+        )
 
         results = await evaluator.run(
             fs_server=fs_server,
             dataprep_server=dataprep_server,
             research_info=research_info,
-            syllabus=args.syllabus,
+            syllabus=syllabus,
+            test_case=test_case,
         )
 
         print("\n=== FINAL RESULTS ===")

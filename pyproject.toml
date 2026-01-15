@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Experiments with Agentic Research"
 authors = ["BittnerPierre <pierre@bittner.fr>"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{include = "src"}, {include = "agentic_research"}]
 
 [tool.poetry.scripts]
 agentic-research = "src.main:cli_main"

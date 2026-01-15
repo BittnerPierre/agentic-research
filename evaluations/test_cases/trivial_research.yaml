@@ -76,6 +76,24 @@ acceptable_judgments:
   - "BORDERLINE"  # Allow BORDERLINE for trivial case
 
 # ============================================================================
+# Writer Agent Evaluation Inputs
+# ============================================================================
+
+writer_eval:
+  agenda:
+    - "Variables and data types"
+    - "Functions and control flow"
+    - "Basic data structures"
+  search_results:
+    - name: "python_basics_overview.txt"
+      content: |
+        Python basics overview. Variables store values, functions define reusable behavior,
+        and lists/dicts hold structured data.
+    - name: "python_basics_examples.txt"
+      content: |
+        Example topics: variables, functions, lists, and dictionaries in simple programs.
+
+# ============================================================================
 # Test Configuration
 # ============================================================================
 

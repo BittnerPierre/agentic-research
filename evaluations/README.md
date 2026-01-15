@@ -12,6 +12,8 @@ This framework validates that the agentic research system "works as expected" th
 
 **Manager-Agnostic**: Works with any manager implementation (AgenticManager, DeepManager, etc.)
 
+Test cases describe inputs and expectations; the `--config` flag selects the model setup to evaluate.
+
 ## Components
 
 ### 1. Trajectory Specs (`trajectory_specs.py`)
@@ -27,7 +29,18 @@ from evaluations.trajectory_specs import (
 )
 ```
 
-### 2. Full Workflow Evaluator (`full_workflow_evaluator.py`)
+### 2. Writer Agent Evaluator (`write_agent_eval.py`)
+
+Runs the writer-only evaluation using YAML test cases (agenda + search results).
+
+**CLI Usage:**
+```bash
+poetry run evaluate_writer \
+    --test-case trivial_research \
+    --config config.yaml
+```
+
+### 3. Full Workflow Evaluator (`full_workflow_evaluator.py`)
 
 Runs complete research workflow and evaluates:
 - Trajectory correctness (all checkpoints passed)
@@ -37,11 +50,18 @@ Runs complete research workflow and evaluates:
 ```bash
 # Run evaluation (requires MCP servers running)
 poetry run eval-workflow \
+    --test-case trivial_research \
+    --vector-store-name "agentic_research_data" \
+    --config config.yaml
+
+# Or provide a custom syllabus directly
+poetry run eval-workflow \
     --syllabus "Python basics" \
-    --vector-store-name "agentic_research_data"
+    --vector-store-name "agentic_research_data" \
+    --config configs/config-gpt-4.1-mini.yaml
 ```
 
-### 3. Baseline Runner (`baseline_runner.py`)
+### 4. Baseline Runner (`baseline_runner.py`)
 
 Executes evaluations against test cases and manages baselines.
 
@@ -51,16 +71,18 @@ Executes evaluations against test cases and manages baselines.
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
+    --config config.yaml \
     --save-baseline
 
 # Compare against previous baseline
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
+    --config configs/config-gpt-4.1-mini.yaml \
     --compare-baseline baseline_trivial_abc123_20260114_153000.json
 ```
 
-### 4. Test Cases (`test_cases/*.yaml`)
+### 5. Test Cases (`test_cases/*.yaml`)
 
 YAML definitions of test scenarios with expected outcomes.
 
@@ -77,6 +99,12 @@ min_grades:
   grounding: "C"
   agenda: "C"
   usability: "C"
+writer_eval:
+  agenda:
+    - "Variables and data types"
+  search_results:
+    - name: "python_basics_overview.txt"
+      content: "Short notes used by the writer agent"
 ```
 
 ## Prerequisites
@@ -111,6 +139,7 @@ export OPENAI_API_KEY="your-api-key"
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
+    --config config.yaml \
     --save-baseline
 
 # Or specify a specific vector store ID for testing with specific data
@@ -118,6 +147,7 @@ poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --vector-store-id vs_abc123 \
+    --config configs/config-gpt-4.1-mini.yaml \
     --save-baseline
 ```
 
@@ -146,6 +176,7 @@ Overall: ✅ PASS
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
+    --config config.yaml \
     --compare-baseline baseline_trivial_abc123_20260114_153000.json
 
 # Vector store is automatically found/created by name

@@ -1,7 +1,34 @@
 import os
 import re
 import json
+from pathlib import Path
 from typing import List, Dict, Any
+
+import yaml
+
+
+def load_test_case(test_case_name: str, test_cases_dir: str = "evaluations/test_cases") -> dict:
+    """
+    Load a test case YAML file by name.
+
+    Args:
+        test_case_name: Name of test case (without .yaml)
+        test_cases_dir: Directory containing test cases
+
+    Returns:
+        Parsed test case dictionary
+    """
+    test_case_file = Path(test_cases_dir) / f"{test_case_name}.yaml"
+
+    if not test_case_file.exists():
+        available = list(Path(test_cases_dir).glob("*.yaml"))
+        raise FileNotFoundError(
+            f"Test case not found: {test_case_file}\n"
+            f"Available: {available}"
+        )
+
+    with open(test_case_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 def _extract_assistant_content(message: Dict[str, Any]) -> str:
     """

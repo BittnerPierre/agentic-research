@@ -13,6 +13,9 @@ Usage:
 
     # Run without saving
     poetry run baseline-eval --test-case trivial_research
+
+    # Use a specific config
+    poetry run baseline-eval --test-case trivial_research --config configs/config-gpt-4.1-mini.yaml
 """
 
 import argparse
@@ -23,11 +26,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import yaml
 from agents.mcp import MCPServerStdio, MCPServerSse
 
-from src.agents.schemas import ResearchInfo
+from agentic_research.agents.schemas import ResearchInfo
+from agentic_research.config import get_config
 
+from .eval_utils import load_test_case as load_test_case_yaml
 from .full_workflow_evaluator import FullWorkflowEvaluator
 
 
@@ -44,34 +48,15 @@ class BaselineRunner:
     def load_test_case(self, test_case_name: str) -> dict:
         """
         Load test case YAML.
-
-        Args:
-            test_case_name: Name of test case (without .yaml)
-
-        Returns:
-            Test case dictionary
-
-        Raises:
-            FileNotFoundError: If test case not found
         """
-        test_case_file = self.test_cases_dir / f"{test_case_name}.yaml"
-
-        if not test_case_file.exists():
-            raise FileNotFoundError(
-                f"Test case not found: {test_case_file}\n"
-                f"Available: {list(self.test_cases_dir.glob('*.yaml'))}"
-            )
-
-        with open(test_case_file, "r", encoding="utf-8") as f:
-            test_case = yaml.safe_load(f)
-
-        return test_case
+        return load_test_case_yaml(test_case_name, test_cases_dir=str(self.test_cases_dir))
 
     async def run_evaluation(
         self,
         test_case: dict,
         vector_store_name: str,
         vector_store_id: Optional[str] = None,
+        config_file: str = "config.yaml",
     ) -> dict:
         """
         Run evaluation for test case.
@@ -84,6 +69,8 @@ class BaselineRunner:
         Returns:
             Evaluation results dictionary
         """
+        config = get_config(config_file)
+
         # Extract syllabus from test case
         syllabus = test_case.get("syllabus") or test_case.get("query")
 
@@ -146,7 +133,8 @@ class BaselineRunner:
         # Run evaluation
         async with fs_server, dataprep_server:
             evaluator = FullWorkflowEvaluator(
-                output_dir="evaluations/full_workflow_results"
+                output_dir="evaluations/full_workflow_results",
+                config_file=config_file,
             )
 
             results = await evaluator.run(
@@ -154,8 +142,11 @@ class BaselineRunner:
                 dataprep_server=dataprep_server,
                 research_info=research_info,
                 syllabus=syllabus,
+                test_case=test_case,
             )
 
+        results["config_file"] = config_file
+        results["config_name"] = config.config_name
         return results
 
     def validate_against_test_case(self, results: dict, test_case: dict) -> dict:
@@ -287,7 +278,11 @@ class BaselineRunner:
         return validation
 
     def save_baseline(
-        self, test_case_name: str, results: dict, commit_hash: Optional[str] = None
+        self,
+        test_case_name: str,
+        results: dict,
+        commit_hash: Optional[str] = None,
+        config_file: str = "config.yaml",
     ) -> str:
         """
         Save evaluation results as baseline.
@@ -320,6 +315,8 @@ class BaselineRunner:
 
         baseline_data = {
             "test_case": test_case_name,
+            "config_file": config_file,
+            "config_name": results.get("config_name"),
             "commit_hash": commit_hash,
             "timestamp": timestamp,
             "results": results,
@@ -454,6 +451,12 @@ async def main():
         help="Storage ID (optional override - for testing with specific data)",
     )
     parser.add_argument(
+        "--config",
+        type=str,
+        default="config.yaml",
+        help="Config file to use (e.g., 'configs/config-gpt-4.1-mini.yaml')",
+    )
+    parser.add_argument(
         "--save-baseline",
         action="store_true",
         help="Save results as new baseline",
@@ -484,6 +487,7 @@ async def main():
         test_case,
         vector_store_name=args.vector_store_name,
         vector_store_id=args.vector_store_id,
+        config_file=args.config,
     )
 
     # Validate against test case
@@ -502,7 +506,10 @@ async def main():
     if args.save_baseline:
         print(f"\n💾 Saving baseline...")
         baseline_file = runner.save_baseline(
-            args.test_case, results, args.commit_hash
+            args.test_case,
+            results,
+            args.commit_hash,
+            config_file=args.config,
         )
 
     # Compare against baseline if requested
