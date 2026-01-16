@@ -35,6 +35,13 @@
 - PRs should describe scope, link issues, and include test evidence (command output or notes).
 - PRs are generally reviewed/merged by another coding agent; do not push to `main` except emergency hotfixes.
 
+## Agent Operating Rules (Strict)
+- No code changes, file edits, or tool-driven modifications without an explicit user "go".
+- Do not implement work unless an issue number (or explicit task) is specified by the user.
+- Always create or switch to a dedicated branch before any change; never work on `main`.
+- If unsure about scope or permissions, stop and ask before modifying anything.
+- Planning-only responses are required when the user asks for planning or review.
+
 ## Configuration & Runtime Notes
 - Default manager selection lives in `config.yaml` (`manager.default_manager`).
 - You can override the default manager with `DEFAULT_MANAGER` environment variable.
