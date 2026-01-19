@@ -15,9 +15,8 @@ RUN apt-get update \
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml README.md ./
-RUN poetry install --only main --no-ansi
-
 COPY src ./src
+RUN poetry install --only main --no-ansi
 COPY config.yaml urls.txt ./
 COPY data ./data
 RUN mkdir -p output debug_output logs
