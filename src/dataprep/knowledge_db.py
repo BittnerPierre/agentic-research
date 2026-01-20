@@ -5,7 +5,7 @@ import logging
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import portalocker
 
@@ -17,18 +17,18 @@ logger = logging.getLogger(__name__)
 class KnowledgeDBManager:
     """Gestionnaire thread-safe pour la base de connaissances locale."""
 
-    _instance = None
-    _url_index = {}  # Index par URL (transient)
-    _name_index = {}  # Index par nom de fichier (transient)
+    _instance: ClassVar["KnowledgeDBManager | None"] = None
+    _url_index: ClassVar[dict[str, KnowledgeEntry]] = {}  # Index par URL (transient)
+    _name_index: ClassVar[dict[str, KnowledgeEntry]] = {}  # Index par nom de fichier (transient)
 
-    def __new__(cls, db_path: Path = None):
+    def __new__(cls, db_path: Path | None = None):
         """Implémentation du pattern Singleton."""
         if cls._instance is None:
-            cls._instance = super(KnowledgeDBManager, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, db_path: Path = None):
+    def __init__(self, db_path: Path | None = None):
         """Initialisation (une seule fois)."""
         if not hasattr(self, "_initialized") or not self._initialized:
             if db_path is None:

@@ -53,6 +53,13 @@ data/*.json
 data/*.md
 *.log
 
+# Evaluation artifacts (keep baselines, ignore temporary results)
+evaluations/full_workflow_results/*.md
+evaluations/full_workflow_results/*.json
+evaluations/full_workflow_results/*.txt
+evaluations/output_report_dir/
+evaluations/sav_file/
+
 # Environment variables
 .env
 .env.local

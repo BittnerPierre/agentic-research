@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class VectorStoreManager:
     """Gère automatiquement les vector stores par nom."""
 
-    def __init__(self, vector_store_name: str = None, client: OpenAI = None):
+    def __init__(self, vector_store_name: str | None = None, client: OpenAI | None = None):
         self._vector_store_name = vector_store_name
         self._client = client or OpenAI()
         self._vector_store_id: str | None = None

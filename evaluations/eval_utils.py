@@ -1,9 +1,36 @@
+import json
 import os
 import re
-import json
-from typing import List, Dict, Any
+from pathlib import Path
+from typing import Any
 
-def _extract_assistant_content(message: Dict[str, Any]) -> str:
+import yaml
+
+
+def load_test_case(test_case_name: str, test_cases_dir: str = "evaluations/test_cases") -> dict:
+    """
+    Load a test case YAML file by name.
+
+    Args:
+        test_case_name: Name of test case (without .yaml)
+        test_cases_dir: Directory containing test cases
+
+    Returns:
+        Parsed test case dictionary
+    """
+    test_case_file = Path(test_cases_dir) / f"{test_case_name}.yaml"
+
+    if not test_case_file.exists():
+        available = list(Path(test_cases_dir).glob("*.yaml"))
+        raise FileNotFoundError(
+            f"Test case not found: {test_case_file}\n"
+            f"Available: {available}"
+        )
+
+    with open(test_case_file, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+def _extract_assistant_content(message: dict[str, Any]) -> str:
     """
     Extrait le contenu textuel d'un message assistant, 
     gérant différents formats (string directe ou liste avec objets text).
@@ -66,7 +93,7 @@ def _clean_regex_for_display(regex_pattern: str) -> str:
     
     return cleaned
 
-def _is_function_call_successful(messages: List[Dict[str, Any]], call_id: str) -> bool:
+def _is_function_call_successful(messages: list[dict[str, Any]], call_id: str) -> bool:
     """
     Vérifie si un appel de fonction a réussi en cherchant son function_call_output correspondant.
     Retourne True si l'output ne contient pas d'erreur.
@@ -78,6 +105,55 @@ def _is_function_call_successful(messages: List[Dict[str, Any]], call_id: str) -
             # Si l'output contient une erreur, l'appel a échoué
             return not ("error occurred" in output.lower() or "error:" in output.lower())
     return False
+
+
+def extract_read_multiple_files_paths(messages: list[dict[str, Any]]) -> list[str]:
+    """
+    Extract file paths passed to read_multiple_files tool calls.
+    """
+    seen: set[str] = set()
+    ordered_paths: list[str] = []
+
+    for msg in messages:
+        if msg.get("type") != "function_call":
+            continue
+        if msg.get("name") != "read_multiple_files":
+            continue
+
+        arguments = msg.get("arguments")
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments)
+            except json.JSONDecodeError:
+                arguments = {}
+        if not isinstance(arguments, dict):
+            continue
+
+        candidates = []
+        for key in ("paths", "path", "file_paths", "files"):
+            if key in arguments:
+                candidates = arguments[key]
+                break
+
+        if isinstance(candidates, str):
+            candidates = [candidates]
+        elif not isinstance(candidates, list):
+            candidates = []
+
+        for item in candidates:
+            if isinstance(item, str):
+                path = item
+            elif isinstance(item, dict) and "path" in item:
+                path = item.get("path")
+            else:
+                path = None
+
+            if not path or path in seen:
+                continue
+            seen.add(path)
+            ordered_paths.append(path)
+
+    return ordered_paths
 
 def save_result_input_list_to_json(model_name: str, report_file_name: str, messages: list, output_report_dir: str) -> str:
     """
@@ -116,9 +192,9 @@ def save_trajectory_evaluation_report(model_name: str, output_report_dir: str, r
 
 
 def validate_trajectory_spec(
-    messages: List[Dict[str,Any]], 
-    spec: List[Dict[str,Any]]
-) -> Dict[str,Any]:
+    messages: list[dict[str,Any]], 
+    spec: list[dict[str,Any]]
+) -> dict[str,Any]:
     """
     Version améliorée qui gère correctement les différents formats de contenu
     et fournit un rapport plus détaillé. Ne s'arrête JAMAIS aux étapes manquantes.
@@ -278,7 +354,7 @@ def validate_trajectory_spec(
                 # ✅ NETTOYÉ : Utiliser seulement le match_regex avec nettoyage
                 pattern_display = _clean_regex_for_display(step["match_regex"])
                 found_text = f"'{pattern_display}'"
-                detail_text = f"Pattern trouvé dans le contenu"
+                detail_text = "Pattern trouvé dans le contenu"
                 if matched_event["type"] == "function_call":
                     detail_text += f" (arguments de {matched_event['name']})"
                 expected_display = pattern_display
@@ -334,7 +410,7 @@ def validate_trajectory_spec(
         "missing_required_list": [r["id"] for r in missing_required]
     }
 
-def format_trajectory_report(model_name: str, evaluation: Dict[str, Any], title: str = "Agent Trajectory") -> str:
+def format_trajectory_report(model_name: str, evaluation: dict[str, Any], title: str = "Agent Trajectory") -> str:
     """
     Formate le rapport d'évaluation de trajectoire de manière lisible et professionnelle.
     
@@ -390,14 +466,14 @@ def format_trajectory_report(model_name: str, evaluation: Dict[str, Any], title:
     
     return "\n".join(report)
 
-def test_trajectory_from_existing_files(messages_file: str, spec: List[Dict[str, Any]]) -> str:
+def test_trajectory_from_existing_files(messages_file: str, spec: list[dict[str, Any]]) -> str:
     """
     ✨ NOUVELLE FONCTIONNALITÉ : 
     Teste la trajectoire sur des fichiers de messages existants sans refaire la génération.
     Parfait pour itérer sur les validations sans payer les coûts de génération !
     """
     try:
-        with open(messages_file, 'r', encoding='utf-8') as f:
+        with open(messages_file, encoding='utf-8') as f:
             messages = json.load(f)
         
         evaluation = validate_trajectory_spec(messages, spec)

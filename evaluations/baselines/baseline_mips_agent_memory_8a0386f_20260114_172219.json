@@ -1,0 +1,25 @@
+{
+  "test_case": "mips_agent_memory",
+  "commit_hash": "8a0386f",
+  "timestamp": "20260114_172219",
+  "results": {
+    "report_file": "mips_in_agent_memory",
+    "report_summary": "The report discusses how autonomous agents utilize external memory retrieval through Maximum Inner Product Search (MIPS) and the necessity of Approximate Nearest Neighbor (ANN) methods in this context. It provides an overview of key ANN algorithms including Locality-Sensitive Hashing (LSH), ANNOY, Hierarchical Navigable Small World (HNSW), Facebook AI Similarity Search (FAISS), and ScaNN, each briefly described. The report concludes with an explanation of the trade-off between latency and recall in these systems, highlighting the balance required for efficient and accurate vector search in high-dimensional spaces.",
+    "trajectory_report": "\ud83d\udd0d RAPPORT D'\u00c9VALUATION - Full Workflow Trajectory - openai/gpt-4.1-mini\n============================================================\n\n\ud83d\udcca R\u00c9SUM\u00c9 GLOBAL: \u274c \u00c9CHEC\n   \u2022 \u00c9tapes trouv\u00e9es: 4/7\n   \u2022 \u00c9tapes requises: 7\n   \u2022 \u00c9tapes requises manquantes: 3\n\n\ud83d\udccb D\u00c9TAIL DES \u00c9TAPES:\n----------------------------------------\n\n1. \u274c SUPERVISOR_PLAN_SEARCH\n   Type: function_call\n   Attendu: plan_file_search\n   Statut: MANQUANT (REQUIS)\n   Trouv\u00e9: Pas trouv\u00e9: plan_file_search\n   Raison: Pas trouv\u00e9: plan_file_search\n\n2. \u274c SUPERVISOR_EXECUTE_SEARCH\n   Type: function_call\n   Attendu: file_search\n   Statut: MANQUANT (REQUIS)\n   Trouv\u00e9: Pas trouv\u00e9: file_search\n   Raison: Pas trouv\u00e9: file_search\n\n3. \u2705 WRITER_LOAD_DATA\n   Type: function_call\n   Attendu: read_multiple_files\n   Statut: TROUV\u00c9\n   Trouv\u00e9: Appel de fonction 'read_multiple_files' (\u2705 R\u00c9USSI)\n   Call ID: tzN1GLUVQ\n   Position: Message #2\n\n4. \u2705 WRITER_RAW_NOTES\n   Type: generation\n   Attendu: ## Raw Notes\n   Statut: TROUV\u00c9\n   Trouv\u00e9: '## Raw Notes'\n   Pattern trouv\u00e9 dans le contenu\n   Position: Message #6\n\n5. \u2705 WRITER_AGENDA\n   Type: generation\n   Attendu: ## Detailed Agenda\n   Statut: TROUV\u00c9\n   Trouv\u00e9: '## Detailed Agenda'\n   Pattern trouv\u00e9 dans le contenu\n   Position: Message #6\n\n6. \u2705 WRITER_REPORT\n   Type: generation\n   Attendu: ## Report\n   Statut: TROUV\u00c9\n   Trouv\u00e9: '## Report'\n   Pattern trouv\u00e9 dans le contenu\n   Position: Message #6\n\n7. \u274c WRITER_SAVE\n   Type: function_call\n   Attendu: save_report\n   Statut: MANQUANT (REQUIS)\n   Trouv\u00e9: Pas trouv\u00e9: save_report\n   Raison: Pas trouv\u00e9: save_report\n\n\ud83d\udca1 RECOMMANDATIONS:\n--------------------\n\u2022 V\u00e9rifier que l'agent ex\u00e9cute toutes les \u00e9tapes requises\n  - supervisor_plan_search: plan_file_search\n  - supervisor_execute_search: file_search\n  - writer_save: save_report\n\u2022 V\u00e9rifier les patterns regex et noms de fonctions dans TRAJECTORY_SPEC_MODEL\n\u2022 Examiner les messages g\u00e9n\u00e9r\u00e9s pour s'assurer qu'ils contiennent les patterns attendus\n\u2022 \u2705 NOUVEAU : V\u00e9rifier que les function_calls ne retournent pas d'erreurs",
+    "trajectory_file": "evaluations/full_workflow_results/mips_in_agent_memory_openai-gpt-4.1-mini_trajectory_evaluation.txt",
+    "quality_result": {
+      "judgment": "PASS",
+      "grades": {
+        "format": "A",
+        "grounding": "A",
+        "agenda": "A",
+        "usability": "A"
+      },
+      "reasoning": "The submission includes all three clearly distinct sections: Raw Notes, Detailed Agenda, and Final Report, meeting the fundamental structural requirements. The final report is closely aligned with both the raw notes and the agenda, expanding on each agenda item using content from the raw notes without drifting off-topic. Key concepts from the notes, such as MIPS, ANN algorithms (LSH, ANNOY, HNSW, FAISS, ScaNN), agent memory architecture, and optimization techniques, are well integrated. The report is a comprehensive, structured synthesis that clearly explains the subject matter with good usability for research or technical understanding. There are no significant missing agenda items or unused raw note concepts, and no off-topic signals are present.",
+      "missing_raw_notes": [],
+      "missing_agenda_items": [],
+      "off_topic_signals": []
+    },
+    "trace_id": "trace_aa86fd774ec045edad79ae15b8cfc379"
+  }
+}

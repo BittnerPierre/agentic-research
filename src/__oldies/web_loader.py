@@ -1,9 +1,8 @@
 import logging
 import re
-import urllib.request
 import urllib.parse
+import urllib.request
 from html.parser import HTMLParser
-from typing import List, Optional
 
 # Configuration du logger
 logger = logging.getLogger(__name__)
@@ -91,7 +90,7 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def fetch_web_content(url: str, timeout: int = 30) -> Optional[WebDocument]:
+def fetch_web_content(url: str, timeout: int = 30) -> WebDocument | None:
     """
     Récupère le contenu d'une URL et l'analyse.
     
@@ -158,7 +157,7 @@ def fetch_web_content(url: str, timeout: int = 30) -> Optional[WebDocument]:
         return None
 
 
-def load_documents_from_urls(urls: List[str]) -> List[WebDocument]:
+def load_documents_from_urls(urls: list[str]) -> list[WebDocument]:
     """
     Charge des documents depuis une liste d'URLs.
     

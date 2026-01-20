@@ -24,8 +24,6 @@ from .manager import StandardResearchManager
 from .tracing.trace_processor import FileTraceProcessor
 
 
-
-
 def get_manager_class(manager_path: str):
     """Dynamically import and return a manager class from a path string."""
     if not manager_path or "." not in manager_path:

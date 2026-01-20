@@ -29,8 +29,10 @@ def dynamic_instructions(
     )
 
 
-def create_file_search_agent(mcp_servers: list[MCPServer] = None, vector_store_id: str = None):
-    mcp_servers = mcp_servers if mcp_servers else []
+def create_file_search_agent(
+    mcp_servers: list[MCPServer] | None = None, vector_store_id: str | None = None
+):
+    mcp_servers = mcp_servers or []
 
     config = get_config()
 

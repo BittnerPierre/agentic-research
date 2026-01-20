@@ -29,7 +29,7 @@ INSTRUCTIONS = f"{RECOMMENDED_PROMPT_PREFIX}" f"{ORCHESTRATOR_PROMPT}"
 
 
 async def extract_json_payload(run_result: RunResult) -> str:
-    # Scan the agent’s outputs in reverse order until we find a JSON-like message from a tool call.
+    # Scan the agent's outputs in reverse order until we find a JSON-like message from a tool call.
     print(f"run_result: {run_result}")
     for item in reversed(run_result.new_items):
         if isinstance(item, ToolCallOutputItem) and item.output.strip().startswith("{"):

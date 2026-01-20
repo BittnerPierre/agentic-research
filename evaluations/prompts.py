@@ -1,4 +1,4 @@
-llm_as_judge_prompt_V1 = """
+llm_as_judge_prompt_v1 = """
 You are an evaluation judge. Your job is to check if the section `Final Report` is a valid structured research synthesis of the provided `Raw Notes`, organized according to `Detailed Agenda`.
 
 ## Evaluation criteria
@@ -51,7 +51,7 @@ Grade each dimension from A (excellent) to E (very poor):
 }
 """
 
-llm_as_judge_prompt_V2 = """
+llm_as_judge_prompt_v2 = """
 You are an evaluation judge. Your task is to decide if a generated output is a valid structured research synthesis.
 
 ## Step 1: Pre-check (mandatory)
@@ -69,7 +69,7 @@ If **any of these three parts is missing**, set:
 
 ---
 
-## Step 2: Grading (A–E)
+## Step 2: Grading (A-E)
 Only if all three sections exist:
 
 1. **Sections completeness**  
@@ -126,7 +126,7 @@ Only if all three sections exist:
 }
 """
 
-llm_as_judge_prompt_V3 = """You are an evaluation judge. Your task is to check if a generated output is a valid structured research synthesis, i.e., an **aggregation of knowledge from provided sources** (Raw Notes → Agenda → Final Report).
+llm_as_judge_prompt_v3 = """You are an evaluation judge. Your task is to check if a generated output is a valid structured research synthesis, i.e., an **aggregation of knowledge from provided sources** (Raw Notes → Agenda → Final Report).
 
 ## Step 1: Pre-check (mandatory)
 The output must contain **three clearly distinct sections** (names may vary):
@@ -158,7 +158,7 @@ Signs of correct alignment:
 
 ---
 
-## Step 3: Grading (A–E, only if pre-check passes)
+## Step 3: Grading (A-E, only if pre-check passes)
 
 1. **Sections completeness**  
    - A: All three sections present and distinct.  

@@ -253,13 +253,11 @@ class SmartWebParser:
                         next_line = lines[j].strip()
 
             if next_line:  # S'il y a encore du contenu après
-                next_is_heading = bool(re.match(r"^#+\s+", next_line))
                 next_is_list = bool(
                     re.match(r"^[\s]*[\*\-\+]\s+", next_line)
                     or re.match(r"^[\s]*\d+\.\s+", next_line)
                 )
                 next_is_quote = next_line.startswith(">")
-                next_is_code = next_line == "```" or next_line == "[code]" or next_line == "[/code]"
 
                 if is_heading:
                     # Ligne vide après tous les titres
