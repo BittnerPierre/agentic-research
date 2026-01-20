@@ -81,7 +81,7 @@ services:
       - v1-dgx
 
   llama-cpp-cpu:
-    image: ghcr.io/ggerganov/llama.cpp:full
+    image: ghcr.io/ggml-org/llama.cpp:full
     platform: linux/amd64
     ports:
       - "8002:8002"
@@ -94,7 +94,7 @@ services:
       - v1-local
 
   llama-cpp-gpu:
-    image: ghcr.io/ggerganov/llama.cpp:full
+    image: ghcr.io/ggml-org/llama.cpp:full
     ports:
       - "8002:8002"
     volumes:
