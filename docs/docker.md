@@ -81,8 +81,9 @@ Notes:
 
 - Set model choices in `docker-compose.v1.local.yml` or
   `docker-compose.v1.dgx.yml`.
-- Place GGUF models under `./models` and update the llama.cpp command with the
-  correct filename.
+- llama.cpp uses the Hugging Face cache mount (`~/.cache/huggingface` or
+  `HF_HOME`) at `/models`. Update the command to point at the GGUF you want
+  under `/models/hub/...`.
 - `embeddings-cpu` and `llama-cpp-cpu` use `platform: linux/amd64` for Mac;
   remove if you build native images.
 
@@ -92,6 +93,19 @@ Smoke checks:
 curl -s http://localhost:8000/api/v2/heartbeat | head -n 1
 curl -s http://localhost:8003/health | head -n 1
 curl -s http://localhost:8002/health | head -n 1
+```
+
+End-to-end V1 smoke script (embeddings -> chroma -> llama.cpp):
+
+```bash
+poetry run python scripts/v1_smoke.py
+```
+
+Defaults for Chroma tenancy can be overridden (if needed):
+
+```bash
+CHROMA_TENANT=default_tenant CHROMA_DATABASE=default_database \
+  poetry run python scripts/v1_smoke.py
 ```
 
 ## Run (mount local config/data)
