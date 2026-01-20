@@ -55,9 +55,6 @@ services:
       - "8003:8003"
     volumes:
       - ./data/embeddings:/data
-    environment:
-      MODEL_ID: ${EMBEDDING_MODEL_ID:-BAAI/bge-small-en-v1.5}
-    command: ["--model-id", "${EMBEDDING_MODEL_ID:-BAAI/bge-small-en-v1.5}", "--port", "8003"]
     profiles:
       - v1-local
 
@@ -67,9 +64,6 @@ services:
       - "8003:8003"
     volumes:
       - ./data/embeddings:/data
-    environment:
-      MODEL_ID: ${EMBEDDING_MODEL_ID:-BAAI/bge-large-en-v1.5}
-    command: ["--model-id", "${EMBEDDING_MODEL_ID:-BAAI/bge-large-en-v1.5}", "--port", "8003"]
     deploy:
       resources:
         reservations:
@@ -87,9 +81,6 @@ services:
       - "8002:8002"
     volumes:
       - ./models:/models
-    environment:
-      LLAMA_MODEL_PATH: ${LLAMA_MODEL_PATH:-/models/model.gguf}
-    command: ["sh", "-lc", "./server -m ${LLAMA_MODEL_PATH:-/models/model.gguf} --host 0.0.0.0 --port 8002"]
     profiles:
       - v1-local
 
@@ -99,9 +90,6 @@ services:
       - "8002:8002"
     volumes:
       - ./models:/models
-    environment:
-      LLAMA_MODEL_PATH: ${LLAMA_MODEL_PATH:-/models/model.gguf}
-    command: ["sh", "-lc", "./server -m ${LLAMA_MODEL_PATH:-/models/model.gguf} --host 0.0.0.0 --port 8002"]
     deploy:
       resources:
         reservations:

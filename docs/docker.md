@@ -66,19 +66,23 @@ services are for local/DGX wiring and smoke checks.
 Local (CPU) stack:
 
 ```bash
-docker compose --profile v1-local up -d dataprep chromadb embeddings-cpu llama-cpp-cpu
+docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
+  --profile v1-local up -d dataprep chromadb embeddings-cpu llama-cpp-cpu
 ```
 
 DGX Spark (GPU) stack:
 
 ```bash
-docker compose --profile v1-dgx up -d dataprep chromadb embeddings-gpu llama-cpp-gpu
+docker compose -f docker-compose.yml -f docker-compose.v1.dgx.yml \
+  --profile v1-dgx up -d dataprep chromadb embeddings-gpu llama-cpp-gpu
 ```
 
 Notes:
 
-- Place GGUF models under `./models` and set `LLAMA_MODEL_PATH` in `.env`.
-- Set `EMBEDDING_MODEL_ID` in `.env` to choose the embedding model.
+- Set model choices in `docker-compose.v1.local.yml` or
+  `docker-compose.v1.dgx.yml`.
+- Place GGUF models under `./models` and update the llama.cpp command with the
+  correct filename.
 - `embeddings-cpu` and `llama-cpp-cpu` use `platform: linux/amd64` for Mac;
   remove if you build native images.
 
