@@ -86,6 +86,14 @@ Notes:
 - `embeddings-cpu` and `llama-cpp-cpu` use `platform: linux/amd64` for Mac;
   remove if you build native images.
 
+Smoke checks:
+
+```bash
+curl -s http://localhost:8000/api/v2/heartbeat | head -n 1
+curl -s http://localhost:8003/health | head -n 1
+curl -s http://localhost:8002/health | head -n 1
+```
+
 ## Run (mount local config/data)
 
 ```bash
