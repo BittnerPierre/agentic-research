@@ -35,3 +35,79 @@ services:
     tty: true
     profiles:
       - cli
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chromadb:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+    profiles:
+      - v1-local
+      - v1-dgx
+
+  embeddings-cpu:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    platform: linux/amd64
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./data/embeddings:/data
+    environment:
+      MODEL_ID: ${EMBEDDING_MODEL_ID:-BAAI/bge-small-en-v1.5}
+    command: ["--model-id", "${EMBEDDING_MODEL_ID:-BAAI/bge-small-en-v1.5}", "--port", "8003"]
+    profiles:
+      - v1-local
+
+  embeddings-gpu:
+    image: ghcr.io/huggingface/text-embeddings-inference:latest
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./data/embeddings:/data
+    environment:
+      MODEL_ID: ${EMBEDDING_MODEL_ID:-BAAI/bge-large-en-v1.5}
+    command: ["--model-id", "${EMBEDDING_MODEL_ID:-BAAI/bge-large-en-v1.5}", "--port", "8003"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - v1-dgx
+
+  llama-cpp-cpu:
+    image: ghcr.io/ggerganov/llama.cpp:full
+    platform: linux/amd64
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./models:/models
+    environment:
+      LLAMA_MODEL_PATH: ${LLAMA_MODEL_PATH:-/models/model.gguf}
+    command: ["sh", "-lc", "./server -m ${LLAMA_MODEL_PATH:-/models/model.gguf} --host 0.0.0.0 --port 8002"]
+    profiles:
+      - v1-local
+
+  llama-cpp-gpu:
+    image: ghcr.io/ggerganov/llama.cpp:full
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./models:/models
+    environment:
+      LLAMA_MODEL_PATH: ${LLAMA_MODEL_PATH:-/models/model.gguf}
+    command: ["sh", "-lc", "./server -m ${LLAMA_MODEL_PATH:-/models/model.gguf} --host 0.0.0.0 --port 8002"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - v1-dgx

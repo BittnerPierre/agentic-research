@@ -57,6 +57,31 @@ docker compose run --rm \
   agentic-research --syllabus /app/test_files/your_file.md
 ```
 
+## V1 Infrastructure (multi-service stack, infra-only)
+
+V1 wires the full stack in Docker but does not yet switch the app off OpenAI
+vector store or cloud models (Issue 12 handles file_search migration). These
+services are for local/DGX wiring and smoke checks.
+
+Local (CPU) stack:
+
+```bash
+docker compose --profile v1-local up -d dataprep chromadb embeddings-cpu llama-cpp-cpu
+```
+
+DGX Spark (GPU) stack:
+
+```bash
+docker compose --profile v1-dgx up -d dataprep chromadb embeddings-gpu llama-cpp-gpu
+```
+
+Notes:
+
+- Place GGUF models under `./models` and set `LLAMA_MODEL_PATH` in `.env`.
+- Set `EMBEDDING_MODEL_ID` in `.env` to choose the embedding model.
+- `embeddings-cpu` and `llama-cpp-cpu` use `platform: linux/amd64` for Mac;
+  remove if you build native images.
+
 ## Run (mount local config/data)
 
 ```bash
