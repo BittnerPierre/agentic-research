@@ -34,6 +34,8 @@ logging:
 
 # Configuration MCP (Model Context Protocol)
 mcp:
+  server_host: "0.0.0.0"
+  server_port: 8001
   # Timeout pour les appels d'outils MCP (en secondes)
   # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
   # Valeur par défaut dans le SDK: 5.0s

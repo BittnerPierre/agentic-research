@@ -8,15 +8,15 @@ from pathlib import Path
 
 # LangSmith tracing support
 from langsmith.wrappers import OpenAIAgentsTracingProcessor
-from openai import OpenAI
 
 from agents import add_trace_processor
 from agents.mcp import MCPServerSse, MCPServerStdio
 
 from .agentic_manager import AgenticResearchManager
 from .agents.schemas import ResearchInfo
-from .agents.utils import context_aware_filter, get_vector_store_id_by_name
+from .agents.utils import context_aware_filter
 from .config import get_config
+from .dataprep.vector_backends import get_vector_backend
 from .deep_research_manager import DeepResearchManager
 from .logging_config import setup_run_logging
 from .manager import StandardResearchManager
@@ -58,6 +58,8 @@ async def main() -> None:
     parser.add_argument(
         "--vector-store", type=str, help="Name of the vector store to use (overrides config)"
     )
+    parser.add_argument("--dataprep-host", type=str, help="DataPrep MCP server host override")
+    parser.add_argument("--dataprep-port", type=int, help="DataPrep MCP server port override")
     parser.add_argument(
         "--max-search-plan", type=str, help="Maximum number of search plans to generate"
     )
@@ -109,6 +111,13 @@ async def main() -> None:
         config.debug.enabled = args.debug
         logger.info(f"Using custom debug mode: {args.debug}")
 
+    if args.dataprep_host:
+        config.mcp.server_host = args.dataprep_host
+        logger.info(f"Using custom DataPrep host: {args.dataprep_host}")
+    if args.dataprep_port:
+        config.mcp.server_port = args.dataprep_port
+        logger.info(f"Using custom DataPrep port: {args.dataprep_port}")
+
     # Get input: either from syllabus file, command line argument, or interactive input
     if args.syllabus:
         syllabus_path = Path(args.syllabus)
@@ -146,16 +155,17 @@ async def main() -> None:
         canonical_tmp_dir = os.path.realpath(temp_dir)
         logger.info(f"Filesystem MCP server temp directory: {canonical_tmp_dir}")
 
+        dataprep_url = f"http://{config.mcp.server_host}:{config.mcp.server_port}/sse"
         dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
             params={
-                "url": "http://localhost:8001/sse",
+                "url": dataprep_url,
                 "timeout": config.mcp.http_timeout_seconds,
             },
             client_session_timeout_seconds=config.mcp.client_timeout_seconds,
         )
         logger.info(
-            "Connecting to DataPrep MCP server at http://localhost:8001/sse "
+            f"Connecting to DataPrep MCP server at {dataprep_url} "
             f"(http timeout: {config.mcp.http_timeout_seconds}s, "
             f"client session timeout: {config.mcp.client_timeout_seconds}s)"
         )
@@ -163,19 +173,10 @@ async def main() -> None:
             logger.info("MCP servers connected successfully")
             # trace_id = gen_trace_id()
             # with trace(workflow_name="SSE Example", trace_id=trace_id):
-            logger.info("Setting up OpenAI vector store...")
-            client = OpenAI()
-            vector_store_id = get_vector_store_id_by_name(client, config.vector_store.name)
-            if vector_store_id is None:
-                logger.info(f"Creating new vector store: {config.vector_store.name}")
-                vector_store_obj = client.vector_stores.create(name=config.vector_store.name)
-                config.vector_store.vector_store_id = vector_store_obj.id
-                logger.info(f"Vector store created: '{config.vector_store.vector_store_id}'")
-                print(f"Vector store created: '{config.vector_store.vector_store_id}'")
-            else:
-                config.vector_store.vector_store_id = vector_store_id
-                logger.info(f"Using existing vector store: '{config.vector_store.vector_store_id}'")
-                print(f"Vector store already exists: '{config.vector_store.vector_store_id}'")
+            backend = get_vector_backend(config)
+            config.vector_store.vector_store_id = backend.resolve_store_id(
+                config.vector_store.name, config
+            )
 
             research_info = ResearchInfo(
                 vector_store_name=config.vector_store.name,

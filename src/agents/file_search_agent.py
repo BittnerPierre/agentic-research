@@ -4,6 +4,7 @@ from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
+from .vector_search_tool import vector_search
 from .schemas import FileSearchResult, ResearchInfo
 from .utils import extract_model_name, load_prompt_from_file
 
@@ -40,11 +41,18 @@ def create_file_search_agent(
     model_name = extract_model_name(model)
     model_settings = get_default_model_settings(model_name)
 
+    if config.vector_search.provider == "openai":
+        tools = [FileSearchTool(vector_store_ids=[vector_store_id])]
+    elif config.vector_search.provider == "local":
+        tools = [vector_search]
+    else:
+        raise ValueError(f"Unknown vector_search.provider: {config.vector_search.provider}")
+
     file_search_agent = Agent(
         name="file_search_agent",
         handoff_description="Given a search topic, search through vectorized files and produce a clear, CONCISE and RELEVANT summary of the results.",
         instructions=dynamic_instructions,
-        tools=[FileSearchTool(vector_store_ids=[vector_store_id])],
+        tools=tools,
         model=model,
         model_settings=model_settings,
         mcp_servers=mcp_servers,

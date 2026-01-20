@@ -26,6 +26,8 @@ L'outil agentic-research peut être utilisé via Poetry avec différentes option
 - `--syllabus` : Chemin vers un fichier syllabus à utiliser comme requête
 - `--manager` : Implémentation du manager à utiliser (options : `agentic_manager`, `manager`, ou chemin personnalisé)
 - `--query` : Requête de recherche (alternative à l'entrée interactive)
+- `--dataprep-host` : Hôte du serveur MCP dataprep
+- `--dataprep-port` : Port du serveur MCP dataprep
 
 ### Exemples d'utilisation
 
@@ -47,6 +49,17 @@ poetry run agentic-research --query "Retrieval Augmented Generation"
 
 # Combiner plusieurs options
 poetry run agentic-research --query "Agents in LLM" --manager agentic_manager
+
+# Utiliser un serveur dataprep sur un autre port
+poetry run agentic-research --dataprep-host 127.0.0.1 --dataprep-port 8010
+```
+
+## Dataprep server
+
+Vous pouvez démarrer le serveur dataprep sur un host/port spécifique :
+
+```bash
+poetry run dataprep_server --host 127.0.0.1 --port 8010
 ```
 
 ### Configuration

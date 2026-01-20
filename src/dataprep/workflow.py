@@ -53,9 +53,9 @@ def analyze_knowledge_base(config):
 
     logger.info(f"📊 Total d'entrées: {len(entries)}")
 
-    # Compter les fichiers avec openai_file_id
-    openai_files_count = sum(1 for entry in entries if entry.get("openai_file_id"))
-    logger.info(f"☁️  Fichiers uploadés sur OpenAI: {openai_files_count}")
+    # Compter les fichiers indexés localement
+    indexed_count = sum(1 for entry in entries if entry.get("vector_doc_id"))
+    logger.info(f"🔍 Fichiers indexés localement: {indexed_count}")
 
     # Vérifier les fichiers locaux
     local_dir = Path(config.data.local_storage_dir)
@@ -76,8 +76,8 @@ def analyze_knowledge_base(config):
             local_file = local_dir / entry["filename"] if local_dir.exists() else None
             if local_file and local_file.exists():
                 status_icons.append("📁")
-            if entry.get("openai_file_id"):
-                status_icons.append("☁️")
+            if entry.get("vector_doc_id"):
+                status_icons.append("🔍")
             if not status_icons:
                 status_icons.append("❌")
 
@@ -137,7 +137,7 @@ def run_workflow():
 
             logger.info("\n=== BASE DE CONNAISSANCES FINALE ===")
             for entry in entries:
-                openai_status = "📤 Uploadé" if entry.get("openai_file_id") else "📥 Local"
+                openai_status = "🔍 Indexé" if entry.get("vector_doc_id") else "📥 Local"
                 logger.info(f"📄 {entry['filename']} ({openai_status})")
                 logger.info(f"🔗 Source: {entry['url']}")
                 keywords = entry.get("keywords", [])
@@ -145,13 +145,13 @@ def run_workflow():
                     logger.info(f"🏷️  Mots-clés LLM: {', '.join(keywords[:5])}")
                 if entry.get("summary"):
                     logger.info(f"📝 Résumé: {entry['summary'][:150]}...")
-                if entry.get("openai_file_id"):
-                    logger.info(f"🆔 OpenAI File ID: {entry['openai_file_id']}")
+                if entry.get("vector_doc_id"):
+                    logger.info(f"🆔 Vector Doc ID: {entry['vector_doc_id']}")
                 logger.info("---")
 
         else:
-            # Mode normal: upload vers vector store avec optimisations
-            logger.info("\nMode normal - upload optimisé vers vector store")
+            # Mode normal: indexation locale avec optimisations
+            logger.info("\nMode normal - indexation locale vers vector store")
 
             try:
                 result = upload_files_to_vectorstore(
@@ -160,27 +160,20 @@ def run_workflow():
                     vectorstore_name="agentic-research-vector-store",
                 )
 
-                logger.info("\n=== RAPPORT D'UPLOAD OPTIMISÉ ===")
+                logger.info("\n=== RAPPORT D'INDEXATION ===")
                 logger.info(f"Vector Store ID: {result.vectorstore_id}")
                 logger.info(f"Total de fichiers demandés: {result.total_files_requested}")
-                logger.info(f"Nouveaux uploads vers OpenAI: {result.upload_count}")
-                logger.info(f"Fichiers réutilisés (déjà sur OpenAI): {result.reuse_count}")
-                logger.info(f"Attachements réussis au vector store: {result.attach_success_count}")
-                logger.info(f"Échecs d'attachement: {result.attach_failure_count}")
+                logger.info(f"Nouvelles indexations: {result.upload_count}")
+                logger.info(f"Fichiers réutilisés (déjà indexés): {result.reuse_count}")
 
                 logger.info("\n=== DÉTAILS DES FICHIERS ===")
-                logger.info("📤 Uploads vers OpenAI Files API:")
+                logger.info("🔍 Indexations locales:")
                 for file_info in result.files_uploaded:
-                    status_icons = {"uploaded": "🆕", "reused": "♻️", "failed": "❌"}
+                    status_icons = {"indexed": "🆕", "reused": "♻️", "failed": "❌"}
                     icon = status_icons.get(file_info["status"], "❓")
                     logger.info(
-                        f"  {icon} {file_info['filename']} -> {file_info.get('file_id', 'N/A')}"
+                        f"  {icon} {file_info['filename']} -> {file_info.get('doc_id', 'N/A')}"
                     )
-
-                logger.info("\n📎 Attachements au Vector Store:")
-                for file_info in result.files_attached:
-                    status_icon = "✅" if file_info["status"] == "attached" else "❌"
-                    logger.info(f"  {status_icon} {file_info['filename']}")
 
             except Exception as e:
                 logger.error(f"Erreur lors de l'upload: {e}")

@@ -36,7 +36,7 @@ Pour chaque étape de votre processus, suivez ce cycle:
 4. **EXPLORATION DES CONTENUS**
 
    - Effectuez les recherches sémantiques sur les ressources sélectionnés.
-   - Utilisez `file_search` pour effectuer chaque recherche sur la base vectorielle.
+   - Utilisez `vector_search` pour effectuer chaque recherche sur la base vectorielle.
    - Les ressources ont été attachés à la base vectorielle à l'étape précédente
    - Analysez au fur à mesure de l'execution que vous récupérez bien les éléments requis et ajustez les questions si besoin.
 

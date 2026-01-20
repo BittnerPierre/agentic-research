@@ -174,6 +174,28 @@ class KnowledgeDBManager:
 
         logger.info(f"ID OpenAI mis à jour pour {filename}: {openai_file_id}")
 
+    def update_vector_doc_id(self, filename: str, vector_doc_id: str) -> None:
+        """Met à jour l'ID local du document dans l'index."""
+        with self._file_lock("r+") as f:
+            try:
+                f.seek(0)
+                data = json.load(f)
+                db = KnowledgeDatabase(**data)
+            except (json.JSONDecodeError, ValueError):
+                logger.error(f"Impossible de lire la base pour mise à jour: {filename}")
+                return
+
+            db.update_vector_doc_id(filename, vector_doc_id)
+
+            f.seek(0)
+            f.truncate()
+            f.write(db.model_dump_json(indent=2))
+
+        if filename in self._name_index:
+            self._name_index[filename].vector_doc_id = vector_doc_id
+
+        logger.info(f"ID vector doc mis à jour pour {filename}: {vector_doc_id}")
+
     def get_all_entries_info(self) -> list[dict[str, Any]]:
         """Retourne la liste de toutes les entrées de la base de connaissances."""
         try:
@@ -191,6 +213,7 @@ class KnowledgeDBManager:
                             "keywords": entry.keywords,
                             "summary": entry.summary,
                             "openai_file_id": entry.openai_file_id,
+                            "vector_doc_id": entry.vector_doc_id,
                         }
                     )
 

@@ -7,6 +7,17 @@ vector_store:
   description: "Vector store for agentic research experiments"
   expires_after_days: 30
 
+vector_search:
+  provider: "local"
+  index_name: "agentic-research"
+  embedding_function: "default"
+  top_k: 5
+  score_threshold: null
+
+vector_mcp:
+  command: "uvx"
+  args: ["chroma-mcp"]
+
 # Configuration des données d'entrée
 data:
   # Fichier contenant les URLs à traiter (une par ligne)
@@ -34,6 +45,8 @@ logging:
 
 # Configuration MCP (Model Context Protocol)
 mcp:
+  server_host: "0.0.0.0"
+  server_port: 8001
   # Timeout pour les appels d'outils MCP (en secondes)
   # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
   # Valeur par défaut dans le SDK: 5.0s
@@ -43,7 +56,7 @@ mcp:
 models:
   research_model: "openai/gpt-4.1-mini"
   planning_model: "openai/o4-mini"
-  search_model: "openai/gpt-4.1-mini" # GPT required for file search tool
+  search_model: "openai/gpt-4.1-mini" # Used for vector search summaries
   writer_model: "openai/gpt-4.1-mini"
   knowledge_preparation_model: "openai/gpt-4.1-mini"
 

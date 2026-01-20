@@ -27,6 +27,23 @@ class VectorStoreConfig(BaseModel):
     vector_store_id: str = Field(default="")
 
 
+class VectorSearchConfig(BaseModel):
+    """Configuration for vector search collections and defaults."""
+
+    provider: str = Field(default="local")
+    index_name: str = Field(default="agentic-research")
+    embedding_function: str = Field(default="default")
+    top_k: int = Field(default=5)
+    score_threshold: float | None = Field(default=None)
+
+
+class VectorMCPConfig(BaseModel):
+    """Configuration for launching a vector search MCP server."""
+
+    command: str = Field(default="uvx")
+    args: list[str] = Field(default_factory=lambda: ["chroma-mcp"])
+
+
 class DataConfig(BaseModel):
     """Configuration for data sources."""
 
@@ -58,6 +75,14 @@ class MCPConfig(BaseModel):
     Only client_timeout_seconds needs tuning for long-running tool operations.
     """
 
+    server_host: str = Field(
+        default="0.0.0.0",
+        description="Host interface for the DataPrep MCP server",
+    )
+    server_port: int = Field(
+        default=8001,
+        description="Port for the DataPrep MCP server",
+    )
     client_timeout_seconds: float = Field(
         default=10.0,
         description="Timeout for MCP tool execution (e.g., upload_files_to_vectorstore)"
@@ -98,6 +123,8 @@ class Config(BaseModel):
 
     config_name: str
     vector_store: VectorStoreConfig
+    vector_search: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
+    vector_mcp: VectorMCPConfig = Field(default_factory=VectorMCPConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
