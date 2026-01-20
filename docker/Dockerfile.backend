@@ -1,3 +1,9 @@
+FROM node:20-slim AS mcp_fs_builder
+
+RUN npm install -g @modelcontextprotocol/server-filesystem@2026.1.14 \
+    && cd /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem \
+    && npm install @modelcontextprotocol/sdk@1.25.2
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -8,11 +14,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+RUN mkdir -p /tmp /var/tmp
+
+ENV TMPDIR=/tmp
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
+
+COPY --from=mcp_fs_builder /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem \
+    /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem
+COPY --from=mcp_fs_builder /usr/local/bin/mcp-server-filesystem /usr/local/bin/mcp-server-filesystem
+COPY --from=mcp_fs_builder /usr/local/bin/node /usr/local/bin/node
+RUN ln -s /usr/local/lib/node_modules /usr/local/bin/node_modules
+
+ENV MCP_FS_COMMAND=node
+ENV MCP_FS_ARGS=/usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
 
 COPY pyproject.toml README.md ./
 COPY src ./src
