@@ -81,3 +81,18 @@ def resolve_inputs_to_entries(
 def read_local_file(file_path: Path) -> str:
     with open(file_path, encoding="utf-8") as f:
         return f.read()
+
+
+def chunk_text(text: str, max_chars: int, overlap: int) -> list[str]:
+    chunks = []
+    start = 0
+    text_length = len(text)
+    while start < text_length:
+        end = min(start + max_chars, text_length)
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end == text_length:
+            break
+        start = max(end - overlap, 0)
+    return chunks

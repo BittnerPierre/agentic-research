@@ -40,6 +40,17 @@ def test_vector_backend_factory_openai():
     _restore_config(config, snapshot)
 
 
+def test_vector_backend_factory_chroma():
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.vector_search.provider = "chroma"
+
+    backend = get_vector_backend(config)
+    assert backend.provider == "chroma"
+
+    _restore_config(config, snapshot)
+
+
 def test_vector_backend_factory_unknown_provider():
     config = get_config()
     snapshot = _snapshot_config(config)
@@ -62,6 +73,10 @@ def test_file_search_agent_tool_selection():
     assert agent.tools[0].__class__.__name__ == "FileSearchTool"
 
     config.vector_search.provider = "local"
+    agent = create_file_search_agent()
+    assert agent.tools[0].name == "vector_search"
+
+    config.vector_search.provider = "chroma"
     agent = create_file_search_agent()
     assert agent.tools[0].name == "vector_search"
 

@@ -32,7 +32,14 @@ class VectorSearchConfig(BaseModel):
 
     provider: str = Field(default="local")
     index_name: str = Field(default="agentic-research")
-    embedding_function: str = Field(default="default")
+    embedding_function: str = Field(default="sentence-transformers:BAAI/bge-m3")
+    chunk_size: int = Field(default=800)
+    chunk_overlap: int = Field(default=120)
+    chroma_host: str = Field(default="127.0.0.1")
+    chroma_port: int = Field(default=8000)
+    chroma_mcp_get_or_create_tool: str = Field(default="collection_get_or_create")
+    chroma_mcp_add_tool: str = Field(default="collection_add")
+    chroma_mcp_query_tool: str = Field(default="collection_query")
     top_k: int = Field(default=5)
     score_threshold: float | None = Field(default=None)
 

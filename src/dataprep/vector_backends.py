@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Protocol
@@ -11,11 +12,14 @@ from openai import OpenAI
 
 from pathlib import Path
 
+from fastmcp.client import Client
+
+from .embeddings import get_embedding_function
 from .knowledge_db import KnowledgeDBManager
 from .models import UploadResult
-from .vector_search import VectorSearchResult, create_document, get_vector_search_backend
+from .vector_search import VectorSearchHit, VectorSearchResult, create_document, get_vector_search_backend
 from .vector_store_manager import VectorStoreManager
-from .vector_store_utils import read_local_file, resolve_inputs_to_entries
+from .vector_store_utils import chunk_text, read_local_file, resolve_inputs_to_entries
 
 logger = logging.getLogger(__name__)
 
@@ -330,4 +334,166 @@ def get_vector_backend(config) -> VectorBackend:
         return LocalVectorBackend()
     if provider == "openai":
         return OpenAIVectorBackend()
+    if provider == "chroma":
+        return ChromaVectorBackend()
     raise ValueError(f"Unknown vector_search.provider: {provider}")
+
+
+class ChromaVectorBackend:
+    provider = "chroma"
+
+    def _mcp_url(self, config) -> str:
+        host = config.vector_search.chroma_host
+        port = config.vector_search.chroma_port
+        return f"http://{host}:{port}/sse"
+
+    def _call_tool(self, config, tool_name: str, arguments: dict) -> dict:
+        async def _run():
+            async with Client(self._mcp_url(config)) as client:
+                result = await client.call_tool(tool_name, arguments=arguments)
+                if result.data is not None:
+                    return result.data
+                if result.structured_content is not None:
+                    return result.structured_content
+                return {"content": result.content}
+
+        return asyncio.run(_run())
+
+    def resolve_store_id(self, vectorstore_name: str, config) -> str | None:
+        config.vector_search.index_name = vectorstore_name
+        VectorStoreRegistry.set(self.provider, vectorstore_name, vectorstore_name)
+        return vectorstore_name
+
+    def upload_files(self, inputs: list[str], config, vectorstore_name: str) -> UploadResult:
+        start_time = time.perf_counter()
+        logger.info(f"[upload_files_to_vectorstore] Starting with {len(inputs)} inputs")
+
+        db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
+        local_dir = Path(config.data.local_storage_dir)
+        self._call_tool(
+            config,
+            config.vector_search.chroma_mcp_get_or_create_tool,
+            {"collection_name": vectorstore_name},
+        )
+
+        logger.debug("[upload_files_to_vectorstore] Step 1: Resolving inputs to knowledge entries")
+        entries_to_process = resolve_inputs_to_entries(inputs, config, db_manager, local_dir)
+
+        step1_time = time.perf_counter()
+        logger.info(
+            "[upload_files_to_vectorstore] Step 1 completed in "
+            f"{step1_time - start_time:.2f}s - {len(entries_to_process)} entries"
+        )
+
+        embed = get_embedding_function(config)
+        files_uploaded: list[dict] = []
+        files_attached: list[dict] = []
+        upload_count = 0
+        reuse_count = 0
+
+        for entry, file_path in entries_to_process:
+            if entry.vector_doc_id:
+                files_uploaded.append(
+                    {"filename": entry.filename, "doc_id": entry.vector_doc_id, "status": "reused"}
+                )
+                reuse_count += 1
+                continue
+
+            content = read_local_file(file_path)
+            chunks = chunk_text(
+                content,
+                max_chars=config.vector_search.chunk_size,
+                overlap=config.vector_search.chunk_overlap,
+            )
+            if not chunks:
+                continue
+
+            embeddings = embed(chunks)
+            doc_id = f"doc_{entry.filename}"
+            ids = [f"{doc_id}:{idx}" for idx in range(len(chunks))]
+            metadatas = [
+                {
+                    "filename": entry.filename,
+                    "source": entry.url,
+                    "chunk_index": idx,
+                    "document_id": doc_id,
+                }
+                for idx in range(len(chunks))
+            ]
+
+            self._call_tool(
+                config,
+                config.vector_search.chroma_mcp_add_tool,
+                {
+                    "collection_name": vectorstore_name,
+                    "ids": ids,
+                    "documents": chunks,
+                    "metadatas": metadatas,
+                    "embeddings": embeddings,
+                },
+            )
+
+            db_manager.update_vector_doc_id(entry.filename, doc_id)
+            files_uploaded.append({"filename": entry.filename, "doc_id": doc_id, "status": "indexed"})
+            upload_count += 1
+
+        total_time = time.perf_counter() - start_time
+        logger.info(f"[upload_files_to_vectorstore] TOTAL TIME: {total_time:.2f}s")
+
+        return UploadResult(
+            vectorstore_id=vectorstore_name,
+            files_uploaded=files_uploaded,
+            files_attached=files_attached,
+            total_files_requested=len(inputs),
+            upload_count=upload_count,
+            reuse_count=reuse_count,
+            attach_success_count=0,
+            attach_failure_count=0,
+        )
+
+    def search(
+        self,
+        query: str,
+        config,
+        top_k: int | None = None,
+        score_threshold: float | None = None,
+    ) -> VectorSearchResult:
+        effective_top_k = top_k if top_k is not None else config.vector_search.top_k
+        effective_threshold = (
+            score_threshold if score_threshold is not None else config.vector_search.score_threshold
+        )
+        embed = get_embedding_function(config)
+        query_embedding = embed([query])[0]
+
+        result = self._call_tool(
+            config,
+            config.vector_search.chroma_mcp_query_tool,
+            {
+                "collection_name": config.vector_search.index_name,
+                "query_embeddings": [query_embedding],
+                "n_results": effective_top_k,
+                "include": ["documents", "metadatas", "distances"],
+            },
+        )
+
+        hits: list[VectorSearchHit] = []
+        documents = result.get("documents", [[]])[0]
+        metadatas = result.get("metadatas", [[]])[0]
+        distances = result.get("distances", [[]])[0]
+
+        for document, metadata, distance in zip(documents, metadatas, distances, strict=False):
+            score = 1.0 / (1.0 + (distance or 0.0))
+            if effective_threshold is not None and score < effective_threshold:
+                continue
+            hits.append(
+                VectorSearchHit(
+                    document=document,
+                    metadata=metadata or {},
+                    score=score,
+                )
+            )
+
+        return VectorSearchResult(query=query, results=hits[:effective_top_k])
+
+    def tool_name(self) -> str:
+        return "vector_search"

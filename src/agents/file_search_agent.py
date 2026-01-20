@@ -43,7 +43,7 @@ def create_file_search_agent(
 
     if config.vector_search.provider == "openai":
         tools = [FileSearchTool(vector_store_ids=[vector_store_id])]
-    elif config.vector_search.provider == "local":
+    elif config.vector_search.provider in {"local", "chroma"}:
         tools = [vector_search]
     else:
         raise ValueError(f"Unknown vector_search.provider: {config.vector_search.provider}")

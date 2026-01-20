@@ -10,7 +10,14 @@ vector_store:
 vector_search:
   provider: "local"
   index_name: "agentic-research"
-  embedding_function: "default"
+  embedding_function: "sentence-transformers:BAAI/bge-m3"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "127.0.0.1"
+  chroma_port: 8000
+  chroma_mcp_get_or_create_tool: "collection_get_or_create"
+  chroma_mcp_add_tool: "collection_add"
+  chroma_mcp_query_tool: "collection_query"
   top_k: 5
   score_threshold: null
 
