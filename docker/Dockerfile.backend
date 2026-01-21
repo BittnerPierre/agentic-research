@@ -34,6 +34,7 @@ ENV MCP_FS_COMMAND=node
 ENV MCP_FS_ARGS=/usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
 
 COPY pyproject.toml README.md ./
+COPY agentic_research ./agentic_research
 COPY src ./src
 RUN poetry install --only main --no-ansi
 COPY config.yaml urls.txt ./

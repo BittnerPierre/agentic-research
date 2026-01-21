@@ -57,6 +57,22 @@ docker compose run --rm \
   agentic-research --syllabus /app/test_files/your_file.md
 ```
 
+## Evaluations (Docker)
+
+Run evaluations inside the container (same image as the CLI).
+
+Example:
+
+```bash
+docker compose --profile eval run --rm evaluations \
+  evaluate_writer --test-case trivial_research
+```
+
+Notes:
+
+- Ensure `dataprep` is running if the eval needs MCP/file uploads.
+- Outputs land in `evaluations/output_report_dir` (mounted from host).
+
 ## V1 Infrastructure (multi-service stack, infra-only)
 
 V1 wires the full stack in Docker but does not yet switch the app off OpenAI

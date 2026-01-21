@@ -31,6 +31,7 @@ from agents import (
 from agents.mcp import MCPServer, MCPServerStdio
 
 from .eval_utils import (
+    build_fs_server_params,
     format_trajectory_report,
     load_test_case,
     save_result_input_list_to_json,
@@ -333,10 +334,7 @@ async def main(
 
     fs_server = MCPServerStdio(
         name="FS_MCP_SERVER",
-        params={
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", canonical_tmp_dir],
-        },
+        params=build_fs_server_params(canonical_tmp_dir),
         tool_filter=context_aware_filter,
         cache_tools_list=True
     )

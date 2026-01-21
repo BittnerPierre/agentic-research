@@ -36,6 +36,27 @@ services:
     profiles:
       - cli
 
+  evaluations:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    env_file:
+      - .env
+    environment:
+      MCP_DATAPREP_URL: http://dataprep:8001/sse
+      MCP_FS_COMMAND: node
+      MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./urls.txt:/app/urls.txt
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./evaluations:/app/evaluations
+      - ./test_files:/app/test_files
+    profiles:
+      - eval
+
   chromadb:
     image: chromadb/chroma:latest
     ports:

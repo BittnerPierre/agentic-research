@@ -13,7 +13,13 @@ from pydantic import BaseModel, Field
 try:
     from dotenv import find_dotenv, load_dotenv
 
-    load_dotenv(find_dotenv())
+    dotenv_path = find_dotenv(usecwd=True)
+    # Only override when a variable is missing or empty.
+    load_dotenv(dotenv_path, override=False)
+    if os.getenv("OPENAI_API_KEY") == "":
+        load_dotenv(dotenv_path, override=True)
+    if os.getenv("LANGSMITH_API_KEY") == "":
+        load_dotenv(dotenv_path, override=True)
 except ImportError:
     pass  # python-dotenv not available, skip loading
 

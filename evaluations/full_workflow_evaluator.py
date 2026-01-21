@@ -29,6 +29,7 @@ from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
 from agents.mcp import MCPServer
 
 from .eval_utils import (
+    build_fs_server_params,
     extract_read_multiple_files_paths,
     format_trajectory_report,
     load_test_case,
@@ -415,16 +416,14 @@ async def main():
     # Create MCP servers
     fs_server = MCPServerStdio(
         name="FS_MCP_SERVER",
-        params={
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_dir, output_dir],
-        },
+        params=build_fs_server_params(temp_dir, output_dir),
     )
 
+    dataprep_url = os.getenv("MCP_DATAPREP_URL", "http://localhost:8001/sse")
     dataprep_server = MCPServerSse(
         name="DATAPREP_MCP_SERVER",
         params={
-            "url": "http://localhost:8001/sse",
+            "url": dataprep_url,
             "timeout": 60,
         },
         client_session_timeout_seconds=120,
