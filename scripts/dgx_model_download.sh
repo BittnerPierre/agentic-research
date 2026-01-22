@@ -9,13 +9,13 @@ if [[ -f "${MODELS_ENV_FILE}" ]]; then
 fi
 MODELS_DIR="${MODELS_DIR:-${HOME}/.cache/huggingface}"
 
-EMBEDDINGS_REPO="${EMBEDDINGS_REPO:-Qwen/Qwen3-Embedding-4B-GGUF}"
+EMBEDDINGS_MODEL_REPO="${EMBEDDINGS_MODEL_REPO:-Qwen/Qwen3-Embedding-4B-GGUF}"
 EMBEDDINGS_GGUF_PATTERN="${EMBEDDINGS_GGUF_PATTERN:-Qwen3-Embedding-4B-Q8_0.gguf}"
 
-INSTRUCT_REPO="${INSTRUCT_REPO:-ggml-org/gpt-oss-20b-GGUF}"
+LLM_INSTRUCT_MODEL_REPO="${LLM_INSTRUCT_MODEL_REPO:-ggml-org/gpt-oss-20b-GGUF}"
 INSTRUCT_GGUF_PATTERN="${INSTRUCT_GGUF_PATTERN:-gpt-oss-20b-mxfp4.gguf}"
 
-REASONING_REPO="${REASONING_REPO:-mistralai/Ministral-3-14B-Reasoning-2512}"
+LLM_REASONING_MODEL_REPO="${LLM_REASONING_MODEL_REPO:-mistralai/Ministral-3-14B-Reasoning-2512}"
 REASONING_GGUF_PATTERN="${REASONING_GGUF_PATTERN:-Ministral-3-14B-Reasoning-2512*.gguf}"
 
 if ! command -v hf >/dev/null 2>&1; then
@@ -37,16 +37,16 @@ else
   echo "Skipping HF login (using token for downloads)."
 fi
 
-echo "Downloading embeddings model: ${EMBEDDINGS_REPO} (${EMBEDDINGS_GGUF_PATTERN})"
-HF_HOME="${MODELS_DIR}" HF_TOKEN="${HF_TOKEN}" hf download "${EMBEDDINGS_REPO}" \
+echo "Downloading embeddings model: ${EMBEDDINGS_MODEL_REPO} (${EMBEDDINGS_GGUF_PATTERN})"
+HF_HOME="${MODELS_DIR}" HF_TOKEN="${HF_TOKEN}" hf download "${EMBEDDINGS_MODEL_REPO}" \
   --include "${EMBEDDINGS_GGUF_PATTERN}"
 
-echo "Downloading instruct model: ${INSTRUCT_REPO} (${INSTRUCT_GGUF_PATTERN})"
-HF_HOME="${MODELS_DIR}" HF_TOKEN="${HF_TOKEN}" hf download "${INSTRUCT_REPO}" \
+echo "Downloading instruct model: ${LLM_INSTRUCT_MODEL_REPO} (${INSTRUCT_GGUF_PATTERN})"
+HF_HOME="${MODELS_DIR}" HF_TOKEN="${HF_TOKEN}" hf download "${LLM_INSTRUCT_MODEL_REPO}" \
   --include "${INSTRUCT_GGUF_PATTERN}"
 
-echo "Downloading reasoning model: ${REASONING_REPO} (${REASONING_GGUF_PATTERN})"
-HF_HOME="${MODELS_DIR}" HF_TOKEN="${HF_TOKEN}" hf download "${REASONING_REPO}" \
+echo "Downloading reasoning model: ${LLM_REASONING_MODEL_REPO} (${REASONING_GGUF_PATTERN})"
+HF_HOME="${MODELS_DIR}" HF_TOKEN="${HF_TOKEN}" hf download "${LLM_REASONING_MODEL_REPO}" \
   --include "${REASONING_GGUF_PATTERN}"
 
 echo "Models downloaded to ${MODELS_DIR}"
