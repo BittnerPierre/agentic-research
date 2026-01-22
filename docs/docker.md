@@ -131,17 +131,17 @@ For DGX Spark (GPU), use:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.v1.dgx.yml \
   -f docker-compose.v1.dgx.models.yml \
+  --env-file models.env \
   --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
 ```
 
 DGX models are defined in `docker-compose.v1.dgx.models.yml` so you can swap
 GGUF files easily. Mount your host HF cache into the container (recommended on DGX):
 
+Create a `models.env` from the template and edit it:
+
 ```bash
-export MODELS_DIR=${HOME}/.cache/huggingface/hub
-export LLM_INSTRUCT_MODEL_PATH=/mnt/models/gpt-oss-20b-mxfp4.gguf
-export LLM_REASONING_MODEL_PATH=/mnt/models/Ministral-3-14B-Instruct-2512.gguf
-export EMBEDDINGS_MODEL_PATH=/mnt/models/Qwen3-Embedding-4B-Q8_0.gguf
+cp models.env.example models.env
 ```
 
 To download the default DGX models using the Hugging Face CLI:

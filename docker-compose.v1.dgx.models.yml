@@ -8,7 +8,7 @@ services:
   embeddings-gpu:
     <<: *llama-build
     volumes:
-      - ${MODELS_DIR:-./models}:/mnt/models
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -17,8 +17,8 @@ services:
               count: all
               capabilities: [gpu]
     command:
-      - "-m"
-      - "${EMBEDDINGS_MODEL_PATH:-/mnt/models/Qwen3-Embedding-4B-Q8_0.gguf}"
+      - "-hf"
+      - "${EMBEDDINGS_MODEL_REPO:-Qwen/Qwen3-Embedding-4B-GGUF}"
       - "--port"
       - "${EMBEDDINGS_PORT:-8003}"
       - "--host"
@@ -33,7 +33,7 @@ services:
   llm-instruct:
     <<: *llama-build
     volumes:
-      - ${MODELS_DIR:-./models}:/mnt/models
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -42,8 +42,8 @@ services:
               count: all
               capabilities: [gpu]
     command:
-      - "-m"
-      - "${LLM_INSTRUCT_MODEL_PATH:-/mnt/models/gpt-oss-20b-mxfp4.gguf}"
+      - "-hf"
+      - "${LLM_INSTRUCT_MODEL_REPO:-ggml-org/gpt-oss-20b-GGUF}"
       - "--port"
       - "${LLM_INSTRUCT_PORT:-8002}"
       - "--host"
@@ -61,7 +61,7 @@ services:
   llm-reasoning:
     <<: *llama-build
     volumes:
-      - ${MODELS_DIR:-./models}:/mnt/models
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -70,8 +70,8 @@ services:
               count: all
               capabilities: [gpu]
     command:
-      - "-m"
-      - "${LLM_REASONING_MODEL_PATH:-/mnt/models/Ministral-3-14B-Instruct-2512.gguf}"
+      - "-hf"
+      - "${LLM_REASONING_MODEL_REPO:-mistralai/Ministral-3-14B-Reasoning-2512}"
       - "--port"
       - "${LLM_REASONING_PORT:-8004}"
       - "--host"
