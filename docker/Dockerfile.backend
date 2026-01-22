@@ -36,6 +36,7 @@ ENV MCP_FS_ARGS=/usr/local/lib/node_modules/@modelcontextprotocol/server-filesys
 COPY pyproject.toml README.md ./
 COPY agentic_research ./agentic_research
 COPY src ./src
+COPY scripts ./scripts
 RUN poetry install --only main --no-ansi
 COPY config.yaml urls.txt ./
 COPY data ./data
