@@ -10,16 +10,33 @@ vector_store:
 vector_search:
   provider: "local"
   index_name: "agentic-research"
-  embedding_function: "sentence-transformers:BAAI/bge-m3"
+  embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
   chunk_size: 800
   chunk_overlap: 120
   chroma_host: "127.0.0.1"
   chroma_port: 8000
-  chroma_mcp_get_or_create_tool: "collection_get_or_create"
-  chroma_mcp_add_tool: "collection_add"
-  chroma_mcp_query_tool: "collection_query"
+  chroma_ssl: false
   top_k: 5
   score_threshold: null
+
+vector_mcp:
+  command: "uvx"
+  args:
+    - "--python"
+    - "3.12"
+    - "chroma-mcp"
+    - "--client-type"
+    - "http"
+    - "--host"
+    - "127.0.0.1"
+    - "--port"
+    - "8000"
+    - "--ssl"
+    - "false"
+  tool_allowlist:
+    - "chroma_query_documents"
+    - "chroma_get_documents"
+  client_timeout_seconds: 30.0
 
 # Configuration des données d'entrée
 data:
@@ -49,11 +66,11 @@ logging:
 # Configuration MCP (Model Context Protocol)
 mcp:
   server_host: "0.0.0.0"
-  server_port: 8001
+  server_port: 8010
   # Timeout pour les appels d'outils MCP (en secondes)
   # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
   # Valeur par défaut dans le SDK: 5.0s
-  client_timeout_seconds: 10.0
+  client_timeout_seconds: 60.0
 
 # Configuration Models
 models:

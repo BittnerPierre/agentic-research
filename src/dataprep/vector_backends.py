@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import logging
-import asyncio
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Protocol
 
+import chromadb
 from openai import OpenAI
 
 from pathlib import Path
-
-from fastmcp.client import Client
 
 from .embeddings import get_embedding_function
 from .knowledge_db import KnowledgeDBManager
@@ -342,22 +340,16 @@ def get_vector_backend(config) -> VectorBackend:
 class ChromaVectorBackend:
     provider = "chroma"
 
-    def _mcp_url(self, config) -> str:
-        host = config.vector_search.chroma_host
-        port = config.vector_search.chroma_port
-        return f"http://{host}:{port}/sse"
+    def _client(self, config) -> chromadb.HttpClient:
+        return chromadb.HttpClient(
+            host=config.vector_search.chroma_host,
+            port=config.vector_search.chroma_port,
+            ssl=config.vector_search.chroma_ssl,
+        )
 
-    def _call_tool(self, config, tool_name: str, arguments: dict) -> dict:
-        async def _run():
-            async with Client(self._mcp_url(config)) as client:
-                result = await client.call_tool(tool_name, arguments=arguments)
-                if result.data is not None:
-                    return result.data
-                if result.structured_content is not None:
-                    return result.structured_content
-                return {"content": result.content}
-
-        return asyncio.run(_run())
+    def _collection(self, config, name: str):
+        client = self._client(config)
+        return client.get_or_create_collection(name=name)
 
     def resolve_store_id(self, vectorstore_name: str, config) -> str | None:
         config.vector_search.index_name = vectorstore_name
@@ -370,11 +362,7 @@ class ChromaVectorBackend:
 
         db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
         local_dir = Path(config.data.local_storage_dir)
-        self._call_tool(
-            config,
-            config.vector_search.chroma_mcp_get_or_create_tool,
-            {"collection_name": vectorstore_name},
-        )
+        collection = self._collection(config, vectorstore_name)
 
         logger.debug("[upload_files_to_vectorstore] Step 1: Resolving inputs to knowledge entries")
         entries_to_process = resolve_inputs_to_entries(inputs, config, db_manager, local_dir)
@@ -421,16 +409,11 @@ class ChromaVectorBackend:
                 for idx in range(len(chunks))
             ]
 
-            self._call_tool(
-                config,
-                config.vector_search.chroma_mcp_add_tool,
-                {
-                    "collection_name": vectorstore_name,
-                    "ids": ids,
-                    "documents": chunks,
-                    "metadatas": metadatas,
-                    "embeddings": embeddings,
-                },
+            collection.add(
+                ids=ids,
+                documents=chunks,
+                metadatas=metadatas,
+                embeddings=embeddings,
             )
 
             db_manager.update_vector_doc_id(entry.filename, doc_id)
@@ -465,15 +448,11 @@ class ChromaVectorBackend:
         embed = get_embedding_function(config)
         query_embedding = embed([query])[0]
 
-        result = self._call_tool(
-            config,
-            config.vector_search.chroma_mcp_query_tool,
-            {
-                "collection_name": config.vector_search.index_name,
-                "query_embeddings": [query_embedding],
-                "n_results": effective_top_k,
-                "include": ["documents", "metadatas", "distances"],
-            },
+        collection = self._collection(config, config.vector_search.index_name)
+        result = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=effective_top_k,
+            include=["documents", "metadatas", "distances"],
         )
 
         hits: list[VectorSearchHit] = []

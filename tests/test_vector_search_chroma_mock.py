@@ -9,19 +9,29 @@ from src.dataprep.knowledge_db import KnowledgeDBManager
 from src.dataprep.mcp_functions import upload_files_to_vectorstore, vector_search
 
 
-class _FakeMcp:
+class _FakeCollection:
     def __init__(self):
-        self.calls = []
+        self.add_calls = []
 
-    def call(self, tool_name, arguments):
-        self.calls.append((tool_name, arguments))
-        if tool_name == "collection_query":
-            return {
-                "documents": [["chunk-a", "chunk-b"]],
-                "metadatas": [[{"filename": "syllabus.md"}, {"filename": "syllabus.md"}]],
-                "distances": [[0.1, 0.2]],
-            }
-        return {"ok": True}
+    def add(self, **kwargs):
+        self.add_calls.append(kwargs)
+
+    def query(self, **_kwargs):
+        return {
+            "documents": [["chunk-a", "chunk-b"]],
+            "metadatas": [[{"filename": "syllabus.md"}, {"filename": "syllabus.md"}]],
+            "distances": [[0.1, 0.2]],
+        }
+
+
+class _FakeClient:
+    def __init__(self):
+        self.collections = {}
+
+    def get_or_create_collection(self, name):
+        if name not in self.collections:
+            self.collections[name] = _FakeCollection()
+        return self.collections[name]
 
 
 def _snapshot_config(config):
@@ -59,11 +69,11 @@ def test_chroma_upload_and_search(monkeypatch, tmp_path):
     source_file = tmp_path / "syllabus.md"
     source_file.write_text("abcdefghij0123456789", encoding="utf-8")
 
-    mcp = _FakeMcp()
+    client = _FakeClient()
 
     monkeypatch.setattr(
-        "src.dataprep.vector_backends.ChromaVectorBackend._call_tool",
-        lambda _self, _config, tool_name, arguments: mcp.call(tool_name, arguments),
+        "src.dataprep.vector_backends.chromadb.HttpClient",
+        lambda **_kwargs: client,
     )
     monkeypatch.setattr(
         "src.dataprep.vector_backends.get_embedding_function",
@@ -75,12 +85,12 @@ def test_chroma_upload_and_search(monkeypatch, tmp_path):
     )
 
     assert result.upload_count == 1
-    assert any(call[0] == "collection_add" for call in mcp.calls)
-    add_call = next(call for call in mcp.calls if call[0] == "collection_add")
-    assert len(add_call[1]["documents"]) == 2
+    collection = client.collections["test-collection"]
+    assert collection.add_calls
+    add_call = collection.add_calls[0]
+    assert len(add_call["documents"]) == 2
 
     search_result = vector_search(query="query", config=config, top_k=2)
     assert search_result.results
-    assert any(call[0] == "collection_query" for call in mcp.calls)
 
     _restore_config(config, snapshot)

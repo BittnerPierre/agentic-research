@@ -32,14 +32,12 @@ class VectorSearchConfig(BaseModel):
 
     provider: str = Field(default="local")
     index_name: str = Field(default="agentic-research")
-    embedding_function: str = Field(default="sentence-transformers:BAAI/bge-m3")
+    embedding_function: str = Field(default="sentence-transformers:all-MiniLM-L6-v2")
     chunk_size: int = Field(default=800)
     chunk_overlap: int = Field(default=120)
     chroma_host: str = Field(default="127.0.0.1")
     chroma_port: int = Field(default=8000)
-    chroma_mcp_get_or_create_tool: str = Field(default="collection_get_or_create")
-    chroma_mcp_add_tool: str = Field(default="collection_add")
-    chroma_mcp_query_tool: str = Field(default="collection_query")
+    chroma_ssl: bool = Field(default=False)
     top_k: int = Field(default=5)
     score_threshold: float | None = Field(default=None)
 
@@ -49,6 +47,10 @@ class VectorMCPConfig(BaseModel):
 
     command: str = Field(default="uvx")
     args: list[str] = Field(default_factory=lambda: ["chroma-mcp"])
+    tool_allowlist: list[str] = Field(
+        default_factory=lambda: ["chroma_query_documents", "chroma_get_documents"]
+    )
+    client_timeout_seconds: float = Field(default=30.0)
 
 
 class DataConfig(BaseModel):

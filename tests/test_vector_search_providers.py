@@ -78,7 +78,7 @@ def test_file_search_agent_tool_selection():
 
     config.vector_search.provider = "chroma"
     agent = create_file_search_agent()
-    assert agent.tools[0].name == "vector_search"
+    assert agent.tools == []
 
     _restore_config(config, snapshot)
 

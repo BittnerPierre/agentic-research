@@ -119,13 +119,14 @@ class BaselineRunner:
             },
         )
 
+        dataprep_url = f"http://{config.mcp.server_host}:{config.mcp.server_port}/sse"
         dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
             params={
-                "url": "http://localhost:8001/sse",
-                "timeout": 60,
+                "url": dataprep_url,
+                "timeout": config.mcp.http_timeout_seconds,
             },
-            client_session_timeout_seconds=120,
+            client_session_timeout_seconds=config.mcp.client_timeout_seconds,
         )
 
         # Run evaluation

@@ -8,13 +8,13 @@ vector_store:
   expires_after_days: 30
 
 vector_search:
-  provider: "local"
+  provider: "chroma"
+  chroma_host: "127.0.0.1"
+  chroma_port: 8000
   index_name: "agentic-research"
   embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
   chunk_size: 800
   chunk_overlap: 120
-  chroma_host: "127.0.0.1"
-  chroma_port: 8000
   chroma_ssl: false
   top_k: 5
   score_threshold: null
@@ -66,7 +66,7 @@ logging:
 # Configuration MCP (Model Context Protocol)
 mcp:
   server_host: "0.0.0.0"
-  server_port: 8001
+  server_port: 8010
   # Timeout pour les appels d'outils MCP (en secondes)
   # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
   # Valeur par défaut dans le SDK: 5.0s
@@ -75,9 +75,9 @@ mcp:
 # Configuration Models
 models:
   research_model: "openai/gpt-4.1-mini"
-  planning_model: "openai/o4-mini"
-  search_model: "openai/gpt-4.1-mini" # Used for vector search summaries
-  writer_model: "openai/gpt-4.1-mini"
+  planning_model: "litellm/anthropic/claude-3-7-sonnet-20250219"
+  search_model: "openai/gpt-4.1-mini" # GPT-4.1-mini is required for file search tool
+  writer_model: "litellm/mistral/mistral-medium-latest"
   knowledge_preparation_model: "openai/gpt-4.1-mini"
 
 # Configuration du manager
@@ -85,5 +85,5 @@ manager:
   default_manager: "agentic_manager" # Options: agentic_manager, manager, ou chemin.vers.ClasseManager
 
 agents:
-  max_search_plan: "2-3"
+  max_search_plan: "5-7"
   output_dir: "output/"

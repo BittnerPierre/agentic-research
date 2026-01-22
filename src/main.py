@@ -4,6 +4,7 @@ import importlib
 import logging
 import os.path
 import tempfile
+from contextlib import AsyncExitStack
 from pathlib import Path
 
 # LangSmith tracing support
@@ -169,10 +170,31 @@ async def main() -> None:
             f"(http timeout: {config.mcp.http_timeout_seconds}s, "
             f"client session timeout: {config.mcp.client_timeout_seconds}s)"
         )
-        async with fs_server, dataprep_server:
+        vector_mcp_server = None
+        if config.vector_search.provider == "chroma":
+            allowlist = set(config.vector_mcp.tool_allowlist)
+
+            def chroma_tool_filter(_context, tool):
+                return tool.name in allowlist
+
+            vector_mcp_server = MCPServerStdio(
+                name="CHROMA_MCP_SERVER",
+                params={
+                    "command": config.vector_mcp.command,
+                    "args": config.vector_mcp.args,
+                },
+                tool_filter=chroma_tool_filter,
+                cache_tools_list=True,
+                client_session_timeout_seconds=config.vector_mcp.client_timeout_seconds,
+            )
+
+        async with AsyncExitStack() as stack:
+            await stack.enter_async_context(fs_server)
+            await stack.enter_async_context(dataprep_server)
+            if vector_mcp_server is not None:
+                await stack.enter_async_context(vector_mcp_server)
+
             logger.info("MCP servers connected successfully")
-            # trace_id = gen_trace_id()
-            # with trace(workflow_name="SSE Example", trace_id=trace_id):
             backend = get_vector_backend(config)
             config.vector_store.vector_store_id = backend.resolve_store_id(
                 config.vector_store.name, config
@@ -187,14 +209,14 @@ async def main() -> None:
             )
             logger.info(f"Research info: {research_info}")
 
-            # print(f"View trace: https://platform.openai.com/traces/trace?trace_id={trace_id}\n")
             logger.info(f"Starting research with manager: {manager_class.__name__}")
-            logger.info(f"Query: {query[:200]}...")  # Log first 200 chars of query
+            logger.info(f"Query: {query[:200]}...")
 
             try:
                 await manager_class().run(
                     dataprep_server=dataprep_server,
                     fs_server=fs_server,
+                    vector_mcp_server=vector_mcp_server,
                     query=query,
                     research_info=research_info,
                 )
