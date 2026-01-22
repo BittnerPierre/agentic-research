@@ -33,6 +33,7 @@ baked into the image):
 OPENAI_API_KEY=YOUR_KEY
 LANGSMITH_API_KEY=YOUR_KEY
 LANGSMITH_PROJECT=agentic-research
+HF_TOKEN=YOUR_HF_TOKEN
 ```
 
 Start the DataPrep MCP server (long-running service):
@@ -115,6 +116,38 @@ End-to-end V1 smoke script (embeddings -> chroma -> llama.cpp):
 
 ```bash
 poetry run python scripts/v1_smoke.py
+```
+
+Note: the smoke test expects the V1 stack to be running (chroma + embeddings + llama.cpp).
+For local, start the stack first:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
+  --profile v1-local up -d chromadb embeddings-cpu llama-cpp-cpu
+```
+
+For DGX Spark (GPU), use:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.v1.dgx.yml \
+  -f docker-compose.v1.dgx.models.yml \
+  --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
+```
+
+DGX models are defined in `docker-compose.v1.dgx.models.yml` so you can swap
+GGUF files easily. Mount your host HF cache into the container (recommended on DGX):
+
+```bash
+export MODELS_DIR=${HOME}/.cache/huggingface/hub
+export LLM_INSTRUCT_MODEL_PATH=/mnt/models/gpt-oss-20b-mxfp4.gguf
+export LLM_REASONING_MODEL_PATH=/mnt/models/Ministral-3-14B-Instruct-2512.gguf
+export EMBEDDINGS_MODEL_PATH=/mnt/models/Qwen3-Embedding-4B-Q8_0.gguf
+```
+
+To download the default DGX models using the Hugging Face CLI:
+
+```bash
+HF_TOKEN=... bash scripts/dgx_model_download.sh
 ```
 
 Defaults for Chroma tenancy can be overridden (if needed):

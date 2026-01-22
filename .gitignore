@@ -51,6 +51,8 @@ output/
 logs/
 data/*.json
 data/*.md
+data/embeddings/
+models/
 *.log
 
 # Evaluation artifacts (keep baselines, ignore temporary results)

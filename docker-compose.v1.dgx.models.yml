@@ -1,0 +1,87 @@
+x-llama-build: &llama-build
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.llamacpp
+  image: local/llama.cpp:server-cuda
+
+services:
+  embeddings-gpu:
+    <<: *llama-build
+    volumes:
+      - ${MODELS_DIR:-./models}:/mnt/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command:
+      - "-m"
+      - "${EMBEDDINGS_MODEL_PATH:-/mnt/models/Qwen3-Embedding-4B-Q8_0.gguf}"
+      - "--port"
+      - "${EMBEDDINGS_PORT:-8003}"
+      - "--host"
+      - "0.0.0.0"
+      - "--jinja"
+      - "--embeddings"
+    ports:
+      - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
+    profiles:
+      - v1-dgx
+
+  llm-instruct:
+    <<: *llama-build
+    volumes:
+      - ${MODELS_DIR:-./models}:/mnt/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command:
+      - "-m"
+      - "${LLM_INSTRUCT_MODEL_PATH:-/mnt/models/gpt-oss-20b-mxfp4.gguf}"
+      - "--port"
+      - "${LLM_INSTRUCT_PORT:-8002}"
+      - "--host"
+      - "0.0.0.0"
+      - "-n"
+      - "${LLM_INSTRUCT_N_CTX:-2048}"
+      - "--n-gpu-layers"
+      - "${LLM_INSTRUCT_N_GPU_LAYERS:-999}"
+      - "--jinja"
+    ports:
+      - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
+    profiles:
+      - v1-dgx
+
+  llm-reasoning:
+    <<: *llama-build
+    volumes:
+      - ${MODELS_DIR:-./models}:/mnt/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command:
+      - "-m"
+      - "${LLM_REASONING_MODEL_PATH:-/mnt/models/Ministral-3-14B-Instruct-2512.gguf}"
+      - "--port"
+      - "${LLM_REASONING_PORT:-8004}"
+      - "--host"
+      - "0.0.0.0"
+      - "-n"
+      - "${LLM_REASONING_N_CTX:-2048}"
+      - "--n-gpu-layers"
+      - "${LLM_REASONING_N_GPU_LAYERS:-999}"
+      - "--jinja"
+    ports:
+      - "${LLM_REASONING_PORT:-8004}:${LLM_REASONING_PORT:-8004}"
+    profiles:
+      - v1-dgx
