@@ -35,19 +35,16 @@ fi
 echo "Downloading embeddings model: ${EMBEDDINGS_REPO} (${EMBEDDINGS_GGUF_PATTERN})"
 HF_TOKEN="${HF_TOKEN}" hf download "${EMBEDDINGS_REPO}" \
   --local-dir "${MODELS_DIR}" \
-  --local-dir-use-symlinks False \
   --include "${EMBEDDINGS_GGUF_PATTERN}"
 
 echo "Downloading instruct model: ${INSTRUCT_REPO} (${INSTRUCT_GGUF_PATTERN})"
 HF_TOKEN="${HF_TOKEN}" hf download "${INSTRUCT_REPO}" \
   --local-dir "${MODELS_DIR}" \
-  --local-dir-use-symlinks False \
   --include "${INSTRUCT_GGUF_PATTERN}"
 
 echo "Downloading reasoning model: ${REASONING_REPO} (${REASONING_GGUF_PATTERN})"
 HF_TOKEN="${HF_TOKEN}" hf download "${REASONING_REPO}" \
   --local-dir "${MODELS_DIR}" \
-  --local-dir-use-symlinks False \
   --include "${REASONING_GGUF_PATTERN}"
 
 echo "Models downloaded to ${MODELS_DIR}"
