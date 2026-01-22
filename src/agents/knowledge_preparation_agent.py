@@ -11,6 +11,7 @@ from .utils import (
     extract_model_name,
     fetch_vector_store_name,
     load_prompt_from_file,
+    resolve_model,
 )
 
 prompt_file = "knowledge_preparation.md"
@@ -40,9 +41,10 @@ def create_knowledge_preparation_agent(mcp_servers: list[MCPServer] | None = Non
 
     config = get_config()
 
-    model = config.models.knowledge_preparation_model
+    model_spec = config.models.knowledge_preparation_model
+    model = resolve_model(model_spec)
 
-    model_name = extract_model_name(model)
+    model_name = extract_model_name(model_spec)
     model_settings = get_default_model_settings(model_name)
 
     knowledge_preparation_agent = Agent(

@@ -74,14 +74,27 @@ class MCPConfig(BaseModel):
     )
 
 
-class ModelsConfig(BaseModel):
-    """Configuration for OpenAI."""
+class ModelEndpointConfig(BaseModel):
+    """Configuration for a model endpoint (OpenAI-compatible)."""
 
-    research_model: str = Field(default="openai/gpt-4.1-mini")
-    planning_model: str = Field(default="openai/gpt-4.1-mini")
-    search_model: str = Field(default="openai/gpt-4.1-mini")
-    writer_model: str = Field(default="litellm/mistral/mistral-medium-latest")
-    knowledge_preparation_model: str = Field(default="litellm/mistral/mistral-medium-latest")
+    name: str
+    base_url: str | None = None
+    api_key: str | None = None
+
+
+ModelSpec = str | ModelEndpointConfig
+
+
+class ModelsConfig(BaseModel):
+    """Configuration for models."""
+
+    research_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
+    planning_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
+    search_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
+    writer_model: ModelSpec = Field(default="litellm/mistral/mistral-medium-latest")
+    knowledge_preparation_model: ModelSpec = Field(
+        default="litellm/mistral/mistral-medium-latest"
+    )
     # model: str = Field(default="openai/gpt-4.1-mini")
     # reasoning_model: str = Field(default="openai/o3-mini")
 

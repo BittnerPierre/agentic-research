@@ -38,6 +38,7 @@ COPY agentic_research ./agentic_research
 COPY src ./src
 COPY scripts ./scripts
 RUN poetry install --only main --no-ansi
+COPY configs ./configs
 COPY config.yaml urls.txt ./
 COPY data ./data
 RUN mkdir -p output debug_output logs

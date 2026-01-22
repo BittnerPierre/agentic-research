@@ -65,6 +65,9 @@ evaluations/sav_file/
 # Environment variables
 .env
 .env.local
+.env.*
+!.env.template
+.env.local
 models.env
 
 # Ruff cache

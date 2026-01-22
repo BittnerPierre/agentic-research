@@ -12,6 +12,7 @@ from .utils import (
     extract_model_name,
     fetch_vector_store_name,
     load_prompt_from_file,
+    resolve_model,
     should_apply_tool_filter,
 )
 
@@ -50,11 +51,11 @@ def create_research_supervisor_agent(
         ctx.context.search_results = directive.search_results
 
     config = get_config()
-    writer_model = config.models.writer_model
+    writer_model_spec = config.models.writer_model
 
     # Déterminer le filtre à appliquer selon le modèle du writer_agent
     input_filter = None
-    if should_apply_tool_filter(writer_model):
+    if should_apply_tool_filter(writer_model_spec):
         input_filter = handoff_filters.remove_all_tools
     # Si should_apply_tool_filter retourne False (GPT-5), input_filter reste None
 
@@ -67,13 +68,14 @@ def create_research_supervisor_agent(
         input_filter=input_filter,  # Application conditionnelle du filtre selon le modèle
     )
 
-    model_name = extract_model_name(config.models.research_model)
+    research_model_spec = config.models.research_model
+    model_name = extract_model_name(research_model_spec)
     model_settings = get_default_model_settings(model_name)
 
     return Agent[ResearchInfo](
         name="ResearchSupervisorAgent",
         instructions=ORCHESTRATOR_PROMPT,
-        model=config.models.research_model,
+        model=resolve_model(research_model_spec),
         handoffs=[writer_handoff],
         tools=[
             file_planner_agent.as_tool(

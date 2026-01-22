@@ -7,9 +7,21 @@ import urllib.error
 import urllib.request
 
 
-CHROMA_URL = os.environ.get("CHROMA_URL", "http://localhost:8000")
-EMBED_URL = os.environ.get("EMBED_URL", "http://localhost:8003")
-LLM_INSTRUCT_URL = os.environ.get("LLM_INSTRUCT_URL", "http://localhost:8002")
+def default_url(service_host: str, port: int) -> str:
+    if os.path.exists("/.dockerenv"):
+        return f"http://{service_host}:{port}"
+    return f"http://localhost:{port}"
+
+
+CHROMA_URL = os.environ.get("CHROMA_URL", default_url("chromadb", 8000))
+EMBED_URL = os.environ.get(
+    "EMBED_URL",
+    os.environ.get("EMBEDDINGS_URL", default_url("embeddings-cpu", 8003)),
+)
+LLM_INSTRUCT_URL = os.environ.get(
+    "LLM_INSTRUCT_URL",
+    os.environ.get("LLAMA_URL", default_url("llama-cpp-cpu", 8002)),
+)
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "v1-smoke")
 CHROMA_TENANT = os.environ.get("CHROMA_TENANT", "default_tenant")
 CHROMA_DATABASE = os.environ.get("CHROMA_DATABASE", "default_database")
@@ -67,6 +79,13 @@ def wait_for_health(url, retries=10, delay=1):
     return False
 
 
+def pick_first_healthy(urls, path="/health", retries=5, delay=1):
+    for url in urls:
+        if wait_for_health(f"{url}{path}", retries=retries, delay=delay):
+            return url
+    return None
+
+
 def parse_json(body, context):
     try:
         return json.loads(body)
@@ -93,15 +112,21 @@ def main():
     if not (200 <= status < 300):
         raise SystemExit("Chroma heartbeat failed")
 
+    embed_urls = [EMBED_URL]
+    embed_urls.append(default_url("embeddings-cpu", 8003))
+    embed_urls.append(default_url("embeddings-gpu", 8003))
+    embed_urls = list(dict.fromkeys(embed_urls))
+
     log("Wait for embeddings health...")
-    if not wait_for_health(f"{EMBED_URL}/health"):
+    embed_url = pick_first_healthy(embed_urls)
+    if not embed_url:
         raise SystemExit("Embeddings service not healthy")
 
     log("Embedding request...")
-    status, body = request_json("POST", f"{EMBED_URL}/v1/embeddings", {"input": "smoke test"})
+    status, body = request_json("POST", f"{embed_url}/v1/embeddings", {"input": "smoke test"})
     if not (200 <= status < 300):
         log(f"Embeddings /v1/embeddings failed ({status}); trying /embed...")
-        status, body = request_json("POST", f"{EMBED_URL}/embed", {"inputs": "smoke test"})
+        status, body = request_json("POST", f"{embed_url}/embed", {"inputs": "smoke test"})
     if not (200 <= status < 300):
         raise SystemExit(f"Embeddings request failed ({status})")
     if not body:
@@ -154,17 +179,27 @@ def main():
     if not (200 <= status < 300):
         raise SystemExit("Failed to query Chroma collection")
 
+    llm_urls = [LLM_INSTRUCT_URL]
+    llm_urls.append(default_url("llama-cpp-cpu", 8002))
+    llm_urls.append(default_url("llm-instruct", 8002))
+    llm_urls = list(dict.fromkeys(llm_urls))
+
     log("Llama.cpp health...")
-    status, _ = request_json("GET", f"{LLM_INSTRUCT_URL}/health")
-    if not (200 <= status < 300):
-        status, _ = request_json("GET", f"{LLM_INSTRUCT_URL}/v1/models")
-        if not (200 <= status < 300):
-            raise SystemExit("Llama.cpp health check failed")
+    llm_url = pick_first_healthy(llm_urls)
+    if not llm_url:
+        # Fall back to /v1/models probe for OpenAI-compatible servers
+        for url in llm_urls:
+            status, _ = request_json("GET", f"{url}/v1/models")
+            if 200 <= status < 300:
+                llm_url = url
+                break
+    if not llm_url:
+        raise SystemExit("Llama.cpp health check failed")
 
     log("Llama.cpp chat completion...")
     status, _ = request_json(
         "POST",
-        f"{LLM_INSTRUCT_URL}/v1/chat/completions",
+        f"{llm_url}/v1/chat/completions",
         {"model": "local", "messages": [{"role": "user", "content": "say ok"}], "max_tokens": 5},
     )
     if not (200 <= status < 300):

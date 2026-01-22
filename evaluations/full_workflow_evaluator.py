@@ -23,6 +23,7 @@ from agentic_research.agents.file_search_agent import create_file_search_agent
 from agentic_research.agents.file_search_planning_agent import create_file_planner_agent
 from agentic_research.agents.file_writer_agent import create_writer_agent
 from agentic_research.agents.schemas import ReportData, ResearchInfo
+from agentic_research.agents.utils import model_spec_to_string
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
 from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
@@ -234,7 +235,7 @@ class FullWorkflowEvaluator:
         self.printer.update_item("trajectory", "Validating trajectory...")
 
         # Get model name for output files
-        model_name = self._config.models.research_model
+        model_name = model_spec_to_string(self._config.models.research_model)
         safe_model_name = model_name.replace("/", "-")
 
         # Save report
