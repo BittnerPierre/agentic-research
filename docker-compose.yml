@@ -68,6 +68,7 @@ services:
     profiles:
       - v1-local
       - v1-dgx
+      - v1-dgx-backend
 
   embeddings-cpu:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
@@ -94,6 +95,7 @@ services:
               capabilities: [gpu]
     profiles:
       - v1-dgx
+      - v1-dgx-backend
 
   llama-cpp-cpu:
     image: ghcr.io/ggml-org/llama.cpp:full

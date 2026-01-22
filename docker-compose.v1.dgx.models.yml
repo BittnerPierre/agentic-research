@@ -29,6 +29,7 @@ services:
       - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
     profiles:
       - v1-dgx
+      - v1-dgx-backend
 
   llm-instruct:
     <<: *llama-build
@@ -57,6 +58,7 @@ services:
       - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
     profiles:
       - v1-dgx
+      - v1-dgx-backend
 
   llm-reasoning:
     <<: *llama-build
@@ -85,3 +87,4 @@ services:
       - "${LLM_REASONING_PORT:-8004}:${LLM_REASONING_PORT:-8004}"
     profiles:
       - v1-dgx
+      - v1-dgx-backend

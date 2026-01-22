@@ -135,6 +135,15 @@ docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dg
   --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
 ```
 
+DGX backend bundle (dataprep + chroma + embeddings + LLMs):
+
+```bash
+docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
+  -f docker-compose.v1.dgx.models.yml \
+  --env-file models.env \
+  --profile v1-dgx-backend up -d
+```
+
 Always use the same project name (`-p agentic-research`) for `up`, `logs`,
 `stop`, and `down` to avoid orphaned containers or stuck networks.
 
