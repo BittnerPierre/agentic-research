@@ -9,7 +9,7 @@ import urllib.request
 
 CHROMA_URL = os.environ.get("CHROMA_URL", "http://localhost:8000")
 EMBED_URL = os.environ.get("EMBED_URL", "http://localhost:8003")
-LLAMA_URL = os.environ.get("LLAMA_URL", "http://localhost:8002")
+LLM_INSTRUCT_URL = os.environ.get("LLM_INSTRUCT_URL", "http://localhost:8002")
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "v1-smoke")
 CHROMA_TENANT = os.environ.get("CHROMA_TENANT", "default_tenant")
 CHROMA_DATABASE = os.environ.get("CHROMA_DATABASE", "default_database")
@@ -155,16 +155,16 @@ def main():
         raise SystemExit("Failed to query Chroma collection")
 
     log("Llama.cpp health...")
-    status, _ = request_json("GET", f"{LLAMA_URL}/health")
+    status, _ = request_json("GET", f"{LLM_INSTRUCT_URL}/health")
     if not (200 <= status < 300):
-        status, _ = request_json("GET", f"{LLAMA_URL}/v1/models")
+        status, _ = request_json("GET", f"{LLM_INSTRUCT_URL}/v1/models")
         if not (200 <= status < 300):
             raise SystemExit("Llama.cpp health check failed")
 
     log("Llama.cpp chat completion...")
     status, _ = request_json(
         "POST",
-        f"{LLAMA_URL}/v1/chat/completions",
+        f"{LLM_INSTRUCT_URL}/v1/chat/completions",
         {"model": "local", "messages": [{"role": "user", "content": "say ok"}], "max_tokens": 5},
     )
     if not (200 <= status < 300):
