@@ -42,12 +42,12 @@ mcp:
 # Configuration Models
 models:
   research_model:
-    name: "openai/Ministral-3-14B-Reasoning-2512-Q8_0.gguf"
-    base_url: "http://llm-reasoning:8004"
+    name:  "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
     api_key: "dummy"
   planning_model:
-    name: "openai/Ministral-3-14B-Reasoning-2512-Q8_0.gguf"
-    base_url: "http://llm-reasoning:8004"
+    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
     api_key: "dummy"
   search_model: "openai/gpt-4.1-mini" # GPT-4.1-mini is required for file search tool
   writer_model:
