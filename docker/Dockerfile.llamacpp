@@ -31,7 +31,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 RUN git clone https://github.com/ggml-org/llama.cpp.git . \
-    && git checkout 5d8bb90
+    && git checkout b7802
 
 RUN if [ "${CUDA_DOCKER_ARCH}" != "default" ]; then \
     export CMAKE_ARGS="-DCMAKE_CUDA_ARCHITECTURES=121"; \
@@ -61,6 +61,8 @@ RUN apt-get update \
     && find /var/cache -type f -delete
 
 COPY --from=build /app/lib/ /app
+COPY --from=build /app/lib/ /usr/local/lib/
+RUN ldconfig
 
 
 FROM base
