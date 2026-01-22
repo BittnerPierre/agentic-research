@@ -8,7 +8,7 @@ services:
   embeddings-gpu:
     <<: *llama-build
     volumes:
-      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
     deploy:
       resources:
         reservations:
@@ -17,8 +17,8 @@ services:
               count: all
               capabilities: [gpu]
     command:
-      - "-hf"
-      - "${EMBEDDINGS_MODEL_REPO:-Qwen/Qwen3-Embedding-4B-GGUF}"
+      - "-m"
+      - "${EMBEDDINGS_MODEL_PATH:-/mnt/models/models--Qwen--Qwen3-Embedding-4B-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Qwen3-Embedding-4B-Q8_0.gguf}"
       - "--port"
       - "${EMBEDDINGS_PORT:-8003}"
       - "--host"
@@ -33,7 +33,7 @@ services:
   llm-instruct:
     <<: *llama-build
     volumes:
-      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
     deploy:
       resources:
         reservations:
@@ -42,8 +42,8 @@ services:
               count: all
               capabilities: [gpu]
     command:
-      - "-hf"
-      - "${LLM_INSTRUCT_MODEL_REPO:-ggml-org/gpt-oss-20b-GGUF}"
+      - "-m"
+      - "${LLM_INSTRUCT_MODEL_PATH:-/mnt/models/models--ggml-org--gpt-oss-20b-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/gpt-oss-20b-mxfp4.gguf}"
       - "--port"
       - "${LLM_INSTRUCT_PORT:-8002}"
       - "--host"
@@ -61,7 +61,7 @@ services:
   llm-reasoning:
     <<: *llama-build
     volumes:
-      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
     deploy:
       resources:
         reservations:
@@ -70,8 +70,8 @@ services:
               count: all
               capabilities: [gpu]
     command:
-      - "-hf"
-      - "${LLM_REASONING_MODEL_REPO:-mistralai/Ministral-3-14B-Reasoning-2512}"
+      - "-m"
+      - "${LLM_REASONING_MODEL_PATH:-/mnt/models/models--mistralai--Ministral-3-14B-Reasoning-2512-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Ministral-3-14B-Reasoning-2512-Q8_0.gguf}"
       - "--port"
       - "${LLM_REASONING_PORT:-8004}"
       - "--host"
