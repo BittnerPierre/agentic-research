@@ -91,7 +91,8 @@ DGX Spark (GPU) stack:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  --profile v1-dgx up -d dataprep chromadb embeddings-gpu llama-cpp-gpu
+  -f docker-compose.v1.dgx.models.yml --env-file models.env \
+  --profile v1-dgx up -d dataprep chromadb embeddings-gpu llm-instruct llm-reasoning
 ```
 
 Notes:
@@ -103,6 +104,8 @@ Notes:
   under `/models/hub/...`.
 - `embeddings-cpu` and `llama-cpp-cpu` use `platform: linux/amd64` for Mac;
   remove if you build native images.
+- `models.env` is required on DGX to replace `REPLACE_WITH_SNAPSHOT` paths in
+  `docker-compose.v1.dgx.models.yml`.
 
 Smoke checks:
 
@@ -135,6 +138,46 @@ docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dg
   --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
 ```
 
+Smoke test from a container (no local Python/Poetry needed):
+
+Local (CPU):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
+  --profile v1-local up -d chromadb embeddings-cpu llama-cpp-cpu
+
+docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
+  --profile v1-local run --rm agentic-research \
+  poetry run python scripts/v1_smoke.py
+```
+
+DGX Spark (GPU):
+
+```bash
+docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
+  -f docker-compose.v1.dgx.models.yml --env-file models.env \
+  --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
+
+docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
+  -f docker-compose.v1.dgx.models.yml --env-file models.env \
+  --profile v1-dgx run --rm agentic-research \
+  poetry run python scripts/v1_smoke.py
+```
+
+If the smoke test cannot resolve service names (e.g., `embeddings-cpu`),
+ensure the `run` command uses the same project name (`-p ...`) and the same
+compose files as `up`, so the container joins the correct network.
+
+Logs:
+
+```bash
+# All services
+docker compose logs -f
+
+# Single service (example)
+docker compose logs -f embeddings-gpu
+```
+
 DGX backend bundle (dataprep + chroma + embeddings + LLMs):
 
 ```bash
@@ -142,6 +185,15 @@ docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dg
   -f docker-compose.v1.dgx.models.yml \
   --env-file models.env \
   --profile v1-dgx-backend up -d
+```
+
+Run `agentic-research` on DGX (CLI container, same project/network):
+
+```bash
+docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
+  -f docker-compose.v1.dgx.models.yml --env-file models.env \
+  --profile v1-dgx run --rm agentic-research \
+  agentic-research --query "test"
 ```
 
 Always use the same project name (`-p agentic-research`) for `up`, `logs`,
