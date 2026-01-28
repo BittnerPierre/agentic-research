@@ -13,7 +13,13 @@ from pydantic import BaseModel, Field
 try:
     from dotenv import find_dotenv, load_dotenv
 
-    load_dotenv(find_dotenv())
+    dotenv_path = find_dotenv(usecwd=True)
+    # Only override when a variable is missing or empty.
+    load_dotenv(dotenv_path, override=False)
+    if os.getenv("OPENAI_API_KEY") == "":
+        load_dotenv(dotenv_path, override=True)
+    if os.getenv("LANGSMITH_API_KEY") == "":
+        load_dotenv(dotenv_path, override=True)
 except ImportError:
     pass  # python-dotenv not available, skip loading
 
@@ -104,14 +110,27 @@ class MCPConfig(BaseModel):
     )
 
 
-class ModelsConfig(BaseModel):
-    """Configuration for OpenAI."""
+class ModelEndpointConfig(BaseModel):
+    """Configuration for a model endpoint (OpenAI-compatible)."""
 
-    research_model: str = Field(default="openai/gpt-4.1-mini")
-    planning_model: str = Field(default="openai/gpt-4.1-mini")
-    search_model: str = Field(default="openai/gpt-4.1-mini")
-    writer_model: str = Field(default="litellm/mistral/mistral-medium-latest")
-    knowledge_preparation_model: str = Field(default="litellm/mistral/mistral-medium-latest")
+    name: str
+    base_url: str | None = None
+    api_key: str | None = None
+
+
+ModelSpec = str | ModelEndpointConfig
+
+
+class ModelsConfig(BaseModel):
+    """Configuration for models."""
+
+    research_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
+    planning_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
+    search_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
+    writer_model: ModelSpec = Field(default="litellm/mistral/mistral-medium-latest")
+    knowledge_preparation_model: ModelSpec = Field(
+        default="litellm/mistral/mistral-medium-latest"
+    )
     # model: str = Field(default="openai/gpt-4.1-mini")
     # reasoning_model: str = Field(default="openai/o3-mini")
 

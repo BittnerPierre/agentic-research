@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,23 @@ def load_test_case(test_case_name: str, test_cases_dir: str = "evaluations/test_
 
     with open(test_case_file, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def build_fs_server_params(temp_dir: str, output_dir: str | None = None) -> dict[str, list[str] | str]:
+    fs_command = os.getenv("MCP_FS_COMMAND")
+    fs_args = os.getenv("MCP_FS_ARGS")
+    if fs_command:
+        args = shlex.split(fs_args) if fs_args else []
+        if output_dir:
+            args.extend([temp_dir, output_dir])
+        else:
+            args.append(temp_dir)
+    else:
+        fs_command = "npx"
+        args = ["-y", "@modelcontextprotocol/server-filesystem", temp_dir]
+        if output_dir:
+            args.append(output_dir)
+    return {"command": fs_command, "args": args}
 
 def _extract_assistant_content(message: dict[str, Any]) -> str:
     """

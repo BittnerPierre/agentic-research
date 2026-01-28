@@ -2,7 +2,8 @@ import argparse
 import asyncio
 import importlib
 import logging
-import os.path
+import os
+import shlex
 import tempfile
 from contextlib import AsyncExitStack
 from pathlib import Path
@@ -148,11 +149,20 @@ async def main() -> None:
 
     logger.info("Setting up MCP servers...")
     with tempfile.TemporaryDirectory(delete=not debug_mode) as temp_dir:
+        fs_command = os.getenv("MCP_FS_COMMAND")
+        fs_args = os.getenv("MCP_FS_ARGS")
+        if fs_command:
+            args = shlex.split(fs_args) if fs_args else []
+            args.append(temp_dir)
+        else:
+            fs_command = "npx"
+            args = ["-y", "@modelcontextprotocol/server-filesystem", temp_dir]
+
         fs_server = MCPServerStdio(
             name="FS_MCP_SERVER",
             params={
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_dir],
+                "command": fs_command,
+                "args": args,
             },
             tool_filter=context_aware_filter,
             cache_tools_list=True,
@@ -160,7 +170,10 @@ async def main() -> None:
         canonical_tmp_dir = os.path.realpath(temp_dir)
         logger.info(f"Filesystem MCP server temp directory: {canonical_tmp_dir}")
 
-        dataprep_url = f"http://{config.mcp.server_host}:{config.mcp.server_port}/sse"
+        dataprep_url = os.getenv(
+            "MCP_DATAPREP_URL",
+            f"http://{config.mcp.server_host}:{config.mcp.server_port}/sse",
+        )
         dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
             params={

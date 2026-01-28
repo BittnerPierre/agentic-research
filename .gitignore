@@ -52,6 +52,8 @@ logs/
 data/*.json
 data/*.md
 data/vector_index/
+data/embeddings/
+models/
 *.log
 
 # Evaluation artifacts (keep baselines, ignore temporary results)
@@ -64,6 +66,10 @@ evaluations/sav_file/
 # Environment variables
 .env
 .env.local
+.env.*
+!.env.template
+.env.local
+models.env
 
 # Ruff cache
 .ruff_cache/

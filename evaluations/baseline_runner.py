@@ -21,6 +21,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -29,7 +30,7 @@ from agentic_research.agents.schemas import ResearchInfo
 from agentic_research.config import get_config
 from agents.mcp import MCPServerSse, MCPServerStdio
 
-from .eval_utils import load_test_case as load_test_case_yaml
+from .eval_utils import build_fs_server_params, load_test_case as load_test_case_yaml
 from .full_workflow_evaluator import FullWorkflowEvaluator
 
 
@@ -124,13 +125,13 @@ class BaselineRunner:
         # Create MCP servers
         fs_server = MCPServerStdio(
             name="FS_MCP_SERVER",
-            params={
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_dir, output_dir],
-            },
+            params=build_fs_server_params(temp_dir, output_dir),
         )
 
-        dataprep_url = f"http://{config.mcp.server_host}:{config.mcp.server_port}/sse"
+        dataprep_url = os.getenv(
+            "MCP_DATAPREP_URL",
+            f"http://{config.mcp.server_host}:{config.mcp.server_port}/sse",
+        )
         dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
             params={

@@ -1,7 +1,9 @@
 import os
+from typing import Any
 
 from agents import RunContextWrapper, function_tool
 from agents.mcp import ToolFilterContext
+from agents.extensions.models.litellm_model import LitellmModel
 
 from .schemas import ReportData, ResearchInfo
 
@@ -168,7 +170,25 @@ def context_aware_filter(context: ToolFilterContext, tool) -> bool:
     return some_filtering_logic(agent_name, server_name, tool)
 
 
-def extract_model_name(model_string: str) -> str:
+def _normalize_model_string(model_spec: Any) -> str:
+    if isinstance(model_spec, LitellmModel):
+        return model_spec.model
+    if hasattr(model_spec, "name"):
+        return str(getattr(model_spec, "name"))
+    if isinstance(model_spec, dict) and "name" in model_spec:
+        return str(model_spec["name"])
+    return str(model_spec)
+
+
+def model_spec_to_string(model_spec: Any) -> str:
+    """Return a stable string representation of a model spec.
+
+    Useful for logs and filenames when the config holds structured objects.
+    """
+    return _normalize_model_string(model_spec)
+
+
+def extract_model_name(model_string: Any) -> str:
     """
     Extrait le vrai nom du modèle en éliminant les préfixes de providers.
 
@@ -193,6 +213,7 @@ def extract_model_name(model_string: str) -> str:
         >>> extract_model_name("litellm/anthropic/claude-3-7-sonnet-20250219")
         "claude-3-7-sonnet-20250219"
     """
+    model_string = model_spec_to_string(model_string)
     if not model_string:
         return model_string
 
@@ -212,7 +233,25 @@ def extract_model_name(model_string: str) -> str:
     return model_string
 
 
-def is_mistral_model(model_string: str) -> bool:
+def resolve_model(model_spec: Any):
+    if isinstance(model_spec, LitellmModel):
+        return model_spec
+    if isinstance(model_spec, dict) and "name" in model_spec:
+        return LitellmModel(
+            model=model_spec["name"],
+            base_url=model_spec.get("base_url"),
+            api_key=model_spec.get("api_key"),
+        )
+    if hasattr(model_spec, "name"):
+        return LitellmModel(
+            model=str(getattr(model_spec, "name")),
+            base_url=getattr(model_spec, "base_url", None),
+            api_key=getattr(model_spec, "api_key", None),
+        )
+    return model_spec
+
+
+def is_mistral_model(model_string: Any) -> bool:
     """
     Vérifie si le modèle est un modèle Mistral.
 
@@ -223,6 +262,7 @@ def is_mistral_model(model_string: str) -> bool:
         True si c'est un modèle Mistral, False sinon
     """
     # Vérification par préfixe litellm
+    model_string = model_spec_to_string(model_string)
     if model_string.startswith("litellm/mistral/"):
         return True
 
@@ -231,7 +271,7 @@ def is_mistral_model(model_string: str) -> bool:
     return "mistral" in model_name
 
 
-def is_gpt5_model(model_string: str) -> bool:
+def is_gpt5_model(model_string: Any) -> bool:
     """
     Vérifie si le modèle est un modèle GPT-5.
 
@@ -245,7 +285,7 @@ def is_gpt5_model(model_string: str) -> bool:
     return model_name.startswith("gpt-5")
 
 
-def should_apply_tool_filter(model_string: str) -> bool:
+def should_apply_tool_filter(model_string: Any) -> bool:
     """
     Détermine si le filtre remove_all_tools doit être appliqué pour un modèle donné.
 

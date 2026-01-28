@@ -15,6 +15,7 @@ from agentic_research.agents.schemas import ReportData, ResearchInfo
 from agentic_research.agents.utils import (
     context_aware_filter,
     generate_final_report_filename,
+    model_spec_to_string,
 )
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
@@ -31,6 +32,7 @@ from agents import (
 from agents.mcp import MCPServer, MCPServerStdio
 
 from .eval_utils import (
+    build_fs_server_params,
     format_trajectory_report,
     load_test_case,
     save_result_input_list_to_json,
@@ -237,7 +239,7 @@ class EvaluationManager:
     async def _evaluate_report_trajectory(self, report: ReportData, messages: list[TResponseInputItem]) -> tuple[str, str]:
 
         ## EVALUATION SPECIFIC
-        model_name = self.writer_agent.model
+        model_name = model_spec_to_string(self.writer_agent.model)
         report_file_name = report.file_name if report.file_name else generate_final_report_filename(research_topic=report.research_topic)
 
         # Générer le nom de base du fichier
@@ -325,7 +327,7 @@ async def main(
     if writer_model:
         config.models.writer_model = writer_model
 
-    print(f"Writer model: {config.models.writer_model}")
+    print(f"Writer model: {model_spec_to_string(config.models.writer_model)}")
 
     Path(output_report_dir).mkdir(parents=True, exist_ok=True)
     canonical_tmp_dir = os.path.realpath(str(temp_dir))
@@ -333,10 +335,7 @@ async def main(
 
     fs_server = MCPServerStdio(
         name="FS_MCP_SERVER",
-        params={
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", canonical_tmp_dir],
-        },
+        params=build_fs_server_params(canonical_tmp_dir),
         tool_filter=context_aware_filter,
         cache_tools_list=True
     )
