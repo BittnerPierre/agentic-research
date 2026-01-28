@@ -209,7 +209,7 @@ class OpenAIVectorBackend:
         for entry, file_path in entries_to_process:
             if entry.openai_file_id:
                 logger.info(
-                    f"Réutilisation du fichier OpenAI existant: {entry.filename} -> {entry.openai_file_id}"
+                    f"Reusing existing OpenAI file: {entry.filename} -> {entry.openai_file_id}"
                 )
                 files_uploaded.append(
                     {"filename": entry.filename, "file_id": entry.openai_file_id, "status": "reused"}
@@ -218,7 +218,7 @@ class OpenAIVectorBackend:
                 reuse_count += 1
             else:
                 try:
-                    logger.info(f"Upload du nouveau fichier: {entry.filename}")
+                    logger.info(f"Uploading new file: {entry.filename}")
                     with open(file_path, "rb") as file:
                         file_upload_response = client.files.create(file=file, purpose="user_data")
 
@@ -232,7 +232,7 @@ class OpenAIVectorBackend:
                     files_to_attach.append((file_id, entry.filename))
                     upload_count += 1
                 except Exception as e:
-                    logger.error(f"Erreur upload {entry.filename}: {e}")
+                    logger.error(f"Upload error {entry.filename}: {e}")
                     files_uploaded.append(
                         {"filename": entry.filename, "error": str(e), "status": "failed"}
                     )
@@ -253,7 +253,7 @@ class OpenAIVectorBackend:
                     vector_store_id=vector_store_id, file_id=file_id
                 )
                 logger.info(
-                    f"Fichier attaché au vector store: {filename} (status: {vector_store_file.status})"
+                    f"File attached to vector store: {filename} (status: {vector_store_file.status})"
                 )
                 return {
                     "filename": filename,
@@ -263,7 +263,7 @@ class OpenAIVectorBackend:
                     "success": True,
                 }
             except Exception as e:
-                logger.error(f"Erreur attachement {filename}: {e}")
+                logger.error(f"Attachment error {filename}: {e}")
                 return {
                     "filename": filename,
                     "file_id": file_id,

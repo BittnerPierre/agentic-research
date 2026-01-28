@@ -38,9 +38,7 @@ class KnowledgeDBManager:
                     config = get_config()
                     db_path = Path(config.data.knowledge_db_path)
                 except Exception as e:
-                    logger.warning(
-                        f"Impossible de charger la config: {e}. Utilisation du chemin par défaut."
-                    )
+                    logger.warning(f"Failed to load config: {e}. Using default path.")
                     db_path = Path("data/knowledge_db.json")
 
             self.db_path = Path(db_path)
@@ -54,9 +52,9 @@ class KnowledgeDBManager:
             db = self.get_all_entries()
             self._url_index = {str(entry.url): entry for entry in db.entries}
             self._name_index = {entry.filename: entry for entry in db.entries}
-            logger.info(f"Index construits: {len(self._url_index)} entrées indexées")
+            logger.info(f"Indexes built: {len(self._url_index)} entries indexed")
         except Exception as e:
-            logger.warning(f"Erreur lors de la construction des index: {e}")
+            logger.warning(f"Failed to build indexes: {e}")
             self._url_index = {}
             self._name_index = {}
 
@@ -99,7 +97,7 @@ class KnowledgeDBManager:
                     self._url_index[url] = entry
                 return entry
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning(f"Erreur lors de la lecture de la base: {e}")
+            logger.warning(f"Failed to read database: {e}")
             return None
 
     def find_by_name(self, filename: str) -> KnowledgeEntry | None:
@@ -119,7 +117,7 @@ class KnowledgeDBManager:
                     self._name_index[filename] = entry
                 return entry
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning(f"Erreur lors de la recherche par nom: {e}")
+            logger.warning(f"Failed to search by name: {e}")
             return None
 
     def add_entry(self, entry: KnowledgeEntry) -> None:
@@ -146,7 +144,7 @@ class KnowledgeDBManager:
         self._url_index[str(entry.url)] = entry
         self._name_index[entry.filename] = entry
 
-        logger.info(f"Entrée ajoutée à la base de connaissances: {entry.filename}")
+        logger.info(f"Entry added to knowledge base: {entry.filename}")
 
     def update_openai_file_id(self, filename: str, openai_file_id: str) -> None:
         """Met à jour l'ID OpenAI Files d'une entrée de manière thread-safe."""
@@ -156,7 +154,7 @@ class KnowledgeDBManager:
                 data = json.load(f)
                 db = KnowledgeDatabase(**data)
             except (json.JSONDecodeError, ValueError):
-                logger.error(f"Impossible de lire la base pour mise à jour: {filename}")
+                logger.error(f"Failed to read database for update: {filename}")
                 return
 
             # Mise à jour
@@ -172,7 +170,7 @@ class KnowledgeDBManager:
             self._name_index[filename].openai_file_id = openai_file_id
             self._name_index[filename].last_uploaded_at = datetime.now()
 
-        logger.info(f"ID OpenAI mis à jour pour {filename}: {openai_file_id}")
+        logger.info(f"Updated OpenAI file id for {filename}: {openai_file_id}")
 
     def update_vector_doc_id(self, filename: str, vector_doc_id: str) -> None:
         """Met à jour l'ID local du document dans l'index."""
@@ -182,7 +180,7 @@ class KnowledgeDBManager:
                 data = json.load(f)
                 db = KnowledgeDatabase(**data)
             except (json.JSONDecodeError, ValueError):
-                logger.error(f"Impossible de lire la base pour mise à jour: {filename}")
+                logger.error(f"Failed to read database for update: {filename}")
                 return
 
             db.update_vector_doc_id(filename, vector_doc_id)
@@ -194,7 +192,7 @@ class KnowledgeDBManager:
         if filename in self._name_index:
             self._name_index[filename].vector_doc_id = vector_doc_id
 
-        logger.info(f"ID vector doc mis à jour pour {filename}: {vector_doc_id}")
+        logger.info(f"Updated vector doc id for {filename}: {vector_doc_id}")
 
     def get_all_entries_info(self) -> list[dict[str, Any]]:
         """Retourne la liste de toutes les entrées de la base de connaissances."""

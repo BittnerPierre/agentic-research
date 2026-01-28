@@ -32,20 +32,20 @@ def download_and_store_url(url: str, config) -> str:
     existing_entry = db_manager.lookup_url(url)
 
     if existing_entry:
-        logger.info(f"URL trouvée dans la base de connaissances: {existing_entry.filename}")
+        logger.info(f"URL found in knowledge base: {existing_entry.filename}")
         # Vérifier que le fichier existe encore
         local_path = Path(config.data.local_storage_dir) / existing_entry.filename
         if local_path.exists():
             return existing_entry.filename
         else:
-            logger.warning(f"Fichier manquant, re-téléchargement: {existing_entry.filename}")
+            logger.warning(f"File missing, re-downloading: {existing_entry.filename}")
 
     # 2. Télécharger et convertir
-    logger.info(f"Téléchargement de l'URL: {url}")
+    logger.info(f"Downloading URL: {url}")
     docs_list = load_documents_from_urls([url])
 
     if not docs_list:
-        raise ValueError(f"Impossible de télécharger le contenu de: {url}")
+        raise ValueError(f"Unable to download content from: {url}")
 
     doc = docs_list[0]
 
@@ -90,7 +90,7 @@ def download_and_store_url(url: str, config) -> str:
 
     db_manager.add_entry(entry)
 
-    logger.info(f"Document sauvegardé: {filename}")
+    logger.info(f"Document saved: {filename}")
     return filename
 
 
@@ -174,11 +174,11 @@ Concentre-toi sur les concepts techniques, les noms propres, et les thèmes prin
         keywords_text = response.choices[0].message.content.strip()
         keywords = [kw.strip() for kw in keywords_text.split(",") if kw.strip()]
 
-        logger.info(f"Mots-clés extraits par LLM: {keywords}")
+        logger.info(f"LLM-extracted keywords: {keywords}")
         return keywords[:10]  # Limiter à 10 mots-clés
 
     except Exception as e:
-        logger.error(f"Erreur extraction mots-clés LLM: {e}")
+        logger.error(f"Failed to extract keywords with LLM: {e}")
         # Fallback sur extraction basique
         return _extract_keywords_basic(doc)
 
@@ -211,11 +211,11 @@ Ton résumé doit être factuel, objectif et couvrir les informations principale
         )
 
         summary = response.choices[0].message.content.strip()
-        logger.info(f"Résumé généré par LLM: {len(summary)} caractères")
+        logger.info(f"LLM-generated summary: {len(summary)} characters")
         return summary
 
     except Exception as e:
-        logger.error(f"Erreur génération résumé LLM: {e}")
+        logger.error(f"Failed to generate summary with LLM: {e}")
         # Fallback sur résumé basique
         return _extract_basic_summary(doc)
 

@@ -13,6 +13,12 @@ poetry run agentic-research
 For Docker/Docker Compose usage (local, DGX Spark, smoke tests, logs), see
 `docs/README_DOCKER.md`.
 
+## Dependencies
+
+- `sentence-transformers` is required when using the default
+  `sentence-transformers:*` embedding function (used by local/chroma providers).
+  The first run will download the model weights.
+
 ## Architecture
 
 The flow is:
@@ -77,3 +83,10 @@ manager:
 ```
 
 You can also set the default manager via the `DEFAULT_MANAGER` environment variable.
+
+## Vector search providers
+
+- `openai`: uses `FileSearchTool` with the configured vector store id.
+- `local`: uses the local vector search tool.
+- `chroma`: tools are provided by the Chroma MCP server configured under `vector_mcp`
+  (e.g. `chroma_query_documents`, `chroma_get_documents`).

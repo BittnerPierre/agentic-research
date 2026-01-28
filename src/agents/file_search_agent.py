@@ -26,7 +26,8 @@ def dynamic_instructions(
         store_name = context.context.vector_store_name or config.vector_search.index_name
         chroma_hint = (
             "Use the MCP tool `chroma_query_documents` to search the collection "
-            f"`{store_name}` for the query text.\n"
+            f"`{store_name}` for the query text. These tools are provided by the "
+            "Chroma MCP server configured under `vector_mcp`.\n"
         )
 
     return (
@@ -56,6 +57,8 @@ def create_file_search_agent(
     elif config.vector_search.provider == "local":
         tools = [vector_search]
     elif config.vector_search.provider == "chroma":
+        # Chroma tools are exposed via MCP (see vector_mcp config), so we keep
+        # the local tools list empty and rely on MCP tool discovery.
         tools = []
     else:
         raise ValueError(f"Unknown vector_search.provider: {config.vector_search.provider}")
