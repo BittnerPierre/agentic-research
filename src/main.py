@@ -72,8 +72,12 @@ async def main() -> None:
     config = get_config(args.config)
 
     # Set up logging for this run (creates timestamped log file)
-    log_file = setup_run_logging(log_level=config.logging.level)
-    logger = logging.getLogger(__name__)
+    log_file = setup_run_logging(
+        log_level=config.logging.level,
+        silence_third_party=config.logging.silence_third_party,
+        third_party_level=config.logging.third_party_level,
+    )
+    logger = logging.getLogger("agentic-research")
     logger.info(f"Log file for this run: {log_file}")
     logger.info(f"Command line arguments: {vars(args)}")
 
@@ -177,11 +181,22 @@ async def main() -> None:
             def chroma_tool_filter(_context, tool):
                 return tool.name in allowlist
 
+            chroma_env = dict(os.environ)
+            chroma_env.update(
+                {
+                    "ANONYMIZED_TELEMETRY": "False",
+                    "HTTPX_LOG_LEVEL": "ERROR",
+                    "HTTPCORE_LOG_LEVEL": "ERROR",
+                    "FASTMCP_LOG_LEVEL": "ERROR",
+                }
+            )
+
             vector_mcp_server = MCPServerStdio(
                 name="CHROMA_MCP_SERVER",
                 params={
                     "command": config.vector_mcp.command,
                     "args": config.vector_mcp.args,
+                    "env": chroma_env,
                 },
                 tool_filter=chroma_tool_filter,
                 cache_tools_list=True,

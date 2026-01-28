@@ -25,8 +25,6 @@ Language rule:
 
 ## Process Requirements (Chain of Thought)
 
-Think before you write the report in <thinking> tags.
-
 ### **Step 1: Raw Notes Extraction**
 
 - Before doing anything else, produce a section titled `## Raw Notes`.

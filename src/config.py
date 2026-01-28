@@ -74,6 +74,8 @@ class LoggingConfig(BaseModel):
 
     level: str = Field(default="INFO")
     format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    silence_third_party: bool = Field(default=True)
+    third_party_level: str = Field(default="ERROR")
 
 
 class MCPConfig(BaseModel):
@@ -217,6 +219,7 @@ class ConfigManager:
 # Instance globale pour l'accès facile - sera initialisée via le pattern singleton
 _global_config_manager: ConfigManager | None = None
 _config_lock = threading.Lock()
+_config_access_logged = False
 
 
 def get_config(config_file: str | None = None) -> Config:
@@ -232,19 +235,24 @@ def get_config(config_file: str | None = None) -> Config:
     """
     global _global_config_manager
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("agentic-research")
 
     # Premier check (performance optimization) - pas besoin de lock si déjà initialisé
+    global _config_access_logged
     if _global_config_manager is not None:
         if config_file is None:
             # Appel sans paramètre (module) -> Normal, pas de message
-            logger.debug(
-                f"Accès à la configuration existante: {_global_config_manager.config_file_name}"
-            )
+            if not _config_access_logged:
+                logger.debug(
+                    f"Accès à la configuration existante: {_global_config_manager.config_file_name}"
+                )
+                _config_access_logged = True
             return _global_config_manager.config
         elif _global_config_manager.config_file_name == config_file:
             # Même fichier demandé -> Normal
-            logger.debug(f"Configuration déjà initialisée avec le fichier: {config_file}")
+            if not _config_access_logged:
+                logger.debug(f"Configuration déjà initialisée avec le fichier: {config_file}")
+                _config_access_logged = True
             return _global_config_manager.config
         else:
             # Fichier différent demandé (main qui arrive après) -> Warning

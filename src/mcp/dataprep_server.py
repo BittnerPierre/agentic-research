@@ -180,7 +180,11 @@ def main():
     port = args.port or config.mcp.server_port
 
     # Set up rolling file logging for long-running server
-    log_file = setup_server_logging(log_level="INFO")
+    log_file = setup_server_logging(
+        log_level="INFO",
+        silence_third_party=True,
+        third_party_level="ERROR",
+    )
     logger.info(f"DataPrep MCP Server log file: {log_file}")
     start_server(host=host, port=port)
 
