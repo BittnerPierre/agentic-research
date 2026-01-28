@@ -1,4 +1,3 @@
-
 # Repository Guidelines
 
 ## Project Structure & Module Organization
@@ -46,10 +45,3 @@
 - Future architecture changes are tracked in `CHROMADB_MIGRATION_PLAN.md`.
 - Active roadmap items live in GitHub issues #11–#13 (vector store integration, Response API removal, DGX Spark deployment).
 - Evaluation work targets cross-LLM comparisons (OpenAI, Claude, Mistral) plus open-source models via `vllm` or `llama.cpp`.
-
-# Agent Rules (Repo Local)
-
-- Do not push changes to remote branches unless the user explicitly approves the push.
-- Do not push until the user confirms they ran the relevant tests for the change, unless they explicitly waive testing.
-- Before coding, summarize the intended changes and ask for approval.
-- After coding, summarize what changed, list exact test commands to run, report any tests run locally, and wait for user approval before pushing.
