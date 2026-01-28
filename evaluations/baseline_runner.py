@@ -75,29 +75,39 @@ class BaselineRunner:
         if not syllabus:
             raise ValueError("Test case missing 'syllabus' or 'query'")
 
-        # Storage resolution: ID takes precedence over name
-        if vector_store_id is None:
-            print(f"🔍 Looking up storage: '{vector_store_name}'")
+        provider = config.vector_search.provider
+        resolved_vector_store_id = vector_store_id
 
-            from openai import OpenAI
-            client = OpenAI()
+        # Storage resolution: only needed for OpenAI file_search
+        if provider == "openai":
+            if resolved_vector_store_id is None:
+                print(f"🔍 Looking up storage: '{vector_store_name}'")
 
-            # Lookup vector store by name (inline to avoid cross-module imports)
-            vector_stores = client.vector_stores.list()
-            for vs in vector_stores:
-                if vs.name == vector_store_name:
-                    vector_store_id = vs.id
-                    break
+                from openai import OpenAI
 
-            if vector_store_id is None:
-                print(f"📦 Creating new storage: '{vector_store_name}'")
-                vector_store_obj = client.vector_stores.create(name=vector_store_name)
-                vector_store_id = vector_store_obj.id
-                print(f"✅ Storage created: {vector_store_id}")
+                client = OpenAI()
+
+                # Lookup vector store by name (inline to avoid cross-module imports)
+                vector_stores = client.vector_stores.list()
+                for vs in vector_stores:
+                    if vs.name == vector_store_name:
+                        resolved_vector_store_id = vs.id
+                        break
+
+                if resolved_vector_store_id is None:
+                    print(f"📦 Creating new storage: '{vector_store_name}'")
+                    vector_store_obj = client.vector_stores.create(name=vector_store_name)
+                    resolved_vector_store_id = vector_store_obj.id
+                    print(f"✅ Storage created: {resolved_vector_store_id}")
+                else:
+                    print(f"✅ Found existing storage: {resolved_vector_store_id}")
             else:
-                print(f"✅ Found existing storage: {vector_store_id}")
+                print(f"✅ Using provided storage ID: {resolved_vector_store_id}")
         else:
-            print(f"✅ Using provided storage ID: {vector_store_id}")
+            if resolved_vector_store_id is not None:
+                print(f"✅ Using provided storage ID: {resolved_vector_store_id}")
+            else:
+                print(f"🔍 Using non-OpenAI provider '{provider}' with store name: '{vector_store_name}'")
 
         # Create temp/output directories
         temp_dir = tempfile.mkdtemp(prefix="eval_")
@@ -105,7 +115,8 @@ class BaselineRunner:
 
         # Create ResearchInfo
         research_info = ResearchInfo(
-            vector_store_id=vector_store_id,
+            vector_store_name=vector_store_name,
+            vector_store_id=resolved_vector_store_id,
             temp_dir=temp_dir,
             output_dir=output_dir,
         )
