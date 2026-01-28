@@ -2,7 +2,8 @@ import argparse
 import asyncio
 import importlib
 import logging
-import os.path
+import os
+import shlex
 import tempfile
 from pathlib import Path
 
@@ -134,11 +135,20 @@ async def main() -> None:
 
     logger.info("Setting up MCP servers...")
     with tempfile.TemporaryDirectory(delete=not debug_mode) as temp_dir:
+        fs_command = os.getenv("MCP_FS_COMMAND")
+        fs_args = os.getenv("MCP_FS_ARGS")
+        if fs_command:
+            args = shlex.split(fs_args) if fs_args else []
+            args.append(temp_dir)
+        else:
+            fs_command = "npx"
+            args = ["-y", "@modelcontextprotocol/server-filesystem", temp_dir]
+
         fs_server = MCPServerStdio(
             name="FS_MCP_SERVER",
             params={
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_dir],
+                "command": fs_command,
+                "args": args,
             },
             tool_filter=context_aware_filter,
             cache_tools_list=True,
@@ -146,16 +156,17 @@ async def main() -> None:
         canonical_tmp_dir = os.path.realpath(temp_dir)
         logger.info(f"Filesystem MCP server temp directory: {canonical_tmp_dir}")
 
+        dataprep_url = os.getenv("MCP_DATAPREP_URL", "http://localhost:8001/sse")
         dataprep_server = MCPServerSse(
             name="DATAPREP_MCP_SERVER",
             params={
-                "url": "http://localhost:8001/sse",
+                "url": dataprep_url,
                 "timeout": config.mcp.http_timeout_seconds,
             },
             client_session_timeout_seconds=config.mcp.client_timeout_seconds,
         )
         logger.info(
-            "Connecting to DataPrep MCP server at http://localhost:8001/sse "
+            f"Connecting to DataPrep MCP server at {dataprep_url} "
             f"(http timeout: {config.mcp.http_timeout_seconds}s, "
             f"client session timeout: {config.mcp.client_timeout_seconds}s)"
         )

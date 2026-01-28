@@ -23,12 +23,14 @@ from agentic_research.agents.file_search_agent import create_file_search_agent
 from agentic_research.agents.file_search_planning_agent import create_file_planner_agent
 from agentic_research.agents.file_writer_agent import create_writer_agent
 from agentic_research.agents.schemas import ReportData, ResearchInfo
+from agentic_research.agents.utils import model_spec_to_string
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
 from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
 from agents.mcp import MCPServer
 
 from .eval_utils import (
+    build_fs_server_params,
     extract_read_multiple_files_paths,
     format_trajectory_report,
     load_test_case,
@@ -233,7 +235,7 @@ class FullWorkflowEvaluator:
         self.printer.update_item("trajectory", "Validating trajectory...")
 
         # Get model name for output files
-        model_name = self._config.models.research_model
+        model_name = model_spec_to_string(self._config.models.research_model)
         safe_model_name = model_name.replace("/", "-")
 
         # Save report
@@ -415,16 +417,14 @@ async def main():
     # Create MCP servers
     fs_server = MCPServerStdio(
         name="FS_MCP_SERVER",
-        params={
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", temp_dir, output_dir],
-        },
+        params=build_fs_server_params(temp_dir, output_dir),
     )
 
+    dataprep_url = os.getenv("MCP_DATAPREP_URL", "http://localhost:8001/sse")
     dataprep_server = MCPServerSse(
         name="DATAPREP_MCP_SERVER",
         params={
-            "url": "http://localhost:8001/sse",
+            "url": dataprep_url,
             "timeout": 60,
         },
         client_session_timeout_seconds=120,
