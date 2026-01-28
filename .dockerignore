@@ -13,3 +13,6 @@ output/
 debug_output/
 logs/
 *.log
+models.env
+*.env
+!.env.template
