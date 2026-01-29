@@ -325,7 +325,7 @@ All PRs trigger GitHub Actions via `.github/workflows/ci.yml`. Required checks m
 
 - Lint (ruff)
 - Format (ruff format check)
-- Tests (Python 3.11 & 3.12)
+- Tests (Python 3.12)
 
 Typical runtime is ~2–3 minutes. Merges are blocked until all checks pass.
 

@@ -35,7 +35,7 @@
 - Add a co-author trailer for this agent: `Co-Authored-By: Codex <noreply@openai.com>`.
 - PRs should describe scope, link issues, and include test evidence (command output or notes).
 - PRs are required for all changes; direct push to `main` is blocked by branch protection.
-- CI/CD checks are mandatory and must pass before merge: Lint, Format, Tests (Python 3.11 & 3.12).
+- CI/CD checks are mandatory and must pass before merge: Lint, Format, Tests (Python 3.12).
 - The CI workflow is defined in `.github/workflows/ci.yml` and typically runs in ~2–3 minutes.
 
 ## Configuration & Runtime Notes
