@@ -15,6 +15,7 @@
 - `poetry run dataprep_server` starts the MCP dataprep server used by the agents.
 - `poetry run pytest` runs the test suite (pytest is configured in `pyproject.toml`).
 - `poetry run ruff check .` and `poetry run ruff format .` enforce linting and formatting.
+- These commands mirror CI checks; run them locally before pushing.
 
 ## Coding Style & Naming Conventions
 - Python 3.12, 4-space indentation, line length 100 (ruff).
@@ -33,7 +34,9 @@
 - Commit messages follow Conventional Commits (e.g., `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`).
 - Add a co-author trailer for this agent: `Co-Authored-By: Codex <noreply@openai.com>`.
 - PRs should describe scope, link issues, and include test evidence (command output or notes).
-- PRs are generally reviewed/merged by another coding agent; do not push to `main` except emergency hotfixes.
+- PRs are required for all changes; direct push to `main` is blocked by branch protection.
+- CI/CD checks are mandatory and must pass before merge: Lint, Format, Tests (Python 3.11 & 3.12).
+- The CI workflow is defined in `.github/workflows/ci.yml` and typically runs in ~2–3 minutes.
 
 ## Configuration & Runtime Notes
 - Default manager selection lives in `configs/config-default.yaml` (`manager.default_manager`).
