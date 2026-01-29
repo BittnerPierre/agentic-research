@@ -277,9 +277,7 @@ def get_config(config_file: str | None = None) -> Config:
             if current_path == requested_path:
                 # Même fichier demandé -> Normal
                 if not _config_access_logged:
-                    logger.debug(
-                        f"Configuration déjà initialisée avec le fichier: {config_path}"
-                    )
+                    logger.debug(f"Configuration déjà initialisée avec le fichier: {config_path}")
                     _config_access_logged = True
                 return _global_config_manager.config
 
