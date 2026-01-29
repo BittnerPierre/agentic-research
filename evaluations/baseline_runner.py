@@ -30,7 +30,8 @@ from agentic_research.agents.schemas import ResearchInfo
 from agentic_research.config import get_config
 from agents.mcp import MCPServerSse, MCPServerStdio
 
-from .eval_utils import build_fs_server_params, load_test_case as load_test_case_yaml
+from .eval_utils import build_fs_server_params
+from .eval_utils import load_test_case as load_test_case_yaml
 from .full_workflow_evaluator import FullWorkflowEvaluator
 
 
@@ -108,7 +109,9 @@ class BaselineRunner:
             if resolved_vector_store_id is not None:
                 print(f"✅ Using provided storage ID: {resolved_vector_store_id}")
             else:
-                print(f"🔍 Using non-OpenAI provider '{provider}' with store name: '{vector_store_name}'")
+                print(
+                    f"🔍 Using non-OpenAI provider '{provider}' with store name: '{vector_store_name}'"
+                )
 
         # Create temp/output directories
         temp_dir = tempfile.mkdtemp(prefix="eval_")
@@ -513,9 +516,8 @@ class BaselineRunner:
         current_judgment = current_quality["judgment"]
         baseline_judgment = baseline_quality["judgment"]
 
-        judgment_worse = (
-            (baseline_judgment == "PASS" and current_judgment != "PASS")
-            or (baseline_judgment == "BORDERLINE" and current_judgment == "FAIL")
+        judgment_worse = (baseline_judgment == "PASS" and current_judgment != "PASS") or (
+            baseline_judgment == "BORDERLINE" and current_judgment == "FAIL"
         )
 
         comparison["comparisons"]["judgment"] = {
@@ -623,9 +625,7 @@ async def main():
 
         print("\n=== BASELINE COMPARISON ===")
         print(f"Baseline: {comparison['baseline_commit']} @ {comparison['baseline_timestamp']}")
-        print(
-            f"Degradation: {'❌ DETECTED' if comparison['degradation_detected'] else '✅ NONE'}"
-        )
+        print(f"Degradation: {'❌ DETECTED' if comparison['degradation_detected'] else '✅ NONE'}")
 
         for comp_name, comp_result in comparison["comparisons"].items():
             if "degraded" in comp_result:

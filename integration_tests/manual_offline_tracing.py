@@ -29,7 +29,9 @@ class FrameworkAgnosticEventLogger:
     def log_workflow_start(self, workflow_name: str, input_data: dict) -> None:
         self._log_event("workflow_start", workflow_name=workflow_name, input=input_data)
 
-    def log_tool_call(self, tool_name: str, success: bool, duration_ms: float, metadata: dict | None = None):
+    def log_tool_call(
+        self, tool_name: str, success: bool, duration_ms: float, metadata: dict | None = None
+    ):
         self._log_event(
             "tool_call",
             tool_name=tool_name,
@@ -48,7 +50,9 @@ class FrameworkAgnosticEventLogger:
         )
 
     def log_workflow_end(self, workflow_name: str, success: bool, duration_ms: float) -> None:
-        self._log_event("workflow_end", workflow_name=workflow_name, success=success, duration_ms=duration_ms)
+        self._log_event(
+            "workflow_end", workflow_name=workflow_name, success=success, duration_ms=duration_ms
+        )
 
     def get_events(self) -> list[dict]:
         events: list[dict] = []
@@ -64,8 +68,17 @@ def main() -> None:
 
     logger = FrameworkAgnosticEventLogger(event_file)
     logger.log_workflow_start("research_workflow", {"syllabus": "Python basics"})
-    logger.log_tool_call("download_and_store_url", success=True, duration_ms=12.3, metadata={"url": "https://example.com"})
-    logger.log_generation("report_generation", output="# Research Report\n\n## Raw Notes\n...", metadata={"sections": ["Raw Notes", "Agenda", "Report"]})
+    logger.log_tool_call(
+        "download_and_store_url",
+        success=True,
+        duration_ms=12.3,
+        metadata={"url": "https://example.com"},
+    )
+    logger.log_generation(
+        "report_generation",
+        output="# Research Report\n\n## Raw Notes\n...",
+        metadata={"sections": ["Raw Notes", "Agenda", "Report"]},
+    )
     logger.log_workflow_end("research_workflow", success=True, duration_ms=150.0)
 
     events = logger.get_events()
@@ -76,4 +89,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

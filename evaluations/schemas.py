@@ -5,19 +5,27 @@ from pydantic import BaseModel, Field
 Judgment = Literal["PASS", "FAIL", "BORDERLINE"]
 Grade = Literal["A", "B", "C", "D", "E"]
 
+
 class Grades(BaseModel):
     format: Grade = Field(description="Format correctness: A-E")
     grounding: Grade = Field(description="Grounding in Raw Notes: A-E")
     agenda: Grade = Field(description="Agenda adherence: A-E")
     usability: Grade = Field(description="Output usability: A-E")
 
+
 class EvaluationResult(BaseModel):
     judgment: Judgment = Field(description='Overall decision: "PASS" | "FAIL" | "BORDERLINE"')
     grades: Grades
     reasoning: str = Field(description="4-6 sentence summary of the evaluation")
-    missing_raw_notes: list[str] = Field(default_factory=list, description="Unused key concepts from Raw Notes")
-    missing_agenda_items: list[str] = Field(default_factory=list, description="Agenda items not covered or weakly covered")
-    off_topic_signals: list[str] = Field(default_factory=list, description="Detected signals indicating non-research format")
+    missing_raw_notes: list[str] = Field(
+        default_factory=list, description="Unused key concepts from Raw Notes"
+    )
+    missing_agenda_items: list[str] = Field(
+        default_factory=list, description="Agenda items not covered or weakly covered"
+    )
+    off_topic_signals: list[str] = Field(
+        default_factory=list, description="Detected signals indicating non-research format"
+    )
 
     # Optionnel : applique la règle métier pour proposer un jugement
     def compute_judgment(self) -> Judgment:

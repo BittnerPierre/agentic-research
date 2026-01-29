@@ -1,1 +1,1 @@
-"""Tests d'intégration pour le module MCP DataPrep.""" 
+"""Tests d'intégration pour le module MCP DataPrep."""

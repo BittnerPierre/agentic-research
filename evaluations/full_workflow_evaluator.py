@@ -276,9 +276,7 @@ class FullWorkflowEvaluator:
             human_readable_report=human_readable_report,
         )
 
-        self.printer.update_item(
-            "trajectory", "Trajectory validated", is_done=True
-        )
+        self.printer.update_item("trajectory", "Trajectory validated", is_done=True)
 
         return human_readable_report, evaluation_report_file, str(final_file_path)
 
@@ -411,7 +409,9 @@ async def main():
         if vector_store_id is not None:
             print(f"✅ Using provided storage ID: {vector_store_id}")
         else:
-            print(f"🔍 Using non-OpenAI provider '{provider}' with store name: '{args.vector_store_name}'")
+            print(
+                f"🔍 Using non-OpenAI provider '{provider}' with store name: '{args.vector_store_name}'"
+            )
 
     # Create temp/output directories
     temp_dir = tempfile.mkdtemp(prefix="eval_")

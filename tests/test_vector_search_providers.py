@@ -112,7 +112,9 @@ def test_upload_files_to_vectorstore_delegates_to_backend(monkeypatch):
         def upload_files(self, inputs, config, vectorstore_name):
             return sentinel
 
-    monkeypatch.setattr("src.dataprep.mcp_functions.get_vector_backend", lambda _cfg: _StubBackend())
+    monkeypatch.setattr(
+        "src.dataprep.mcp_functions.get_vector_backend", lambda _cfg: _StubBackend()
+    )
 
     result = upload_files_to_vectorstore(inputs=[], config=config, vectorstore_name="vs")
     assert result is sentinel

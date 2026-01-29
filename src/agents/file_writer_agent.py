@@ -78,9 +78,7 @@ class WriterDirective(BaseModel):
         # }
 
 
-def create_writer_agent(
-    mcp_servers: list[MCPServer] | None = None, do_save_report: bool = True
-):
+def create_writer_agent(mcp_servers: list[MCPServer] | None = None, do_save_report: bool = True):
     mcp_servers = mcp_servers or []
 
     config = get_config()

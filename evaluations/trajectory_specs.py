@@ -22,29 +22,29 @@ SUPERVISOR_TRAJECTORY_SPEC = {
             "type": "function_call",
             "name": "plan_file_search",
             "required": True,
-            "description": "Supervisor plans the file search strategy"
+            "description": "Supervisor plans the file search strategy",
         },
         {
             "id": "execute_search",
             "type": "function_call",
             "name": "vector_search",
             "required": True,
-            "description": "Supervisor executes file search (may occur multiple times)"
+            "description": "Supervisor executes file search (may occur multiple times)",
         },
         {
             "id": "display_agenda",
             "type": "function_call",
             "name": "display_agenda",
             "required": False,
-            "description": "Supervisor displays research agenda (optional)"
+            "description": "Supervisor displays research agenda (optional)",
         },
         {
             "id": "handoff_to_writer",
             "type": "function_call",
             "name": "write_report",
             "required": True,
-            "description": "Supervisor hands off to writer agent"
-        }
+            "description": "Supervisor hands off to writer agent",
+        },
     ]
 }
 
@@ -59,7 +59,7 @@ RESEARCH_TRAJECTORY_SPEC = {
             "type": "function_call",
             "name": "vector_search",
             "required": True,
-            "description": "Research agent searches vector store"
+            "description": "Research agent searches vector store",
         },
         {
             "id": "output_results",
@@ -67,8 +67,8 @@ RESEARCH_TRAJECTORY_SPEC = {
             "match_regex": r"file_name",  # FileSearchResult output
             "expected_content": "file_name",
             "required": True,
-            "description": "Research agent outputs FileSearchResult with file_name"
-        }
+            "description": "Research agent outputs FileSearchResult with file_name",
+        },
     ]
 }
 
@@ -84,7 +84,7 @@ WRITER_TRAJECTORY_SPEC = {
             "type": "function_call",
             "name": "read_multiple_files",
             "required": True,
-            "description": "Writer loads search results from files"
+            "description": "Writer loads search results from files",
         },
         {
             "id": "report_generation_raw_notes",
@@ -92,7 +92,7 @@ WRITER_TRAJECTORY_SPEC = {
             "match_regex": r"## Raw Notes",
             "expected_content": "## Raw Notes",
             "required": True,
-            "description": "Writer generates Raw Notes section"
+            "description": "Writer generates Raw Notes section",
         },
         {
             "id": "report_generation_detailed_agenda",
@@ -100,7 +100,7 @@ WRITER_TRAJECTORY_SPEC = {
             "match_regex": r"## Detailed Agenda",
             "expected_content": "## Detailed Agenda",
             "required": True,
-            "description": "Writer generates Detailed Agenda section"
+            "description": "Writer generates Detailed Agenda section",
         },
         {
             "id": "report_generation_report",
@@ -108,15 +108,15 @@ WRITER_TRAJECTORY_SPEC = {
             "match_regex": r"## Report",
             "expected_content": "## Report",
             "required": True,
-            "description": "Writer generates final Report section"
+            "description": "Writer generates final Report section",
         },
         {
             "id": "save_report",
             "type": "function_call",
             "name": "save_report",
             "required": True,
-            "description": "Writer saves report to file"
-        }
+            "description": "Writer saves report to file",
+        },
     ]
 }
 
@@ -134,25 +134,24 @@ FULL_WORKFLOW_TRAJECTORY_SPEC = {
             "type": "function_call",
             "name": "plan_file_search",
             "required": True,
-            "description": "Supervisor plans research strategy"
+            "description": "Supervisor plans research strategy",
         },
         {
             "id": "supervisor_execute_search",
             "type": "function_call",
             "name": "vector_search",
             "required": True,
-            "description": "Supervisor coordinates file search"
+            "description": "Supervisor coordinates file search",
         },
         # Phase 2: Research agent(s) search
         # Note: Research agent execution is internal, validated separately
-
         # Phase 3: Writer generates report
         {
             "id": "writer_load_data",
             "type": "function_call",
             "name": "read_multiple_files",
             "required": True,
-            "description": "Writer loads search results"
+            "description": "Writer loads search results",
         },
         {
             "id": "writer_raw_notes",
@@ -160,7 +159,7 @@ FULL_WORKFLOW_TRAJECTORY_SPEC = {
             "match_regex": r"## Raw Notes",
             "expected_content": "## Raw Notes",
             "required": True,
-            "description": "Writer generates Raw Notes"
+            "description": "Writer generates Raw Notes",
         },
         {
             "id": "writer_agenda",
@@ -168,7 +167,7 @@ FULL_WORKFLOW_TRAJECTORY_SPEC = {
             "match_regex": r"## Detailed Agenda",
             "expected_content": "## Detailed Agenda",
             "required": True,
-            "description": "Writer generates Agenda"
+            "description": "Writer generates Agenda",
         },
         {
             "id": "writer_report",
@@ -176,21 +175,22 @@ FULL_WORKFLOW_TRAJECTORY_SPEC = {
             "match_regex": r"## Report",
             "expected_content": "## Report",
             "required": True,
-            "description": "Writer generates final Report"
+            "description": "Writer generates final Report",
         },
         {
             "id": "writer_save",
             "type": "function_call",
             "name": "save_report",
             "required": True,
-            "description": "Writer saves final report"
-        }
+            "description": "Writer saves final report",
+        },
     ]
 }
 
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
 
 def get_spec_by_agent_name(agent_name: str) -> dict:
     """
@@ -214,8 +214,7 @@ def get_spec_by_agent_name(agent_name: str) -> dict:
 
     if agent_name not in specs:
         raise ValueError(
-            f"Unknown agent name: {agent_name}. "
-            f"Valid options: {list(specs.keys())}"
+            f"Unknown agent name: {agent_name}. " f"Valid options: {list(specs.keys())}"
         )
 
     return specs[agent_name]

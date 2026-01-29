@@ -179,55 +179,35 @@ def test_validate_spec_format_not_list():
 
 def test_validate_spec_format_missing_id():
     """Test that validation fails for checkpoint missing id."""
-    invalid_spec = {
-        "trajectory_spec": [
-            {"type": "function_call", "name": "test"}
-        ]
-    }
+    invalid_spec = {"trajectory_spec": [{"type": "function_call", "name": "test"}]}
     with pytest.raises(ValueError, match="missing 'id'"):
         validate_spec_format(invalid_spec)
 
 
 def test_validate_spec_format_missing_type():
     """Test that validation fails for checkpoint missing type."""
-    invalid_spec = {
-        "trajectory_spec": [
-            {"id": "test", "name": "test"}
-        ]
-    }
+    invalid_spec = {"trajectory_spec": [{"id": "test", "name": "test"}]}
     with pytest.raises(ValueError, match="missing 'type'"):
         validate_spec_format(invalid_spec)
 
 
 def test_validate_spec_format_invalid_type():
     """Test that validation fails for invalid checkpoint type."""
-    invalid_spec = {
-        "trajectory_spec": [
-            {"id": "test", "type": "invalid_type"}
-        ]
-    }
+    invalid_spec = {"trajectory_spec": [{"id": "test", "type": "invalid_type"}]}
     with pytest.raises(ValueError, match="invalid type"):
         validate_spec_format(invalid_spec)
 
 
 def test_validate_spec_format_function_call_missing_name():
     """Test that validation fails for function_call missing name."""
-    invalid_spec = {
-        "trajectory_spec": [
-            {"id": "test", "type": "function_call"}
-        ]
-    }
+    invalid_spec = {"trajectory_spec": [{"id": "test", "type": "function_call"}]}
     with pytest.raises(ValueError, match="missing 'name'"):
         validate_spec_format(invalid_spec)
 
 
 def test_validate_spec_format_generation_missing_regex():
     """Test that validation fails for generation missing match_regex."""
-    invalid_spec = {
-        "trajectory_spec": [
-            {"id": "test", "type": "generation"}
-        ]
-    }
+    invalid_spec = {"trajectory_spec": [{"id": "test", "type": "generation"}]}
     with pytest.raises(ValueError, match="missing 'match_regex'"):
         validate_spec_format(invalid_spec)
 
@@ -242,8 +222,12 @@ def test_checkpoint_ordering():
     # Writer: load → raw notes → agenda → report → save
     writer_ids = [c["id"] for c in WRITER_TRAJECTORY_SPEC["trajectory_spec"]]
     assert writer_ids.index("load_data") < writer_ids.index("report_generation_raw_notes")
-    assert writer_ids.index("report_generation_raw_notes") < writer_ids.index("report_generation_detailed_agenda")
-    assert writer_ids.index("report_generation_detailed_agenda") < writer_ids.index("report_generation_report")
+    assert writer_ids.index("report_generation_raw_notes") < writer_ids.index(
+        "report_generation_detailed_agenda"
+    )
+    assert writer_ids.index("report_generation_detailed_agenda") < writer_ids.index(
+        "report_generation_report"
+    )
     assert writer_ids.index("report_generation_report") < writer_ids.index("save_report")
 
     # Full workflow: supervisor → writer
@@ -264,7 +248,9 @@ def test_all_checkpoints_have_descriptions():
     for spec in all_specs:
         for checkpoint in spec["trajectory_spec"]:
             assert "description" in checkpoint, f"Checkpoint {checkpoint['id']} missing description"
-            assert len(checkpoint["description"]) > 0, f"Checkpoint {checkpoint['id']} has empty description"
+            assert (
+                len(checkpoint["description"]) > 0
+            ), f"Checkpoint {checkpoint['id']} has empty description"
 
 
 if __name__ == "__main__":
