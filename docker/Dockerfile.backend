@@ -39,13 +39,14 @@ ENV MCP_FS_COMMAND=node
 ENV MCP_FS_ARGS=/usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
 
 COPY pyproject.toml poetry.lock README.md ./
-RUN poetry install --only main --no-ansi
+RUN poetry install --only main --no-ansi --no-root
 COPY agentic_research ./agentic_research
 COPY src ./src
 COPY scripts ./scripts
 COPY configs ./configs
 COPY urls.txt ./
 COPY data ./data
+RUN poetry install --only main --no-ansi --only-root
 RUN mkdir -p output debug_output logs
 
 ENTRYPOINT ["poetry", "run"]

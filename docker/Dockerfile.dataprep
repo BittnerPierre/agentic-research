@@ -22,11 +22,12 @@ RUN apt-get update \
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml poetry.lock README.md ./
-RUN poetry install --only main --no-ansi
+RUN poetry install --only main --no-ansi --no-root
 COPY src ./src
 COPY configs ./configs
 COPY urls.txt ./
 COPY data ./data
+RUN poetry install --only main --no-ansi --only-root
 RUN mkdir -p output debug_output logs
 
 ENTRYPOINT ["poetry", "run"]
