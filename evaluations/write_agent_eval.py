@@ -298,7 +298,7 @@ class EvaluationManager:
 async def main(
     writer_model: str | None = None,
     test_case_name: str | None = None,
-    config_file: str = "config.yaml",
+    config_file: str = "configs/config-default.yaml",
 ) -> None:
     """
     Fonction principale pour l'évaluation de l'agent writer.
@@ -372,7 +372,7 @@ def eval_main():
     parser.add_argument(
         "--config",
         type=str,
-        default="config.yaml",
+        default="configs/config-default.yaml",
         help="Config file to use (e.g., 'configs/config-gpt-4.1-mini.yaml')",
     )
     

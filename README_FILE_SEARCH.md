@@ -26,7 +26,7 @@ python -m src.main
 
 ## Configuration
 
-Le vector store est configuré dans `config.yaml`:
+Le vector store est configuré dans `configs/config-default.yaml` (ou un fichier passé via `--config`) :
 
 ```yaml
 vector_store:

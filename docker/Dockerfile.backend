@@ -23,6 +23,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
+RUN pip install --no-cache-dir uv
 
 COPY --from=mcp_fs_builder /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem \
     /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem
@@ -39,7 +40,7 @@ COPY src ./src
 COPY scripts ./scripts
 RUN poetry install --only main --no-ansi
 COPY configs ./configs
-COPY config.yaml urls.txt ./
+COPY urls.txt ./
 COPY data ./data
 RUN mkdir -p output debug_output logs
 

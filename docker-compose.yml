@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
       - ./data:/app/data
       - ./output:/app/output
@@ -26,15 +26,13 @@ services:
       MCP_FS_COMMAND: node
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
       - ./data:/app/data
       - ./output:/app/output
       - ./logs:/app/logs
     stdin_open: true
     tty: true
-    profiles:
-      - cli
 
   evaluations:
     build:
@@ -47,78 +45,10 @@ services:
       MCP_FS_COMMAND: node
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
       - ./data:/app/data
       - ./output:/app/output
       - ./logs:/app/logs
       - ./evaluations:/app/evaluations
       - ./test_files:/app/test_files
-    profiles:
-      - eval
-
-  chromadb:
-    image: chromadb/chroma:latest
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data/chromadb:/chroma/chroma
-    environment:
-      ANONYMIZED_TELEMETRY: "False"
-    profiles:
-      - v1-local
-      - v1-dgx
-      - v1-dgx-backend
-
-  embeddings-cpu:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
-    platform: linux/amd64
-    ports:
-      - "8003:8003"
-    volumes:
-      - ./data/embeddings:/data
-    profiles:
-      - v1-local
-
-  embeddings-gpu:
-    image: ghcr.io/huggingface/text-embeddings-inference:latest
-    ports:
-      - "8003:8003"
-    volumes:
-      - ./data/embeddings:/data
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend
-
-  llama-cpp-cpu:
-    image: ghcr.io/ggml-org/llama.cpp:full
-    platform: linux/amd64
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./models:/models
-    profiles:
-      - v1-local
-
-  llama-cpp-gpu:
-    image: ghcr.io/ggml-org/llama.cpp:full
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./models:/models
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    profiles:
-      - v1-dgx

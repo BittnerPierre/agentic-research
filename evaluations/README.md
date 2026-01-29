@@ -37,7 +37,7 @@ Runs the writer-only evaluation using YAML test cases (agenda + search results).
 ```bash
 poetry run evaluate_writer \
     --test-case trivial_research \
-    --config config.yaml
+    --config configs/config-default.yaml
 ```
 
 ### 3. Full Workflow Evaluator (`full_workflow_evaluator.py`)
@@ -52,7 +52,7 @@ Runs complete research workflow and evaluates:
 poetry run eval-workflow \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
-    --config config.yaml
+    --config configs/config-default.yaml
 
 # Or provide a custom syllabus directly
 poetry run eval-workflow \
@@ -71,7 +71,7 @@ Executes evaluations against test cases and manages baselines.
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
-    --config config.yaml \
+    --config configs/config-default.yaml \
     --save-baseline
 
 # Compare against previous baseline
@@ -139,7 +139,7 @@ export OPENAI_API_KEY="your-api-key"
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
-    --config config.yaml \
+    --config configs/config-default.yaml \
     --save-baseline
 
 # Or specify a specific vector store ID for testing with specific data
@@ -176,7 +176,7 @@ Overall: ✅ PASS
 poetry run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
-    --config config.yaml \
+    --config configs/config-default.yaml \
     --compare-baseline baseline_trivial_abc123_20260114_153000.json
 
 # Vector store is automatically found/created by name
@@ -323,7 +323,7 @@ poetry run mcp-dataprep-workflow \
     --syllabus "Python basics" \
     --input-files data/*.md
 
-# This creates a vector store with the name from config.yaml
+# This creates a vector store with the name from configs/config-default.yaml
 # Then use that same name in evaluation:
 poetry run baseline-eval \
     --test-case trivial_research \
@@ -334,7 +334,7 @@ poetry run baseline-eval \
 ### "MCP server connection failed"
 
 Ensure MCP servers are accessible. Check configuration in:
-- `src/config.yaml` - MCP server settings
+- `configs/config-default.yaml` - MCP server settings
 - Environment variables for API keys
 
 ### "Grade degradation detected"

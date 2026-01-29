@@ -55,7 +55,7 @@ class BaselineRunner:
         test_case: dict,
         vector_store_name: str,
         vector_store_id: str | None = None,
-        config_file: str = "config.yaml",
+        config_file: str = "configs/config-default.yaml",
     ) -> dict:
         """
         Run evaluation for test case.
@@ -384,7 +384,7 @@ class BaselineRunner:
         test_case_name: str,
         results: dict,
         commit_hash: str | None = None,
-        config_file: str = "config.yaml",
+        config_file: str = "configs/config-default.yaml",
     ) -> str:
         """
         Save evaluation results as baseline.
@@ -555,7 +555,7 @@ async def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="config.yaml",
+        default="configs/config-default.yaml",
         help="Config file to use (e.g., 'configs/config-gpt-4.1-mini.yaml')",
     )
     parser.add_argument(

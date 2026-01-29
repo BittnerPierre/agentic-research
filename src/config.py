@@ -87,7 +87,7 @@ class LoggingConfig(BaseModel):
 class MCPConfig(BaseModel):
     """Configuration for MCP (Model Context Protocol).
 
-    Note: http_timeout_seconds is available but not exposed in config.yaml since
+    Note: http_timeout_seconds is available but not exposed in configs/config-default.yaml since
     the default (5.0s) is sufficient for HTTP connection establishment to localhost.
     Only client_timeout_seconds needs tuning for long-running tool operations.
     """
@@ -169,10 +169,10 @@ class ConfigManager:
 
     def __init__(self, config_path: Path | None = None):
         if config_path is None:
-            # Par défaut, chercher config.yaml dans le dossier du projet
+            # Par défaut, chercher configs/config-default.yaml dans le dossier du projet
             project_root = Path(__file__).parent.parent
-            config_path = project_root / "config.yaml"
-            self.config_file_name = "config.yaml"
+            config_path = project_root / "configs" / "config-default.yaml"
+            self.config_file_name = "configs/config-default.yaml"
         else:
             self.config_file_name = config_path.name
 
@@ -246,7 +246,8 @@ def get_config(config_file: str | None = None) -> Config:
     Thread-safe implementation using double-checked locking pattern.
 
     Args:
-        config_file: Optional path to configuration file. If None, uses default 'config.yaml'.
+        config_file: Optional path to configuration file. If None, uses default
+            'configs/config-default.yaml'.
                     If provided and differs from already loaded config, shows warning.
 
     Returns:
@@ -267,17 +268,27 @@ def get_config(config_file: str | None = None) -> Config:
                 )
                 _config_access_logged = True
             return _global_config_manager.config
-        elif _global_config_manager.config_file_name == config_file:
-            # Même fichier demandé -> Normal
-            if not _config_access_logged:
-                logger.debug(f"Configuration déjà initialisée avec le fichier: {config_file}")
-                _config_access_logged = True
-            return _global_config_manager.config
         else:
+            project_root = Path(__file__).parent.parent
+            config_path = Path(config_file)
+            if not config_path.is_absolute():
+                config_path = project_root / config_path
+            current_path = _global_config_manager.config_path.resolve()
+            requested_path = config_path.resolve()
+
+            if current_path == requested_path:
+                # Même fichier demandé -> Normal
+                if not _config_access_logged:
+                    logger.debug(
+                        f"Configuration déjà initialisée avec le fichier: {config_path}"
+                    )
+                    _config_access_logged = True
+                return _global_config_manager.config
+
             # Fichier différent demandé (main qui arrive après) -> Warning
             logger.warning(
-                f"Configuration déjà initialisée avec '{_global_config_manager.config_file_name}', "
-                f"impossible de charger '{config_file}'. Utilisation de la configuration existante."
+                f"Configuration déjà initialisée avec '{current_path}', "
+                f"impossible de charger '{requested_path}'. Utilisation de la configuration existante."
             )
             return _global_config_manager.config
 
@@ -288,7 +299,9 @@ def get_config(config_file: str | None = None) -> Config:
             # Laisser ConfigManager gérer le chemin par défaut si config_file est None
             if config_file is not None:
                 project_root = Path(__file__).parent.parent
-                config_path = project_root / config_file
+                config_path = Path(config_file)
+                if not config_path.is_absolute():
+                    config_path = project_root / config_path
                 _global_config_manager = ConfigManager(config_path)
             else:
                 _global_config_manager = ConfigManager()  # Utilise le défaut de ConfigManager

@@ -75,7 +75,7 @@ poetry run dataprep_server --host 127.0.0.1 --port 8010
 
 ### Configuration
 
-The default manager can be configured in `config.yaml`:
+The default manager can be configured in `configs/config-default.yaml`:
 
 ```yaml
 manager:
@@ -83,6 +83,7 @@ manager:
 ```
 
 You can also set the default manager via the `DEFAULT_MANAGER` environment variable.
+Use `--config` to load a different config file.
 
 ## Vector search providers
 

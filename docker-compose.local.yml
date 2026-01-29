@@ -1,0 +1,37 @@
+services:
+  dataprep:
+    command: ["dataprep_server", "--config", "configs/config-docker-local.yaml"]
+
+  agentic-research:
+    command: ["agentic-research", "--config", "configs/config-docker-local.yaml"]
+    depends_on:
+      - dataprep
+      - chromadb
+      - llama-cpp-cpu
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chromadb:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+
+  embeddings-cpu:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    platform: linux/amd64
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./data/embeddings:/data
+    command: ["--model-id", "BAAI/bge-small-en-v1.5", "--port", "8003"]
+
+  llama-cpp-cpu:
+    image: ghcr.io/ggml-org/llama.cpp:full
+    platform: linux/amd64
+    ports:
+      - "8002:8002"
+    volumes:
+      - ${HF_HOME:-${HOME}/.cache/huggingface}:/models
+    command: ["--server", "-m", "/models/hub/models--bartowski--Qwen2.5-3B-Instruct-GGUF/snapshots/f302c64a2269a69fb27b2f9473b362f5bb8e78d8/Qwen2.5-3B-Instruct-Q4_K_M.gguf", "--host", "0.0.0.0", "--port", "8002"]

@@ -1,0 +1,94 @@
+# Configuration pour agentic-research (Docker local)
+config_name: "docker-local"
+
+vector_store:
+  name: "agentic-research-local"
+  description: "Vector store for local Docker stack"
+  expires_after_days: 30
+
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-local"
+  embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "chromadb"
+  chroma_port: 8000
+  chroma_ssl: false
+  top_k: 5
+  score_threshold: null
+
+vector_mcp:
+  command: "uvx"
+  args:
+    - "--python"
+    - "3.12"
+    - "chroma-mcp"
+    - "--client-type"
+    - "http"
+    - "--host"
+    - "chromadb"
+    - "--port"
+    - "8000"
+    - "--ssl"
+    - "false"
+  tool_allowlist:
+    - "chroma_query_documents"
+    - "chroma_get_documents"
+  client_timeout_seconds: 60.0
+
+# Configuration des données d'entrée
+data:
+  urls_file: "urls.txt"
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+# Configuration de debug
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+# Configuration du logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Configuration MCP (Model Context Protocol)
+mcp:
+  server_host: "0.0.0.0"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+# Configuration Models
+models:
+  research_model:
+    name: "openai/local-llm"
+    base_url: "http://llama-cpp-cpu:8002"
+    api_key: "dummy"
+  planning_model:
+    name: "openai/local-llm"
+    base_url: "http://llama-cpp-cpu:8002"
+    api_key: "dummy"
+  search_model:
+    name: "openai/local-llm"
+    base_url: "http://llama-cpp-cpu:8002"
+    api_key: "dummy"
+  writer_model:
+    name: "openai/local-llm"
+    base_url: "http://llama-cpp-cpu:8002"
+    api_key: "dummy"
+  knowledge_preparation_model:
+    name: "openai/local-llm"
+    base_url: "http://llama-cpp-cpu:8002"
+    api_key: "dummy"
+
+# Configuration du manager
+manager:
+  default_manager: "agentic_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"

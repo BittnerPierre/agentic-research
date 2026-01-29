@@ -100,7 +100,7 @@ class VectorStoreBase(ABC):
 - Implement similarity search
 - Support metadata filtering
 
-**Configuration updates** (`config.yaml`):
+**Configuration updates** (`configs/config-default.yaml`):
 ```yaml
 vector_store:
   backend: "chromadb"  # or "openai" for backward compatibility
@@ -528,9 +528,9 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - LITELLM_CONFIG=/app/litellm_config.yaml
+      - LITELLM_CONFIG=/app/litellm_configs/config-default.yaml
     volumes:
-      - ./litellm_config.yaml:/app/litellm_config.yaml
+      - ./litellm_configs/config-default.yaml:/app/litellm_configs/config-default.yaml
 
   # Vector database
   chromadb:
@@ -576,7 +576,7 @@ services:
 ### LiteLLM Configuration
 
 ```yaml
-# litellm_config.yaml
+# litellm_configs/config-default.yaml
 model_list:
   - model_name: embedding
     litellm_params:

@@ -83,7 +83,7 @@ Key optimization: The system reuses OpenAI file IDs to avoid redundant uploads w
 
 Configuration is managed via YAML files in the root directory and `configs/` folder:
 
-- **config.yaml**: Default configuration (mixed models)
+- **configs/config-default.yaml**: Default configuration (mixed models)
 - **configs/config-*.yaml**: Alternative configurations for different model combinations
 
 Configuration structure (`src/config.py`):

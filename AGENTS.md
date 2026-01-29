@@ -4,7 +4,7 @@
 - `src/` contains the application code (CLI entrypoints, managers, agents, MCP integrations).
 - `tests/` holds pytest-based unit/integration tests (e.g., `tests/test_*.py`).
 - `evaluations/` contains evaluation runners and baselines used for research experiments.
-- `configs/` and `config.yaml` store runtime configuration defaults.
+- `configs/` and `configs/config-default.yaml` store runtime configuration defaults.
 - `data/`, `output/`, `logs/`, and `traces/` are runtime artifacts and should not be treated as source of truth.
 - `docs/` and `external-references/` collect supporting documentation and references.
 
@@ -36,7 +36,7 @@
 - PRs are generally reviewed/merged by another coding agent; do not push to `main` except emergency hotfixes.
 
 ## Configuration & Runtime Notes
-- Default manager selection lives in `config.yaml` (`manager.default_manager`).
+- Default manager selection lives in `configs/config-default.yaml` (`manager.default_manager`).
 - You can override the default manager with `DEFAULT_MANAGER` environment variable.
 
 ## Architecture & Planning Notes

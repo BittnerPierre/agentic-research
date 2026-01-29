@@ -21,7 +21,8 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN poetry install --only main --no-ansi
-COPY config.yaml urls.txt ./
+COPY configs ./configs
+COPY urls.txt ./
 COPY data ./data
 RUN mkdir -p output debug_output logs
 

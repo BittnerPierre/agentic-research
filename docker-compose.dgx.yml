@@ -5,6 +5,26 @@ x-llama-build: &llama-build
   image: local/llama.cpp:server-cuda
 
 services:
+  dataprep:
+    command: ["dataprep_server", "--config", "configs/config-docker-dgx.yaml"]
+
+  agentic-research:
+    command: ["agentic-research", "--config", "configs/config-docker-dgx.yaml"]
+    depends_on:
+      - dataprep
+      - chromadb
+      - llm-instruct
+      - llm-reasoning
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chromadb:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+
   embeddings-gpu:
     <<: *llama-build
     volumes:
@@ -27,9 +47,6 @@ services:
       - "--embeddings"
     ports:
       - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend
 
   llm-instruct:
     <<: *llama-build
@@ -56,9 +73,6 @@ services:
       - "--jinja"
     ports:
       - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend
 
   llm-reasoning:
     <<: *llama-build
@@ -85,6 +99,3 @@ services:
       - "--jinja"
     ports:
       - "${LLM_REASONING_PORT:-8004}:${LLM_REASONING_PORT:-8004}"
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend
