@@ -19,11 +19,8 @@ vector_search:
   score_threshold: null
 
 vector_mcp:
-  command: "uvx"
+  command: "chroma-mcp"
   args:
-    - "--python"
-    - "3.12"
-    - "chroma-mcp"
     - "--client-type"
     - "http"
     - "--host"

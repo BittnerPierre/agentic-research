@@ -27,6 +27,7 @@ RUN apt-get update \
 
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir chroma-mcp
 
 COPY --from=mcp_fs_builder /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem \
     /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem
