@@ -559,7 +559,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: docker/Dockerfile.agentic-research
     depends_on:
       - embedding-service
       - reasoning-service

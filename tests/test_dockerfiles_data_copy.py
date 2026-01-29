@@ -10,7 +10,7 @@ def _read(path: str) -> str:
 
 
 def test_backend_dockerfile_does_not_copy_data():
-    contents = _read("docker/Dockerfile.backend")
+    contents = _read("docker/Dockerfile.agentic-research")
     assert "COPY data" not in contents
 
 

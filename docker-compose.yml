@@ -20,7 +20,7 @@ services:
   agentic-research:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: docker/Dockerfile.agentic-research
       args:
         APP_VERSION: ${APP_VERSION:-dev}
     env_file:
@@ -42,7 +42,7 @@ services:
   evaluations:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: docker/Dockerfile.agentic-research
       args:
         APP_VERSION: ${APP_VERSION:-dev}
     env_file:
