@@ -26,9 +26,8 @@ RUN poetry install --only main --no-ansi --no-root
 COPY src ./src
 COPY configs ./configs
 COPY urls.txt ./
-COPY data ./data
 RUN poetry install --only main --no-ansi --only-root
-RUN mkdir -p output debug_output logs
+RUN mkdir -p data output debug_output logs
 
 ENTRYPOINT ["poetry", "run"]
 CMD ["dataprep_server"]
