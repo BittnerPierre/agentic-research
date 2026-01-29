@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 from typing import Any
 
 from fastmcp import FastMCP
@@ -190,6 +191,7 @@ def main():
         third_party_level="ERROR",
     )
     logger.info(f"DataPrep MCP Server log file: {log_file}")
+    logger.info(f"App version: {os.getenv('APP_VERSION', 'unknown')}")
     start_server(host=host, port=port)
 
 

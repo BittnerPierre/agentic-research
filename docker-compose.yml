@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.dataprep
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     ports:
       - "8001:8001"
     env_file:
@@ -19,6 +21,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     env_file:
       - .env
     environment:
@@ -39,6 +43,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     env_file:
       - .env
     environment:

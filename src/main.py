@@ -82,6 +82,7 @@ async def main() -> None:
     )
     logger = logging.getLogger("agentic-research")
     logger.info(f"Log file for this run: {log_file}")
+    logger.info(f"App version: {os.getenv('APP_VERSION', 'unknown')}")
     logger.info(f"Command line arguments: {vars(args)}")
 
     # Set defaults from config if not provided via CLI

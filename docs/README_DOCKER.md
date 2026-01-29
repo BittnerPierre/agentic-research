@@ -27,6 +27,7 @@
 
 2. Start services:
    ```bash
+   # Rebuild app images to avoid stale code (APP_VERSION is logged at startup)
    docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
    ```
 
@@ -52,6 +53,7 @@
 
 2. Start services:
    ```bash
+   # Rebuild app images to avoid stale code (APP_VERSION is logged at startup)
    docker compose -f docker-compose.yml -f docker-compose.dgx.yml \
      --env-file models.env up -d
    ```

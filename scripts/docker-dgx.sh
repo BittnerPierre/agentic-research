@@ -6,6 +6,12 @@ if [ ! -f models.env ]; then
   exit 1
 fi
 
+APP_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo dev)
+
+docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env build \
+  --build-arg APP_VERSION="${APP_VERSION}" \
+  dataprep agentic-research
+
 docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env up -d
 
 echo "Services started. Run research with:"
