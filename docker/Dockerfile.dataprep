@@ -21,9 +21,9 @@ RUN apt-get update \
 
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
-COPY pyproject.toml README.md ./
-COPY src ./src
+COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --only main --no-ansi
+COPY src ./src
 COPY configs ./configs
 COPY urls.txt ./
 COPY data ./data
