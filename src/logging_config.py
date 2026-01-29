@@ -94,9 +94,7 @@ def setup_run_logging(
             "langsmith.client",
             "asyncio",
         )
-        third_party_level_value, _ = _parse_log_level(
-            third_party_level, default=logging.ERROR
-        )
+        third_party_level_value, _ = _parse_log_level(third_party_level, default=logging.ERROR)
         # Force LiteLLM to the target level for both console and file
         for logger_name in ("LiteLLM", "litellm"):
             logging.getLogger(logger_name).setLevel(third_party_level_value)
@@ -206,9 +204,7 @@ def setup_server_logging(
             "uvicorn.access",
             "uvicorn.error",
         )
-        third_party_level_value, _ = _parse_log_level(
-            third_party_level, default=logging.ERROR
-        )
+        third_party_level_value, _ = _parse_log_level(third_party_level, default=logging.ERROR)
         # Force LiteLLM to the target level for both console and file
         for logger_name in ("LiteLLM", "litellm"):
             logging.getLogger(logger_name).setLevel(third_party_level_value)

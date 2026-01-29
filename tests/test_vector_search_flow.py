@@ -67,9 +67,7 @@ def test_upload_and_vector_search_flow(tmp_path):
 
     assert search_result.query == "attention mechanism"
     assert search_result.results
-    assert any(
-        hit.metadata.get("filename") == "syllabus.md" for hit in search_result.results
-    )
+    assert any(hit.metadata.get("filename") == "syllabus.md" for hit in search_result.results)
     assert all(isinstance(hit.metadata.get("chunk_index"), int) for hit in search_result.results)
     assert any("attention mechanism" in hit.document.lower() for hit in search_result.results)
 

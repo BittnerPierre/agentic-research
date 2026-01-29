@@ -1,5 +1,7 @@
 # Research bot
 
+[![CI](https://github.com/BittnerPierre/agentic-research/workflows/CI/badge.svg)](https://github.com/BittnerPierre/agentic-research/actions/workflows/ci.yml)
+
 This is a simple example of a multi-agent research assistant with local MCP. To run it:
 
 ```bash

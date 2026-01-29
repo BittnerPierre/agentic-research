@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from src.config import get_config
 from src.dataprep.knowledge_db import KnowledgeDBManager
 from src.dataprep.mcp_functions import upload_files_to_vectorstore, vector_search

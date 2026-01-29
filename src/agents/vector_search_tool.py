@@ -16,7 +16,9 @@ async def vector_search(
     if wrapper.context.vector_store_name:
         config.vector_search.index_name = wrapper.context.vector_store_name
 
-    result = _vector_search(query=query, config=config, top_k=top_k, score_threshold=score_threshold)
+    result = _vector_search(
+        query=query, config=config, top_k=top_k, score_threshold=score_threshold
+    )
     return {
         "query": result.query,
         "results": [

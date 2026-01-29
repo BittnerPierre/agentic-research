@@ -83,9 +83,7 @@ def test_download_and_store_url_generates_metadata(monkeypatch, tmp_path):
     url = "https://example.com/doc"
     doc = WebDocument(content="Test content for metadata.", url=url, title="Doc Title")
 
-    monkeypatch.setattr(
-        "src.dataprep.mcp_functions.load_documents_from_urls", lambda _urls: [doc]
-    )
+    monkeypatch.setattr("src.dataprep.mcp_functions.load_documents_from_urls", lambda _urls: [doc])
     monkeypatch.setattr(
         "src.dataprep.mcp_functions._extract_keywords_with_llm",
         lambda _doc, _config: ["alpha", "beta", "gamma"],
@@ -117,9 +115,7 @@ def test_late_attachment_local_flow(monkeypatch, tmp_path):
         content="Section on vector retrieval and attachment.", url=url, title="Late Attachment"
     )
 
-    monkeypatch.setattr(
-        "src.dataprep.mcp_functions.load_documents_from_urls", lambda _urls: [doc]
-    )
+    monkeypatch.setattr("src.dataprep.mcp_functions.load_documents_from_urls", lambda _urls: [doc])
     monkeypatch.setattr(
         "src.dataprep.mcp_functions._extract_keywords_with_llm",
         lambda _doc, _config: ["vector", "attachment"],
@@ -145,9 +141,7 @@ def test_late_attachment_openai_by_url(monkeypatch, tmp_path):
     url = "https://example.com/openai-late-attach"
     doc = WebDocument(content="OpenAI attachment content.", url=url, title="OpenAI Late")
 
-    monkeypatch.setattr(
-        "src.dataprep.mcp_functions.load_documents_from_urls", lambda _urls: [doc]
-    )
+    monkeypatch.setattr("src.dataprep.mcp_functions.load_documents_from_urls", lambda _urls: [doc])
     monkeypatch.setattr(
         "src.dataprep.mcp_functions._extract_keywords_with_llm",
         lambda _doc, _config: ["openai"],
@@ -164,6 +158,10 @@ def test_late_attachment_openai_by_url(monkeypatch, tmp_path):
 
     monkeypatch.setattr(
         "src.dataprep.vector_backends.OpenAI",
+        lambda: _FakeOpenAIUpload(created_ids, attached_ids),
+    )
+    monkeypatch.setattr(
+        "src.dataprep.vector_store_manager.OpenAI",
         lambda: _FakeOpenAIUpload(created_ids, attached_ids),
     )
     monkeypatch.setattr(

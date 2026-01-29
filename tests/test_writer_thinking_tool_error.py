@@ -4,16 +4,13 @@ import pytest
 
 from agents import Agent, Runner, function_tool
 from agents.models import get_default_model_settings
-
 from src.agents.file_writer_agent import dynamic_instructions
 from src.agents.schemas import ReportData, ResearchInfo
 from src.agents.utils import extract_model_name
 
 
 def _has_live_mistral_config() -> bool:
-    return bool(
-        os.getenv("MISTRAL_API_KEY")
-    )
+    return bool(os.getenv("MISTRAL_API_KEY"))
 
 
 @pytest.mark.integration
