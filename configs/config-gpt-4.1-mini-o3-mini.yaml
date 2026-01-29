@@ -7,6 +7,9 @@ vector_store:
   description: "Vector store for agentic research experiments"
   expires_after_days: 30
 
+vector_search:
+  provider: "openai"
+
 # Configuration des données d'entrée
 data:
   # Fichier contenant les URLs à traiter (une par ligne)

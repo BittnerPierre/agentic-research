@@ -2,19 +2,20 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, HttpUrl, field_serializer
+from pydantic import BaseModel, Field, field_serializer
 
 
 class KnowledgeEntry(BaseModel):
     """Entrée dans la base de connaissances."""
 
-    url: HttpUrl = Field(..., description="URL source du document")
+    url: str = Field(..., description="URL source du document ou chemin local")
     filename: str = Field(..., description="Nom du fichier .md stocké localement")
     keywords: list[str] = Field(default_factory=list, description="Mots-clés extraits par LLM")
     summary: str | None = Field(None, description="Résumé du document généré par LLM")
     title: str | None = Field(None, description="Titre du document")
     content_length: int = Field(0, description="Taille du contenu en caractères")
     openai_file_id: str | None = Field(None, description="ID du fichier dans OpenAI Files API")
+    vector_doc_id: str | None = Field(None, description="ID local du document dans l'index")
     created_at: datetime = Field(default_factory=datetime.now)
     last_uploaded_at: datetime | None = Field(
         None, description="Dernière date d'upload vers OpenAI"
@@ -26,8 +27,8 @@ class KnowledgeEntry(BaseModel):
         return dt.isoformat() if dt else None
 
     @field_serializer("url")
-    def serialize_url(self, url: HttpUrl) -> str:
-        return str(url)
+    def serialize_url(self, url: str) -> str:
+        return url
 
 
 class KnowledgeDatabase(BaseModel):
@@ -69,6 +70,14 @@ class KnowledgeDatabase(BaseModel):
             if entry.filename == filename:
                 entry.openai_file_id = openai_file_id
                 entry.last_uploaded_at = datetime.now()
+                self.last_updated = datetime.now()
+                break
+
+    def update_vector_doc_id(self, filename: str, vector_doc_id: str) -> None:
+        """Met à jour l'ID local d'une entrée."""
+        for entry in self.entries:
+            if entry.filename == filename:
+                entry.vector_doc_id = vector_doc_id
                 self.last_updated = datetime.now()
                 break
 

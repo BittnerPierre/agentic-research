@@ -27,7 +27,7 @@ SUPERVISOR_TRAJECTORY_SPEC = {
         {
             "id": "execute_search",
             "type": "function_call",
-            "name": "file_search",
+            "name": "vector_search",
             "required": True,
             "description": "Supervisor executes file search (may occur multiple times)"
         },
@@ -57,7 +57,7 @@ RESEARCH_TRAJECTORY_SPEC = {
         {
             "id": "search_vectorstore",
             "type": "function_call",
-            "name": "file_search",  # FileSearchTool
+            "name": "vector_search",
             "required": True,
             "description": "Research agent searches vector store"
         },
@@ -139,7 +139,7 @@ FULL_WORKFLOW_TRAJECTORY_SPEC = {
         {
             "id": "supervisor_execute_search",
             "type": "function_call",
-            "name": "file_search",
+            "name": "vector_search",
             "required": True,
             "description": "Supervisor coordinates file search"
         },

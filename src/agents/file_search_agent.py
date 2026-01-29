@@ -4,6 +4,7 @@ from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
+from .vector_search_tool import vector_search
 from .schemas import FileSearchResult, ResearchInfo
 from .utils import extract_model_name, load_prompt_from_file, resolve_model
 
@@ -19,9 +20,19 @@ def dynamic_instructions(
         raise ValueError(f"{prompt_file} is None")
 
     dynamic_prompt = prompt_template.format(RECOMMENDED_PROMPT_PREFIX=RECOMMENDED_PROMPT_PREFIX)
+    config = get_config()
+    chroma_hint = ""
+    if config.vector_search.provider == "chroma":
+        store_name = context.context.vector_store_name or config.vector_search.index_name
+        chroma_hint = (
+            "Use the MCP tool `chroma_query_documents` to search the collection "
+            f"`{store_name}` for the query text. These tools are provided by the "
+            "Chroma MCP server configured under `vector_mcp`.\n"
+        )
 
     return (
         f"{dynamic_prompt}"
+        f"{chroma_hint}"
         f"The absolute path to **temporary filesystem** is `{context.context.temp_dir}`."
         " You MUST use it to write and read temporary data.\n\n"
         # f"The absolute path to **output filesystem** is `{context.context.output_dir}`."
@@ -41,11 +52,22 @@ def create_file_search_agent(
     model_name = extract_model_name(model_spec)
     model_settings = get_default_model_settings(model_name)
 
+    if config.vector_search.provider == "openai":
+        tools = [FileSearchTool(vector_store_ids=[vector_store_id])]
+    elif config.vector_search.provider == "local":
+        tools = [vector_search]
+    elif config.vector_search.provider == "chroma":
+        # Chroma tools are exposed via MCP (see vector_mcp config), so we keep
+        # the local tools list empty and rely on MCP tool discovery.
+        tools = []
+    else:
+        raise ValueError(f"Unknown vector_search.provider: {config.vector_search.provider}")
+
     file_search_agent = Agent(
         name="file_search_agent",
         handoff_description="Given a search topic, search through vectorized files and produce a clear, CONCISE and RELEVANT summary of the results.",
         instructions=dynamic_instructions,
-        tools=[FileSearchTool(vector_store_ids=[vector_store_id])],
+        tools=tools,
         model=model,
         model_settings=model_settings,
         mcp_servers=mcp_servers,

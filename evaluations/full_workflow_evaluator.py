@@ -378,30 +378,40 @@ async def main():
     if not syllabus:
         raise ValueError("Provide --syllabus or --test-case")
 
-    # Get or create vector store by name
+    config = get_config(args.config)
+    provider = config.vector_search.provider
+
+    # Get or create vector store by name (OpenAI only)
     vector_store_id = args.vector_store_id
-    if vector_store_id is None:
-        from openai import OpenAI
-        client = OpenAI()
-
-        print(f"🔍 Looking up storage: '{args.vector_store_name}'")
-
-        # Lookup vector store by name (inline to avoid cross-module imports)
-        vector_stores = client.vector_stores.list()
-        for vs in vector_stores:
-            if vs.name == args.vector_store_name:
-                vector_store_id = vs.id
-                break
-
+    if provider == "openai":
         if vector_store_id is None:
-            print(f"📦 Creating new storage: '{args.vector_store_name}'")
-            vector_store_obj = client.vector_stores.create(name=args.vector_store_name)
-            vector_store_id = vector_store_obj.id
-            print(f"✅ Storage created: {vector_store_id}")
+            from openai import OpenAI
+
+            client = OpenAI()
+
+            print(f"🔍 Looking up storage: '{args.vector_store_name}'")
+
+            # Lookup vector store by name (inline to avoid cross-module imports)
+            vector_stores = client.vector_stores.list()
+            for vs in vector_stores:
+                if vs.name == args.vector_store_name:
+                    vector_store_id = vs.id
+                    break
+
+            if vector_store_id is None:
+                print(f"📦 Creating new storage: '{args.vector_store_name}'")
+                vector_store_obj = client.vector_stores.create(name=args.vector_store_name)
+                vector_store_id = vector_store_obj.id
+                print(f"✅ Storage created: {vector_store_id}")
+            else:
+                print(f"✅ Found existing storage: {vector_store_id}")
         else:
-            print(f"✅ Found existing storage: {vector_store_id}")
+            print(f"✅ Using provided storage ID: {vector_store_id}")
     else:
-        print(f"✅ Using provided storage ID: {vector_store_id}")
+        if vector_store_id is not None:
+            print(f"✅ Using provided storage ID: {vector_store_id}")
+        else:
+            print(f"🔍 Using non-OpenAI provider '{provider}' with store name: '{args.vector_store_name}'")
 
     # Create temp/output directories
     temp_dir = tempfile.mkdtemp(prefix="eval_")
@@ -409,6 +419,7 @@ async def main():
 
     # Create ResearchInfo
     research_info = ResearchInfo(
+        vector_store_name=args.vector_store_name,
         vector_store_id=vector_store_id,
         temp_dir=temp_dir,
         output_dir=output_dir,

@@ -51,6 +51,7 @@ output/
 logs/
 data/*.json
 data/*.md
+data/vector_index/
 data/embeddings/
 models/
 *.log

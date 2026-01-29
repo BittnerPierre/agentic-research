@@ -5,6 +5,7 @@ from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
+from ..dataprep.vector_backends import get_vector_backend
 from .file_writer_agent import WriterDirective
 from .schemas import ReportData, ResearchInfo
 from .utils import (
@@ -72,6 +73,8 @@ def create_research_supervisor_agent(
     model_name = extract_model_name(research_model_spec)
     model_settings = get_default_model_settings(model_name)
 
+    search_tool_name = get_vector_backend(config).tool_name()
+
     return Agent[ResearchInfo](
         name="ResearchSupervisorAgent",
         instructions=ORCHESTRATOR_PROMPT,
@@ -83,7 +86,7 @@ def create_research_supervisor_agent(
                 tool_description="Plan the file search",
             ),
             file_search_agent.as_tool(
-                tool_name="file_search",
+                tool_name=search_tool_name,
                 tool_description="Search for relevant information in the knowledge base",
             ),
             fetch_vector_store_name,

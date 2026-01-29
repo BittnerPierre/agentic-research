@@ -2,8 +2,6 @@
 
 import logging
 import re
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -11,20 +9,11 @@ from openai import OpenAI
 
 from .knowledge_db import KnowledgeDBManager
 from .models import KnowledgeEntry, UploadResult
-from .vector_store_manager import VectorStoreManager
+from .vector_backends import get_vector_backend
+from .vector_search import VectorSearchResult
 from .web_loader_improved import load_documents_from_urls
 
 logger = logging.getLogger(__name__)
-
-
-class VectorStoreSingleton:
-    _instance = None
-
-    @staticmethod
-    def get_instance(vector_store_name):
-        if VectorStoreSingleton._instance is None:
-            VectorStoreSingleton._instance = VectorStoreManager(vector_store_name)
-        return VectorStoreSingleton._instance
 
 
 def download_and_store_url(url: str, config) -> str:
@@ -43,20 +32,20 @@ def download_and_store_url(url: str, config) -> str:
     existing_entry = db_manager.lookup_url(url)
 
     if existing_entry:
-        logger.info(f"URL trouvée dans la base de connaissances: {existing_entry.filename}")
+        logger.info(f"URL found in knowledge base: {existing_entry.filename}")
         # Vérifier que le fichier existe encore
         local_path = Path(config.data.local_storage_dir) / existing_entry.filename
         if local_path.exists():
             return existing_entry.filename
         else:
-            logger.warning(f"Fichier manquant, re-téléchargement: {existing_entry.filename}")
+            logger.warning(f"File missing, re-downloading: {existing_entry.filename}")
 
     # 2. Télécharger et convertir
-    logger.info(f"Téléchargement de l'URL: {url}")
+    logger.info(f"Downloading URL: {url}")
     docs_list = load_documents_from_urls([url])
 
     if not docs_list:
-        raise ValueError(f"Impossible de télécharger le contenu de: {url}")
+        raise ValueError(f"Unable to download content from: {url}")
 
     doc = docs_list[0]
 
@@ -101,185 +90,43 @@ def download_and_store_url(url: str, config) -> str:
 
     db_manager.add_entry(entry)
 
-    logger.info(f"Document sauvegardé: {filename}")
+    logger.info(f"Document saved: {filename}")
     return filename
 
 
 def upload_files_to_vectorstore(inputs: list[str], config, vectorstore_name: str) -> UploadResult:
     """
-    MCP Function 2: Upload optimisé vers vector store OpenAI
+    MCP Function 2: Indexation locale vers le vector store
 
     Logic:
     - Si input est URL -> lookup par URL
     - Si input est filename -> lookup par nom
-    - Si entrée a déjà openai_file_id -> réutiliser
-    - Sinon -> upload vers Files API puis sauvegarder l'ID
+    - Si entrée a déjà vector_doc_id -> réutiliser
+    - Sinon -> indexer localement et sauvegarder l'ID
 
     Args:
-        inputs: Liste d'URLs ou noms de fichiers
+        inputs: Liste d'URLs, chemins de fichiers ou noms de fichiers locaux
         config: Configuration
         vectorstore_name: Nom du vector store
 
     Returns:
         UploadResult: Résultat détaillé de l'opération
     """
-    start_time = time.perf_counter()
-    logger.info(f"[upload_files_to_vectorstore] Starting with {len(inputs)} inputs")
+    backend = get_vector_backend(config)
+    return backend.upload_files(inputs, config, vectorstore_name)
 
-    db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
-    local_dir = Path(config.data.local_storage_dir)
-    client = OpenAI()
 
-    # 1. Résolution inputs → KnowledgeEntry
-    logger.debug("[upload_files_to_vectorstore] Step 1: Resolving inputs to knowledge entries")
-    entries_to_process = []
-
-    for input_item in inputs:
-        entry = None
-
-        if input_item.startswith(("http://", "https://")):
-            # C'est une URL
-            entry = db_manager.lookup_url(input_item)
-            if not entry:
-                raise ValueError(f"URL non trouvée dans la base de connaissances: {input_item}")
-        else:
-            # C'est un nom de fichier
-            entry = db_manager.find_by_name(input_item)
-            if not entry:
-                raise ValueError(f"Fichier non trouvé dans la base de connaissances: {input_item}")
-
-        # Vérifier que le fichier local existe
-        file_path = local_dir / entry.filename
-        if not file_path.exists():
-            raise FileNotFoundError(f"Fichier local non trouvé: {file_path}")
-
-        entries_to_process.append((entry, file_path))
-
-    step1_time = time.perf_counter()
-    logger.info(f"[upload_files_to_vectorstore] Step 1 completed in {step1_time - start_time:.2f}s - {len(entries_to_process)} entries")
-
-    # 2. Créer vector store avec expiration 1 jour
-    logger.debug("[upload_files_to_vectorstore] Step 2: Creating/getting vector store")
-    vector_store_manager = VectorStoreSingleton.get_instance(vectorstore_name)
-    vector_store_id = vector_store_manager.get_or_create_vector_store()
-
-    step2_time = time.perf_counter()
-    logger.info(f"[upload_files_to_vectorstore] Step 2 completed in {step2_time - step1_time:.2f}s - Vector store: {vector_store_id}")
-
-    # 3. Traitement des fichiers (upload si nécessaire)
-    logger.debug("[upload_files_to_vectorstore] Step 3: Processing files (upload if needed)")
-    files_uploaded = []
-    files_to_attach = []  # (file_id, filename)
-    upload_count = 0
-    reuse_count = 0
-
-    for entry, file_path in entries_to_process:
-        if entry.openai_file_id:
-            # Fichier déjà uploadé, réutiliser
-            logger.info(
-                f"Réutilisation du fichier OpenAI existant: {entry.filename} -> {entry.openai_file_id}"
-            )
-            files_uploaded.append(
-                {"filename": entry.filename, "file_id": entry.openai_file_id, "status": "reused"}
-            )
-            files_to_attach.append((entry.openai_file_id, entry.filename))
-            reuse_count += 1
-        else:
-            # Nouveau fichier, upload nécessaire
-            try:
-                logger.info(f"Upload du nouveau fichier: {entry.filename}")
-                with open(file_path, "rb") as file:
-                    file_upload_response = client.files.create(file=file, purpose="user_data")
-
-                file_id = file_upload_response.id
-
-                # Mettre à jour la base de connaissances avec l'ID OpenAI
-                db_manager.update_openai_file_id(entry.filename, file_id)
-
-                files_uploaded.append(
-                    {"filename": entry.filename, "file_id": file_id, "status": "uploaded"}
-                )
-                files_to_attach.append((file_id, entry.filename))
-                upload_count += 1
-
-            except Exception as e:
-                logger.error(f"Erreur upload {entry.filename}: {e}")
-                files_uploaded.append(
-                    {"filename": entry.filename, "error": str(e), "status": "failed"}
-                )
-
-    step3_time = time.perf_counter()
-    logger.info(f"[upload_files_to_vectorstore] Step 3 completed in {step3_time - step2_time:.2f}s - Uploaded: {upload_count}, Reused: {reuse_count}")
-
-    # 4. Attachement au vector store (parallélisé pour performance)
-    logger.debug(f"[upload_files_to_vectorstore] Step 4: Attaching {len(files_to_attach)} files to vector store (parallel)")
-
-    def attach_single_file(file_id: str, filename: str) -> dict[str, Any]:
-        """Attach a single file to the vector store (for parallel execution)."""
-        try:
-            vector_store_file = client.vector_stores.files.create(
-                vector_store_id=vector_store_id, file_id=file_id
-            )
-            logger.info(
-                f"Fichier attaché au vector store: {filename} (status: {vector_store_file.status})"
-            )
-            return {
-                "filename": filename,
-                "file_id": file_id,
-                "vector_store_file_id": vector_store_file.id,
-                "status": vector_store_file.status,
-                "success": True,
-            }
-        except Exception as e:
-            logger.error(f"Erreur attachement {filename}: {e}")
-            return {
-                "filename": filename,
-                "file_id": file_id,
-                "error": str(e),
-                "status": "attach_failed",
-                "success": False,
-            }
-
-    # Parallel execution using ThreadPoolExecutor
-    files_attached = []
-    attach_success_count = 0
-    attach_failure_count = 0
-
-    if not files_to_attach:
-        logger.info("[upload_files_to_vectorstore] Step 4 skipped - No files to attach")
-    else:
-        with ThreadPoolExecutor(max_workers=min(len(files_to_attach), 10)) as executor:
-            # Submit all tasks
-            future_to_file = {
-                executor.submit(attach_single_file, file_id, filename): (file_id, filename)
-                for file_id, filename in files_to_attach
-            }
-
-            # Collect results as they complete
-            for future in as_completed(future_to_file):
-                result = future.result()
-                files_attached.append(result)
-                if result.get("success", False):
-                    attach_success_count += 1
-                else:
-                    attach_failure_count += 1
-
-    step4_time = time.perf_counter()
-    logger.info(f"[upload_files_to_vectorstore] Step 4 completed in {step4_time - step3_time:.2f}s (parallel) - Attached: {attach_success_count}, Failed: {attach_failure_count}")
-
-    total_time = time.perf_counter() - start_time
-    logger.info(f"[upload_files_to_vectorstore] TOTAL TIME: {total_time:.2f}s")
-
-    return UploadResult(
-        vectorstore_id=vector_store_id,
-        files_uploaded=files_uploaded,
-        files_attached=files_attached,
-        total_files_requested=len(inputs),
-        upload_count=upload_count,
-        reuse_count=reuse_count,
-        attach_success_count=attach_success_count,
-        attach_failure_count=attach_failure_count,
-    )
+def vector_search(
+    query: str,
+    config,
+    top_k: int | None = None,
+    score_threshold: float | None = None,
+) -> VectorSearchResult:
+    """
+    Recherche locale dans le vector store avec chunking tardif.
+    """
+    backend = get_vector_backend(config)
+    return backend.search(query=query, config=config, top_k=top_k, score_threshold=score_threshold)
 
 
 def get_knowledge_entries(config) -> list[dict[str, Any]]:
@@ -327,11 +174,11 @@ Concentre-toi sur les concepts techniques, les noms propres, et les thèmes prin
         keywords_text = response.choices[0].message.content.strip()
         keywords = [kw.strip() for kw in keywords_text.split(",") if kw.strip()]
 
-        logger.info(f"Mots-clés extraits par LLM: {keywords}")
+        logger.info(f"LLM-extracted keywords: {keywords}")
         return keywords[:10]  # Limiter à 10 mots-clés
 
     except Exception as e:
-        logger.error(f"Erreur extraction mots-clés LLM: {e}")
+        logger.error(f"Failed to extract keywords with LLM: {e}")
         # Fallback sur extraction basique
         return _extract_keywords_basic(doc)
 
@@ -364,11 +211,11 @@ Ton résumé doit être factuel, objectif et couvrir les informations principale
         )
 
         summary = response.choices[0].message.content.strip()
-        logger.info(f"Résumé généré par LLM: {len(summary)} caractères")
+        logger.info(f"LLM-generated summary: {len(summary)} characters")
         return summary
 
     except Exception as e:
-        logger.error(f"Erreur génération résumé LLM: {e}")
+        logger.error(f"Failed to generate summary with LLM: {e}")
         # Fallback sur résumé basique
         return _extract_basic_summary(doc)
 

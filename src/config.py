@@ -33,6 +33,32 @@ class VectorStoreConfig(BaseModel):
     vector_store_id: str = Field(default="")
 
 
+class VectorSearchConfig(BaseModel):
+    """Configuration for vector search collections and defaults."""
+
+    provider: str = Field(default="local")
+    index_name: str = Field(default="agentic-research")
+    embedding_function: str = Field(default="sentence-transformers:all-MiniLM-L6-v2")
+    chunk_size: int = Field(default=800)
+    chunk_overlap: int = Field(default=120)
+    chroma_host: str = Field(default="127.0.0.1")
+    chroma_port: int = Field(default=8000)
+    chroma_ssl: bool = Field(default=False)
+    top_k: int = Field(default=5)
+    score_threshold: float | None = Field(default=None)
+
+
+class VectorMCPConfig(BaseModel):
+    """Configuration for launching a vector search MCP server."""
+
+    command: str = Field(default="uvx")
+    args: list[str] = Field(default_factory=lambda: ["chroma-mcp"])
+    tool_allowlist: list[str] = Field(
+        default_factory=lambda: ["chroma_query_documents", "chroma_get_documents"]
+    )
+    client_timeout_seconds: float = Field(default=30.0)
+
+
 class DataConfig(BaseModel):
     """Configuration for data sources."""
 
@@ -54,6 +80,8 @@ class LoggingConfig(BaseModel):
 
     level: str = Field(default="INFO")
     format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    silence_third_party: bool = Field(default=True)
+    third_party_level: str = Field(default="ERROR")
 
 
 class MCPConfig(BaseModel):
@@ -64,6 +92,14 @@ class MCPConfig(BaseModel):
     Only client_timeout_seconds needs tuning for long-running tool operations.
     """
 
+    server_host: str = Field(
+        default="0.0.0.0",
+        description="Host interface for the DataPrep MCP server",
+    )
+    server_port: int = Field(
+        default=8001,
+        description="Port for the DataPrep MCP server",
+    )
     client_timeout_seconds: float = Field(
         default=10.0,
         description="Timeout for MCP tool execution (e.g., upload_files_to_vectorstore)"
@@ -117,6 +153,8 @@ class Config(BaseModel):
 
     config_name: str
     vector_store: VectorStoreConfig
+    vector_search: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
+    vector_mcp: VectorMCPConfig = Field(default_factory=VectorMCPConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
@@ -200,6 +238,7 @@ class ConfigManager:
 # Instance globale pour l'accès facile - sera initialisée via le pattern singleton
 _global_config_manager: ConfigManager | None = None
 _config_lock = threading.Lock()
+_config_access_logged = False
 
 
 def get_config(config_file: str | None = None) -> Config:
@@ -215,19 +254,24 @@ def get_config(config_file: str | None = None) -> Config:
     """
     global _global_config_manager
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("agentic-research")
 
     # Premier check (performance optimization) - pas besoin de lock si déjà initialisé
+    global _config_access_logged
     if _global_config_manager is not None:
         if config_file is None:
             # Appel sans paramètre (module) -> Normal, pas de message
-            logger.debug(
-                f"Accès à la configuration existante: {_global_config_manager.config_file_name}"
-            )
+            if not _config_access_logged:
+                logger.debug(
+                    f"Accès à la configuration existante: {_global_config_manager.config_file_name}"
+                )
+                _config_access_logged = True
             return _global_config_manager.config
         elif _global_config_manager.config_file_name == config_file:
             # Même fichier demandé -> Normal
-            logger.debug(f"Configuration déjà initialisée avec le fichier: {config_file}")
+            if not _config_access_logged:
+                logger.debug(f"Configuration déjà initialisée avec le fichier: {config_file}")
+                _config_access_logged = True
             return _global_config_manager.config
         else:
             # Fichier différent demandé (main qui arrive après) -> Warning

@@ -1,5 +1,6 @@
 """Serveur MCP pour les fonctions de préparation de données."""
 
+import argparse
 import logging
 from typing import Any
 
@@ -34,11 +35,11 @@ def create_dataprep_server() -> FastMCP:
     mcp = FastMCP(
         name="DataPrep MCP Server",
         instructions="""
-        Serveur MCP pour la préparation de données et gestion de vector stores.
+        Serveur MCP pour la préparation de données et gestion de vector stores locaux.
         
         Outils disponibles:
         - download_and_store_url: Télécharge et stocke une URL dans le système local
-        - upload_files_to_vectorstore: Upload des fichiers vers un vector store OpenAI
+        - upload_files_to_vectorstore: Indexation locale des fichiers dans le vector store
         - get_knowledge_entries: Liste les entrées de la base de connaissances
         - check_vectorstore_file_status: Vérifie l'état des fichiers dans un vector store
         """,
@@ -70,7 +71,7 @@ def create_dataprep_server() -> FastMCP:
         inputs: list[str], vectorstore_name: str
     ) -> dict[str, Any]:
         """
-        Upload des fichiers vers un vector store OpenAI avec expiration 1 jour.
+        Indexation locale des fichiers dans le vector store.
 
         Args:
             inputs: Liste d'URLs (qui seront résolues) ou noms de fichiers locaux
@@ -168,10 +169,24 @@ def start_server(host: str = "0.0.0.0", port: int = 8001):
 
 def main():
     """Démarre le serveur MCP dataprep."""
+    parser = argparse.ArgumentParser(description="DataPrep MCP Server")
+    parser.add_argument("--config", type=str, help="Configuration file to use")
+    parser.add_argument("--host", type=str, help="Server host override")
+    parser.add_argument("--port", type=int, help="Server port override")
+    args = parser.parse_args()
+
+    config = get_config(args.config)
+    host = args.host or config.mcp.server_host
+    port = args.port or config.mcp.server_port
+
     # Set up rolling file logging for long-running server
-    log_file = setup_server_logging(log_level="INFO")
+    log_file = setup_server_logging(
+        log_level="INFO",
+        silence_third_party=True,
+        third_party_level="ERROR",
+    )
     logger.info(f"DataPrep MCP Server log file: {log_file}")
-    start_server()
+    start_server(host=host, port=port)
 
 
 if __name__ == "__main__":

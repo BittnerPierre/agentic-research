@@ -83,7 +83,7 @@ Toute sortie de texte structuré doit passer par une fonction dédiée si une fo
 
 **Actions** :
 
-- Effectuez TOUTES les recherches planifiées avec `file_search`
+- Effectuez TOUTES les recherches planifiées avec `vector_search`
 - Pour chaque recherche, demandez explicitement des **détails complets**
 
 **Instructions spéciales pour les recherches** :

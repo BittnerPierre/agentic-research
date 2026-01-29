@@ -67,7 +67,7 @@ def test_research_trajectory_spec_checkpoints():
     # Verify search checkpoint
     search_checkpoint = next(c for c in trajectory if c["id"] == "search_vectorstore")
     assert search_checkpoint["type"] == "function_call"
-    assert search_checkpoint["name"] == "file_search"
+    assert search_checkpoint["name"] == "vector_search"
     assert search_checkpoint["required"] is True
 
     # Verify output checkpoint

@@ -1,5 +1,5 @@
 # Configuration pour agentic-research
-config_name: "default (mixed models)"
+config_name: "gpt-4.1-mini"
 
 vector_store:
   # OpenAI Vector Store ID - https://platform.openai.com/storage/vector_stores/
@@ -8,35 +8,7 @@ vector_store:
   expires_after_days: 30
 
 vector_search:
-  provider: "local"
-  index_name: "agentic-research"
-  embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
-  chunk_size: 800
-  chunk_overlap: 120
-  chroma_host: "127.0.0.1"
-  chroma_port: 8000
-  chroma_ssl: false
-  top_k: 5
-  score_threshold: null
-
-vector_mcp:
-  command: "uvx"
-  args:
-    - "--python"
-    - "3.12"
-    - "chroma-mcp"
-    - "--client-type"
-    - "http"
-    - "--host"
-    - "127.0.0.1"
-    - "--port"
-    - "8000"
-    - "--ssl"
-    - "false"
-  tool_allowlist:
-    - "chroma_query_documents"
-    - "chroma_get_documents"
-  client_timeout_seconds: 30.0
+  provider: "openai"
 
 # Configuration des données d'entrée
 data:
@@ -63,20 +35,11 @@ logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-# Configuration MCP (Model Context Protocol)
-mcp:
-  server_host: "0.0.0.0"
-  server_port: 8001
-  # Timeout pour les appels d'outils MCP (en secondes)
-  # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
-  # Valeur par défaut dans le SDK: 5.0s
-  client_timeout_seconds: 60.0
-
 # Configuration Models
 models:
   research_model: "openai/gpt-4.1-mini"
-  planning_model: "openai/o4-mini"
-  search_model: "openai/gpt-4.1-mini" # Used for vector search summaries
+  planning_model: "openai/gpt-4.1-mini"
+  search_model: "openai/gpt-4.1-mini" # GPT required for file search tool
   writer_model: "openai/gpt-4.1-mini"
   knowledge_preparation_model: "openai/gpt-4.1-mini"
 
@@ -85,5 +48,5 @@ manager:
   default_manager: "agentic_manager" # Options: agentic_manager, manager, ou chemin.vers.ClasseManager
 
 agents:
-  max_search_plan: "2-3"
+  max_search_plan: "5-7"
   output_dir: "output/"

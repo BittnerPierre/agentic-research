@@ -24,6 +24,7 @@ class StandardResearchManager:
         self,
         fs_server: MCPServer,
         dataprep_server: MCPServer,
+        vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
     ) -> None:

@@ -13,6 +13,12 @@ poetry run agentic-research
 For Docker/Docker Compose usage (local, DGX Spark, smoke tests, logs), see
 `docs/README_DOCKER.md`.
 
+## Dependencies
+
+- `sentence-transformers` is required when using the default
+  `sentence-transformers:*` embedding function (used by local/chroma providers).
+  The first run will download the model weights.
+
 ## Architecture
 
 The flow is:
@@ -31,6 +37,8 @@ The `agentic-research` tool can be used via Poetry with different options:
 - `--syllabus`: Path to a syllabus file to use as the query
 - `--manager`: Manager implementation to use (options: `agentic_manager`, `manager`, or a custom import path)
 - `--query`: Research query (alternative to interactive input)
+- `--dataprep-host`: DataPrep MCP server host override
+- `--dataprep-port`: DataPrep MCP server port override
 
 ### Usage Examples
 
@@ -52,6 +60,17 @@ poetry run agentic-research --query "Retrieval Augmented Generation"
 
 # Combine multiple options
 poetry run agentic-research --query "Agents in LLM" --manager agentic_manager
+
+# Utiliser un serveur dataprep sur un autre port
+poetry run agentic-research --dataprep-host 127.0.0.1 --dataprep-port 8010
+```
+
+## Dataprep server
+
+Vous pouvez démarrer le serveur dataprep sur un host/port spécifique :
+
+```bash
+poetry run dataprep_server --host 127.0.0.1 --port 8010
 ```
 
 ### Configuration
@@ -64,3 +83,10 @@ manager:
 ```
 
 You can also set the default manager via the `DEFAULT_MANAGER` environment variable.
+
+## Vector search providers
+
+- `openai`: uses `FileSearchTool` with the configured vector store id.
+- `local`: uses the local vector search tool.
+- `chroma`: tools are provided by the Chroma MCP server configured under `vector_mcp`
+  (e.g. `chroma_query_documents`, `chroma_get_documents`).

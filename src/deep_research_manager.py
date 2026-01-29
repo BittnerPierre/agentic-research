@@ -41,11 +41,13 @@ class DeepResearchManager:
         self,
         fs_server: MCPServer,
         dataprep_server: MCPServer,
+        vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
     ) -> None:
         self.fs_server = fs_server
         self.dataprep_server = dataprep_server
+        self.vector_mcp_server = vector_mcp_server
         self.research_info = research_info
 
         trace_id = gen_trace_id()
@@ -70,8 +72,12 @@ class DeepResearchManager:
                 [self.dataprep_server]
             )
             self.file_planner_agent = create_file_planner_agent([self.fs_server])
+            mcp_servers = [self.fs_server]
+            if self.vector_mcp_server is not None:
+                mcp_servers.append(self.vector_mcp_server)
+
             self.file_search_agent = create_file_search_agent(
-                [self.fs_server], research_info.vector_store_id
+                mcp_servers, research_info.vector_store_id
             )
             self.writer_agent = create_writer_agent([self.fs_server], do_save_report=False)
 

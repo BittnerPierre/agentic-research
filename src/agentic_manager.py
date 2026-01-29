@@ -31,11 +31,13 @@ class AgenticResearchManager:
         self,
         fs_server: MCPServer,
         dataprep_server: MCPServer,
+        vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
     ) -> None:
         self.fs_server = fs_server
         self.dataprep_server = dataprep_server
+        self.vector_mcp_server = vector_mcp_server
 
         trace_id = gen_trace_id()
         with trace(
@@ -58,8 +60,12 @@ class AgenticResearchManager:
             )
 
             file_planner_agent = create_file_planner_agent([self.fs_server])
+            mcp_servers = [self.fs_server]
+            if self.vector_mcp_server is not None:
+                mcp_servers.append(self.vector_mcp_server)
+
             file_search_agent = create_file_search_agent(
-                [self.fs_server], research_info.vector_store_id
+                mcp_servers, research_info.vector_store_id
             )
             writer_agent = create_writer_agent([self.fs_server])
 
