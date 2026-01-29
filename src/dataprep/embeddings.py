@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Callable
 
 
 def _parse_embedding_spec(spec: str) -> tuple[str, str]:
     if ":" not in spec:
         raise ValueError(
-            "embedding_function must be in the form '<provider>:<model>', "
-            f"got {spec!r}"
+            "embedding_function must be in the form '<provider>:<model>', " f"got {spec!r}"
         )
     provider, model = spec.split(":", 1)
     return provider.strip(), model.strip()
@@ -21,9 +20,7 @@ def _sentence_transformer_model(model_name: str):
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
-        raise ImportError(
-            "sentence-transformers is required for this embedding_function"
-        ) from exc
+        raise ImportError("sentence-transformers is required for this embedding_function") from exc
     return SentenceTransformer(model_name)
 
 

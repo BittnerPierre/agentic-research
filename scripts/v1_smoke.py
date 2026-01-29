@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import json
 import os
-import sys
 import time
 import urllib.error
 import urllib.request
@@ -52,10 +51,7 @@ def request_json(method, url, payload=None, headers=None):
 
 def chroma_urls(path):
     if CHROMA_TENANT and CHROMA_DATABASE:
-        base = (
-            f"{CHROMA_URL}/api/v2/tenants/{CHROMA_TENANT}"
-            f"/databases/{CHROMA_DATABASE}{path}"
-        )
+        base = f"{CHROMA_URL}/api/v2/tenants/{CHROMA_TENANT}" f"/databases/{CHROMA_DATABASE}{path}"
         return [base]
     return [f"{CHROMA_URL}{path}"]
 
@@ -134,9 +130,7 @@ def main():
     embedding = extract_embedding(parse_json(body, "embeddings"))
 
     log("Create or fetch collection...")
-    status, body = chroma_request(
-        "POST", "/collections", {"name": COLLECTION_NAME}
-    )
+    status, body = chroma_request("POST", "/collections", {"name": COLLECTION_NAME})
     collection_id = ""
     if 200 <= status < 300 and body:
         data = parse_json(body, "create collection")
@@ -145,9 +139,7 @@ def main():
     if not collection_id:
         status, body = chroma_request("GET", "/collections")
         if not (200 <= status < 300):
-            raise SystemExit(
-                f"Failed to list Chroma collections (status {status}): {body}"
-            )
+            raise SystemExit(f"Failed to list Chroma collections (status {status}): {body}")
         data = parse_json(body, "list collections")
         if isinstance(data, list):
             items = data

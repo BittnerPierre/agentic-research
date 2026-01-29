@@ -102,11 +102,11 @@ class MCPConfig(BaseModel):
     )
     client_timeout_seconds: float = Field(
         default=10.0,
-        description="Timeout for MCP tool execution (e.g., upload_files_to_vectorstore)"
+        description="Timeout for MCP tool execution (e.g., upload_files_to_vectorstore)",
     )
     http_timeout_seconds: float = Field(
         default=5.0,
-        description="Timeout for HTTP connection to MCP server (usually localhost, rarely needs tuning)"
+        description="Timeout for HTTP connection to MCP server (usually localhost, rarely needs tuning)",
     )
 
 
@@ -128,9 +128,7 @@ class ModelsConfig(BaseModel):
     planning_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
     search_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
     writer_model: ModelSpec = Field(default="litellm/mistral/mistral-medium-latest")
-    knowledge_preparation_model: ModelSpec = Field(
-        default="litellm/mistral/mistral-medium-latest"
-    )
+    knowledge_preparation_model: ModelSpec = Field(default="litellm/mistral/mistral-medium-latest")
     # model: str = Field(default="openai/gpt-4.1-mini")
     # reasoning_model: str = Field(default="openai/o3-mini")
 

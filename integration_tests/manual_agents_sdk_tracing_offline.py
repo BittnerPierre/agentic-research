@@ -192,4 +192,3 @@ def test_tracing_offline_with_ollama() -> bool:
 if __name__ == "__main__":
     ok = test_tracing_offline_with_ollama()
     raise SystemExit(0 if ok else 1)
-

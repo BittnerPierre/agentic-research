@@ -6,9 +6,9 @@ import json
 import logging
 import re
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +70,7 @@ class LocalVectorSearchBackend:
         index = self._read_index()
         return any(record.get("document_id") == document_id for record in index)
 
-    def query(
-        self, query: str, top_k: int, score_threshold: float | None
-    ) -> list[VectorSearchHit]:
+    def query(self, query: str, top_k: int, score_threshold: float | None) -> list[VectorSearchHit]:
         query_tokens = _tokenize(query)
         if not query_tokens:
             return []

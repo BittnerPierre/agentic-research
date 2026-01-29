@@ -5,17 +5,21 @@ from __future__ import annotations
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Protocol
+from pathlib import Path
+from typing import ClassVar, Protocol
 
 import chromadb
 from openai import OpenAI
 
-from pathlib import Path
-
 from .embeddings import get_embedding_function
 from .knowledge_db import KnowledgeDBManager
 from .models import UploadResult
-from .vector_search import VectorSearchHit, VectorSearchResult, create_document, get_vector_search_backend
+from .vector_search import (
+    VectorSearchHit,
+    VectorSearchResult,
+    create_document,
+    get_vector_search_backend,
+)
 from .vector_store_manager import VectorStoreManager
 from .vector_store_utils import chunk_text, read_local_file, resolve_inputs_to_entries
 
@@ -45,7 +49,7 @@ class VectorBackend(Protocol):
 
 
 class VectorStoreRegistry:
-    _store_ids: dict[tuple[str, str], str] = {}
+    _store_ids: ClassVar[dict[tuple[str, str], str]] = {}
 
     @classmethod
     def get(cls, provider: str, name: str) -> str | None:
@@ -116,7 +120,9 @@ class LocalVectorBackend:
         indexed_ids = backend.add_documents(documents_to_index) if documents_to_index else []
         for (entry, doc_id), _ in zip(entries_indexed, indexed_ids, strict=False):
             db_manager.update_vector_doc_id(entry.filename, doc_id)
-            files_uploaded.append({"filename": entry.filename, "doc_id": doc_id, "status": "indexed"})
+            files_uploaded.append(
+                {"filename": entry.filename, "doc_id": doc_id, "status": "indexed"}
+            )
             upload_count += 1
 
         step3_time = time.perf_counter()
@@ -212,7 +218,11 @@ class OpenAIVectorBackend:
                     f"Reusing existing OpenAI file: {entry.filename} -> {entry.openai_file_id}"
                 )
                 files_uploaded.append(
-                    {"filename": entry.filename, "file_id": entry.openai_file_id, "status": "reused"}
+                    {
+                        "filename": entry.filename,
+                        "file_id": entry.openai_file_id,
+                        "status": "reused",
+                    }
                 )
                 files_to_attach.append((entry.openai_file_id, entry.filename))
                 reuse_count += 1
@@ -417,7 +427,9 @@ class ChromaVectorBackend:
             )
 
             db_manager.update_vector_doc_id(entry.filename, doc_id)
-            files_uploaded.append({"filename": entry.filename, "doc_id": doc_id, "status": "indexed"})
+            files_uploaded.append(
+                {"filename": entry.filename, "doc_id": doc_id, "status": "indexed"}
+            )
             upload_count += 1
 
         total_time = time.perf_counter() - start_time

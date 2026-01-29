@@ -64,9 +64,7 @@ class AgenticResearchManager:
             if self.vector_mcp_server is not None:
                 mcp_servers.append(self.vector_mcp_server)
 
-            file_search_agent = create_file_search_agent(
-                mcp_servers, research_info.vector_store_id
-            )
+            file_search_agent = create_file_search_agent(mcp_servers, research_info.vector_store_id)
             writer_agent = create_writer_agent([self.fs_server])
 
             self.research_supervisor_agent = create_research_supervisor_agent(

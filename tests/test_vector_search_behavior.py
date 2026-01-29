@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import pytest
-
 from src.config import get_config
 from src.dataprep.mcp_functions import vector_search
 from src.dataprep.vector_search import VectorSearchHit

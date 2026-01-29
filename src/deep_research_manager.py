@@ -200,7 +200,6 @@ class DeepResearchManager:
         next_message = 0
 
         async for _ in result.stream_events():
-
             if time.time() - last_update > 5 and next_message < len(update_messages):
                 self.printer.update_item("writing", update_messages[next_message])
                 next_message += 1
