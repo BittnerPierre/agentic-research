@@ -25,6 +25,7 @@ services:
       MCP_DATAPREP_URL: http://dataprep:8001/sse
       MCP_FS_COMMAND: node
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
+      LITELLM_LOG: ERROR
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
@@ -44,6 +45,7 @@ services:
       MCP_DATAPREP_URL: http://dataprep:8001/sse
       MCP_FS_COMMAND: node
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
+      LITELLM_LOG: ERROR
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
