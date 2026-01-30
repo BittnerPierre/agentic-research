@@ -22,6 +22,7 @@ from .dataprep.vector_backends import get_vector_backend
 from .deep_research_manager import DeepResearchManager
 from .logging_config import setup_run_logging
 from .manager import StandardResearchManager
+from .qa_manager import QAManager
 from .tracing.trace_processor import FileTraceProcessor
 
 
@@ -35,6 +36,8 @@ def get_manager_class(manager_path: str):
             return StandardResearchManager
         elif manager_path == "deep_manager":
             return DeepResearchManager
+        elif manager_path == "qa_manager":
+            return QAManager
         else:
             raise ValueError(f"Unknown manager: {manager_path}")
 
@@ -55,7 +58,9 @@ async def main() -> None:
         "--query", type=str, help="Research query (alternative to interactive input)"
     )
     parser.add_argument(
-        "--config", type=str, help="Configuration file to use (default: config.yaml)"
+        "--config",
+        type=str,
+        help="Configuration file to use (default: configs/config-default.yaml)",
     )
     parser.add_argument(
         "--vector-store", type=str, help="Name of the vector store to use (overrides config)"
@@ -80,6 +85,7 @@ async def main() -> None:
     )
     logger = logging.getLogger("agentic-research")
     logger.info(f"Log file for this run: {log_file}")
+    logger.info(f"App version: {os.getenv('APP_VERSION', 'unknown')}")
     logger.info(f"Command line arguments: {vars(args)}")
 
     # Set defaults from config if not provided via CLI

@@ -37,7 +37,7 @@ poetry install
 
 ## ⚙️ Configuration
 
-### `config.yaml`
+### `configs/config-default.yaml`
 
 ```yaml
 data:

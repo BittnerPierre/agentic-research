@@ -1,8 +1,0 @@
-services:
-  embeddings-cpu:
-    command: ["--model-id", "BAAI/bge-small-en-v1.5", "--port", "8003"]
-
-  llama-cpp-cpu:
-    volumes:
-      - ${HF_HOME:-${HOME}/.cache/huggingface}:/models
-    command: ["--server", "-m", "/models/hub/models--bartowski--Qwen2.5-3B-Instruct-GGUF/snapshots/f302c64a2269a69fb27b2f9473b362f5bb8e78d8/Qwen2.5-3B-Instruct-Q4_K_M.gguf", "--host", "0.0.0.0", "--port", "8002"]

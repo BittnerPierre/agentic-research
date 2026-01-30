@@ -1,246 +1,130 @@
-# Docker (V0)
+# Docker Deployment Guide
 
-This document describes the minimal Docker setup for running the existing CLI as-is,
-plus a Docker Compose workflow for local development.
+## Architecture Overview
 
-## Build
+### Local Development Stack
+- **Use case**: Local dev, CPU only
+- **Services**: ChromaDB + llama-cpp-cpu + dataprep + CLI
+- **Configuration**: `configs/config-docker-local.yaml`
+- **Models**: CPU, light models
+  - `sentence-transformers` is included in the Docker image (used by the default embedding function).
+  - Local model paths/IDs can be overridden via `models.env`.
 
-```bash
-docker build -t agentic-research -f docker/Dockerfile.backend .
-```
+### DGX Spark Production Stack
+- **Use case**: DGX Spark GPU
+- **Services**: ChromaDB + embeddings-gpu + llm-instruct + llm-reasoning + dataprep + CLI
+- **Configuration**: `configs/config-docker-dgx.yaml`
+- **Models**: GPU GGUF models wired via `models.env`
 
-## Build (DataPrep MCP server)
+## Quick Start
 
-```bash
-docker build -t agentic-research-dataprep -f docker/Dockerfile.dataprep .
-```
+### Local Development
 
-## Run (default config)
+1. Create `.env` (optional):
+   ```bash
+   LANGSMITH_API_KEY=your_key
+   LANGSMITH_PROJECT=agentic-research
+   ```
 
-```bash
-docker run --rm \
-  -e OPENAI_API_KEY=YOUR_KEY \
-  agentic-research \
-  agentic-research --query "test"
-```
+2. Start services:
+   ```bash
+   # Build llama.cpp image locally (arm64 on Apple Silicon)
+   bash scripts/build_llama_cpp_arm64.sh
 
-## Docker Compose (local development)
+   # Rebuild app images to avoid stale code (APP_VERSION is logged at startup)
+   docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env up -d
+   ```
 
-Create a `.env` file with your API keys (Compose reads it at runtime, nothing is
-baked into the image):
+Note: Docker on macOS runs Linux containers, so llama.cpp runs CPU-only in Docker. For Metal GPU
+inference, run llama.cpp natively on macOS outside Docker.
 
-```bash
-OPENAI_API_KEY=YOUR_KEY
-LANGSMITH_API_KEY=YOUR_KEY
-LANGSMITH_PROJECT=agentic-research
-HF_TOKEN=YOUR_HF_TOKEN
-```
+3. Run research:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research \
+     agentic-research --config /app/configs/config-docker-local.yaml \
+     --query "Your research question"
+   ```
 
-Start the DataPrep MCP server (long-running service):
-
-```bash
-docker compose up -d dataprep
-```
-
-Run the CLI against the MCP server (one-off client):
-
-```bash
-docker compose run --rm agentic-research \
-  agentic-research --query "test"
-```
-
-Run with a local syllabus file (mount `test_files`):
+### Local Smoke Test (Minimal QA)
 
 ```bash
-docker compose run --rm \
-  -v "$(pwd)/test_files:/app/test_files" \
-  agentic-research \
-  agentic-research --syllabus /app/test_files/your_file.md
+bash scripts/test_docker_local_smoke.sh
 ```
 
-## Evaluations (Docker)
+4. Stop services:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local.yml down
+   ```
 
-Run evaluations inside the container (same image as the CLI).
+### DGX Spark Production
 
-Example:
+1. Configure models in `models.env` (see `models.env.example`):
+   ```bash
+   cp models.env.example models.env
+   # Edit models.env with your snapshot IDs
+   ```
 
+2. Start services:
+   ```bash
+   # Rebuild app images to avoid stale code (APP_VERSION is logged at startup)
+   docker compose -f docker-compose.yml -f docker-compose.dgx.yml \
+     --env-file models.env up -d
+   ```
+
+3. Run research:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dgx.yml \
+     --env-file models.env run --rm agentic-research \
+     agentic-research --config /app/configs/config-docker-dgx.yaml \
+     --query "Your research question"
+   ```
+
+4. Stop services:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dgx.yml down
+   ```
+
+## Testing
+
+### Smoke Test Local
 ```bash
-docker compose --profile eval run --rm evaluations \
-  evaluate_writer --test-case trivial_research
+bash scripts/test_docker_local.sh
 ```
 
-Notes:
-
-- Ensure `dataprep` is running if the eval needs MCP/file uploads.
-- Outputs land in `evaluations/output_report_dir` (mounted from host).
-
-## V1 Infrastructure (multi-service stack, infra-only)
-
-V1 wires the full stack in Docker but does not yet switch the app off OpenAI
-vector store or cloud models (Issue 12 handles file_search migration). These
-services are for local/DGX wiring and smoke checks.
-
-Local (CPU) stack:
-
+### Smoke Test DGX
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
-  --profile v1-local up -d dataprep chromadb embeddings-cpu llama-cpp-cpu
+bash scripts/test_docker_dgx.sh
 ```
 
-DGX Spark (GPU) stack:
+## Troubleshooting
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  -f docker-compose.v1.dgx.models.yml --env-file models.env \
-  --profile v1-dgx up -d dataprep chromadb embeddings-gpu llm-instruct llm-reasoning
-```
+### ChromaDB connection issues
+- Ensure `chromadb` service is running: `docker compose ps`
+- Check logs: `docker compose logs chromadb`
+- Verify config uses `chroma_host: chromadb`
 
-Notes:
+### Model loading issues (DGX)
+- Verify `models.env` paths are correct
+- Check GPU availability: `docker compose logs llm-instruct`
+- Ensure models are available under `${MODELS_DIR}`
 
-- Set model choices in `docker-compose.v1.local.yml` or
-  `docker-compose.v1.dgx.yml`.
-- llama.cpp uses the Hugging Face cache mount (`~/.cache/huggingface` or
-  `HF_HOME`) at `/models`. Update the command to point at the GGUF you want
-  under `/models/hub/...`.
-- `embeddings-cpu` and `llama-cpp-cpu` use `platform: linux/amd64` for Mac;
-  remove if you build native images.
-- `models.env` is required on DGX to replace `REPLACE_WITH_SNAPSHOT` paths in
-  `docker-compose.v1.dgx.models.yml`.
+## Configuration Details
 
-Smoke checks:
+### Provider Selection
 
-```bash
-curl -s http://localhost:8000/api/v2/heartbeat | head -n 1
-curl -s http://localhost:8003/health | head -n 1
-curl -s http://localhost:8002/health | head -n 1
-```
+The `vector_search.provider` in config determines the backend:
+- `openai`: OpenAI file_search (cloud, requires API key)
+- `local`: Local mock (for tests only)
+- `chroma`: ChromaDB via MCP
 
-End-to-end V1 smoke script (embeddings -> chroma -> llama.cpp):
+### Docker Configs
 
-```bash
-poetry run python scripts/v1_smoke.py
-```
+- `configs/config-docker-local.yaml`: Local development (CPU)
+- `configs/config-docker-dgx.yaml`: DGX production (GPU)
 
-Note: the smoke test expects the V1 stack to be running (chroma + embeddings + llama.cpp).
-For local, start the stack first:
+### MCP Integration
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
-  --profile v1-local up -d chromadb embeddings-cpu llama-cpp-cpu
-```
-
-For DGX Spark (GPU), use:
-
-```bash
-docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  -f docker-compose.v1.dgx.models.yml \
-  --env-file models.env \
-  --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
-```
-
-Smoke test from a container (no local Python/Poetry needed):
-
-Local (CPU):
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
-  --profile v1-local up -d chromadb embeddings-cpu llama-cpp-cpu
-
-docker compose -f docker-compose.yml -f docker-compose.v1.local.yml \
-  --profile v1-local run --rm agentic-research \
-  poetry run python scripts/v1_smoke.py
-```
-
-DGX Spark (GPU):
-
-```bash
-docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  -f docker-compose.v1.dgx.models.yml --env-file models.env \
-  --profile v1-dgx up -d chromadb embeddings-gpu llm-instruct llm-reasoning
-
-docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  -f docker-compose.v1.dgx.models.yml --env-file models.env \
-  --profile v1-dgx run --rm agentic-research \
-  poetry run python scripts/v1_smoke.py
-```
-
-If the smoke test cannot resolve service names (e.g., `embeddings-cpu`),
-ensure the `run` command uses the same project name (`-p ...`) and the same
-compose files as `up`, so the container joins the correct network.
-
-Logs:
-
-```bash
-# All services
-docker compose logs -f
-
-# Single service (example)
-docker compose logs -f embeddings-gpu
-```
-
-DGX backend bundle (dataprep + chroma + embeddings + LLMs):
-
-```bash
-docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  -f docker-compose.v1.dgx.models.yml \
-  --env-file models.env \
-  --profile v1-dgx-backend up -d
-```
-
-Run `agentic-research` on DGX (CLI container, same project/network):
-
-```bash
-docker compose -p agentic-research -f docker-compose.yml -f docker-compose.v1.dgx.yml \
-  -f docker-compose.v1.dgx.models.yml --env-file models.env \
-  --profile v1-dgx run --rm agentic-research \
-  agentic-research --query "test"
-```
-
-Always use the same project name (`-p agentic-research`) for `up`, `logs`,
-`stop`, and `down` to avoid orphaned containers or stuck networks.
-
-DGX models are defined in `docker-compose.v1.dgx.models.yml` so you can swap
-GGUF files easily. Mount your host HF cache into the container (recommended on DGX):
-
-Create a `models.env` from the template and edit it (replace snapshot hashes):
-
-```bash
-cp models.env.example models.env
-```
-
-To download the default GGUF models into the HF cache:
-
-```bash
-HF_TOKEN=... bash scripts/dgx_model_download.sh
-```
-
-Defaults for Chroma tenancy can be overridden (if needed):
-
-```bash
-CHROMA_TENANT=default_tenant CHROMA_DATABASE=default_database \
-  poetry run python scripts/v1_smoke.py
-```
-
-## Run (mount local config/data)
-
-```bash
-docker run --rm \
-  -e OPENAI_API_KEY=YOUR_KEY \
-  -v "$(pwd)/config.yaml:/app/config.yaml" \
-  -v "$(pwd)/data:/app/data" \
-  -v "$(pwd)/output:/app/output" \
-  agentic-research \
-  agentic-research --query "test"
-```
-
-## Notes
-
-- The container runs the CLI; there is no exposed port in V0.
-- If you use providers other than OpenAI, pass the relevant API keys as env vars.
-- `MCP_DATAPREP_URL` overrides the DataPrep server URL (defaults to
-  `http://localhost:8001/sse`).
-- `MCP_FS_COMMAND` overrides the filesystem MCP server command. The Docker image
-  uses `node` with `MCP_FS_ARGS` pointing at the bundled server script; local
-  runs default to `npx`.
-- `MCP_FS_ARGS` sets extra args for the filesystem MCP command. In Docker
-  Compose it points to `.../server-filesystem/dist/index.js`.
+The `vector_mcp` section enables agents to query ChromaDB directly:
+- Command: `uvx chroma-mcp`
+- Tool allowlist: `chroma_query_documents`, `chroma_get_documents`
+- Used by search agents during research

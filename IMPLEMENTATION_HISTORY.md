@@ -140,7 +140,7 @@ flowchart TD
 **Fichiers modifiés :**
 
 1. `pyproject.toml` - Ajout `portalocker = "^2.8.2"` + script entry points
-2. `config.yaml` - Ajout `knowledge_db_path` et `local_storage_dir`
+2. `configs/config-default.yaml` - Ajout `knowledge_db_path` et `local_storage_dir`
 3. `src/config.py` - Extension `DataConfig` avec nouveaux champs
 
 **Commandes exécutées :**

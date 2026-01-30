@@ -83,7 +83,7 @@ Key optimization: The system reuses OpenAI file IDs to avoid redundant uploads w
 
 Configuration is managed via YAML files in the root directory and `configs/` folder:
 
-- **config.yaml**: Default configuration (mixed models)
+- **configs/config-default.yaml**: Default configuration (mixed models)
 - **configs/config-*.yaml**: Alternative configurations for different model combinations
 
 Configuration structure (`src/config.py`):
@@ -194,7 +194,7 @@ poetry run ruff check --fix .
 
 ## Git Workflow
 
-**IMPORTANT**: All changes must go through a proper GitHub workflow with issues and pull requests. NEVER push directly to `main`.
+**MANDATORY**: All changes must go through GitHub pull requests. Direct push to `main` is **technically blocked** by branch protection.
 
 **CRITICAL**: **NEVER start working on an issue without explicit user approval.** After creating or identifying an issue, ALWAYS wait for the user to tell you to proceed before creating branches or writing code. Your role is to:
 - Analyze and document issues
@@ -318,6 +318,35 @@ poetry run ruff check --fix .
 The only time it's acceptable to push directly to `main` is for:
 - Initial repository setup
 - Critical hotfixes in production emergencies (document reason in commit message)
+
+## CI/CD Pipeline
+
+All PRs trigger GitHub Actions via `.github/workflows/ci.yml`. Required checks must pass before merge:
+
+- Lint (ruff)
+- Format (ruff format check)
+- Tests (Python 3.12)
+
+Typical runtime is ~2–3 minutes. Merges are blocked until all checks pass.
+
+## Branch Protection
+
+Branch protection is enabled on `main`:
+
+- Required status checks are enforced
+- Force push is blocked
+- Branch deletion is blocked
+- No approvals required (solo project configuration)
+
+## Development Commands (CI parity)
+
+Run these locally before pushing to match CI:
+
+```bash
+poetry run ruff check .
+poetry run ruff format .
+poetry run pytest
+```
 
 ## Important Implementation Details
 

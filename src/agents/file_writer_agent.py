@@ -10,7 +10,12 @@ from agents.models import get_default_model_settings
 
 from ..config import get_config
 from .schemas import ReportData, ResearchInfo
-from .utils import extract_model_name, load_prompt_from_file, resolve_model
+from .utils import (
+    adjust_model_settings_for_base_url,
+    extract_model_name,
+    load_prompt_from_file,
+    resolve_model,
+)
 
 prompt_file = "write_prompt.md"
 
@@ -87,6 +92,7 @@ def create_writer_agent(mcp_servers: list[MCPServer] | None = None, do_save_repo
 
     model_name = extract_model_name(model_spec)
     model_settings = get_default_model_settings(model_name)
+    adjust_model_settings_for_base_url(model_spec, model_settings)
 
     writer_agent = Agent(
         name="writer_agent",

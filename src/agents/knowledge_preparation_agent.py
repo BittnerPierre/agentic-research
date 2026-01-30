@@ -7,6 +7,7 @@ from agents.models import get_default_model_settings
 from ..config import get_config
 from .schemas import ResearchInfo
 from .utils import (
+    adjust_model_settings_for_base_url,
     display_agenda,
     extract_model_name,
     fetch_vector_store_name,
@@ -46,6 +47,7 @@ def create_knowledge_preparation_agent(mcp_servers: list[MCPServer] | None = Non
 
     model_name = extract_model_name(model_spec)
     model_settings = get_default_model_settings(model_name)
+    adjust_model_settings_for_base_url(model_spec, model_settings)
 
     knowledge_preparation_agent = Agent(
         name="knowledge_preparation_agent",

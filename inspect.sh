@@ -7,7 +7,7 @@ echo "🔍 Vector Store Inspector"
 echo "========================"
 
 # Vérifier que nous sommes dans le bon répertoire
-if [ ! -f "config.yaml" ]; then
+if [ ! -f "configs/config-default.yaml" ]; then
     echo "❌ Erreur: Lancez ce script depuis le dossier agentic-research"
     exit 1
 fi

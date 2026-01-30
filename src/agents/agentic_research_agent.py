@@ -9,6 +9,7 @@ from ..dataprep.vector_backends import get_vector_backend
 from .file_writer_agent import WriterDirective
 from .schemas import ReportData, ResearchInfo
 from .utils import (
+    adjust_model_settings_for_base_url,
     display_agenda,
     extract_model_name,
     fetch_vector_store_name,
@@ -72,6 +73,7 @@ def create_research_supervisor_agent(
     research_model_spec = config.models.research_model
     model_name = extract_model_name(research_model_spec)
     model_settings = get_default_model_settings(model_name)
+    adjust_model_settings_for_base_url(research_model_spec, model_settings)
 
     search_tool_name = get_vector_backend(config).tool_name()
 

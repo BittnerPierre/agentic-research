@@ -53,7 +53,7 @@ class FullWorkflowEvaluator:
     def __init__(
         self,
         output_dir: str = "evaluations/full_workflow_results",
-        config_file: str = "config.yaml",
+        config_file: str = "configs/config-default.yaml",
     ):
         self.console = Console()
         self.printer = Printer(self.console)
@@ -358,7 +358,7 @@ async def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="config.yaml",
+        default="configs/config-default.yaml",
         help="Config file to use (e.g., 'configs/config-gpt-4.1-mini.yaml')",
     )
 

@@ -30,6 +30,7 @@ def _restore_vector_search_config(config, snapshot):
 def test_vector_search_respects_configured_defaults(monkeypatch):
     config = get_config()
     snapshot = _snapshot_vector_search_config(config)
+    config.vector_search.provider = "local"
     config.vector_search.top_k = 2
     config.vector_search.score_threshold = 0.4
 
@@ -62,6 +63,7 @@ def test_vector_search_respects_configured_defaults(monkeypatch):
 def test_vector_search_allows_overrides(monkeypatch):
     config = get_config()
     snapshot = _snapshot_vector_search_config(config)
+    config.vector_search.provider = "local"
     config.vector_search.top_k = 5
     config.vector_search.score_threshold = None
 
@@ -93,6 +95,7 @@ def test_vector_search_allows_overrides(monkeypatch):
 def test_vector_search_empty_results(monkeypatch):
     config = get_config()
     snapshot = _snapshot_vector_search_config(config)
+    config.vector_search.provider = "local"
     config.vector_search.top_k = 3
 
     backend = FakeBackend(hits=[], calls=[])

@@ -251,6 +251,28 @@ def resolve_model(model_spec: Any):
     return model_spec
 
 
+def adjust_model_settings_for_base_url(model_spec: Any, model_settings) -> None:
+    """Apply compatibility settings for self-hosted OpenAI-compatible servers."""
+    base_url = None
+    if isinstance(model_spec, dict):
+        base_url = model_spec.get("base_url")
+    elif hasattr(model_spec, "base_url"):
+        base_url = getattr(model_spec, "base_url", None)
+
+    if not base_url:
+        return
+
+    if "llama-cpp" not in str(base_url):
+        return
+
+    extra_args = model_settings.extra_args or {}
+    extra_args.setdefault("drop_params", True)
+    additional_drop = set(extra_args.get("additional_drop_params") or [])
+    additional_drop.add("response_format")
+    extra_args["additional_drop_params"] = sorted(additional_drop)
+    model_settings.extra_args = extra_args
+
+
 def is_mistral_model(model_string: Any) -> bool:
     """
     Vérifie si le modèle est un modèle Mistral.
