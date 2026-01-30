@@ -4,10 +4,11 @@
 
 ### Local Development Stack
 - **Use case**: Local dev, CPU only
-- **Services**: ChromaDB + embeddings-cpu + llama-cpp-cpu + dataprep + CLI
+- **Services**: ChromaDB + llama-cpp-cpu + dataprep + CLI
 - **Configuration**: `configs/config-docker-local.yaml`
 - **Models**: CPU, light models
   - `sentence-transformers` is included in the Docker image (used by the default embedding function).
+  - Local model paths/IDs can be overridden via `models.env`.
 
 ### DGX Spark Production Stack
 - **Use case**: DGX Spark GPU
@@ -27,16 +28,28 @@
 
 2. Start services:
    ```bash
+   # Build llama.cpp image locally (arm64 on Apple Silicon)
+   bash scripts/build_llama_cpp_arm64.sh
+
    # Rebuild app images to avoid stale code (APP_VERSION is logged at startup)
-   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+   docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env up -d
    ```
+
+Note: Docker on macOS runs Linux containers, so llama.cpp runs CPU-only in Docker. For Metal GPU
+inference, run llama.cpp natively on macOS outside Docker.
 
 3. Run research:
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.local.yml run --rm agentic-research \
+   docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research \
      agentic-research --config /app/configs/config-docker-local.yaml \
      --query "Your research question"
    ```
+
+### Local Smoke Test (Minimal QA)
+
+```bash
+bash scripts/test_docker_local_smoke.sh
+```
 
 4. Stop services:
    ```bash

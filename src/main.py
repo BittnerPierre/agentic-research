@@ -22,6 +22,7 @@ from .dataprep.vector_backends import get_vector_backend
 from .deep_research_manager import DeepResearchManager
 from .logging_config import setup_run_logging
 from .manager import StandardResearchManager
+from .qa_manager import QAManager
 from .tracing.trace_processor import FileTraceProcessor
 
 
@@ -35,6 +36,8 @@ def get_manager_class(manager_path: str):
             return StandardResearchManager
         elif manager_path == "deep_manager":
             return DeepResearchManager
+        elif manager_path == "qa_manager":
+            return QAManager
         else:
             raise ValueError(f"Unknown manager: {manager_path}")
 

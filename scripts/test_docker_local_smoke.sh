@@ -20,5 +20,6 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file mode
 
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env up -d
 
-echo "Services started. Run research with:"
-echo "docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research agentic-research --config /app/configs/config-docker-local.yaml --query 'your query'"
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research \
+  agentic-research --manager qa_manager --config /app/configs/config-docker-local.yaml \
+  --query "What is the key fact mentioned in the smoke test document?"

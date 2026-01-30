@@ -78,6 +78,7 @@ def setup_run_logging(
         noisy_loggers = (
             "LiteLLM",
             "litellm",
+            "mcp.client.stdio",
             "mcp.client.sse",
             "openai.agents",
             "openai._base_client",
@@ -95,8 +96,19 @@ def setup_run_logging(
             "asyncio",
         )
         third_party_level_value, _ = _parse_log_level(third_party_level, default=logging.ERROR)
-        # Force LiteLLM to the target level for both console and file
-        for logger_name in ("LiteLLM", "litellm"):
+        # Force selected noisy loggers to the target level for both console and file
+        for logger_name in (
+            "LiteLLM",
+            "litellm",
+            "mcp.client.stdio",
+            "httpx",
+            "httpcore",
+            "httpcore.http11",
+            "httpcore.connection",
+            "chromadb",
+            "chromadb.api",
+            "chromadb._client",
+        ):
             logging.getLogger(logger_name).setLevel(third_party_level_value)
 
         class _ThirdPartyFileFilter(logging.Filter):
@@ -189,6 +201,7 @@ def setup_server_logging(
         noisy_loggers = (
             "LiteLLM",
             "litellm",
+            "mcp.client.stdio",
             "mcp.client.sse",
             "openai.agents",
             "openai._base_client",
@@ -205,8 +218,19 @@ def setup_server_logging(
             "uvicorn.error",
         )
         third_party_level_value, _ = _parse_log_level(third_party_level, default=logging.ERROR)
-        # Force LiteLLM to the target level for both console and file
-        for logger_name in ("LiteLLM", "litellm"):
+        # Force selected noisy loggers to the target level for both console and file
+        for logger_name in (
+            "LiteLLM",
+            "litellm",
+            "mcp.client.stdio",
+            "httpx",
+            "httpcore",
+            "httpcore.http11",
+            "httpcore.connection",
+            "chromadb",
+            "chromadb.api",
+            "chromadb._client",
+        ):
             logging.getLogger(logger_name).setLevel(third_party_level_value)
 
         class _ThirdPartyFileFilter(logging.Filter):
