@@ -69,7 +69,7 @@ services:
       - "-n"
       - "${LLM_INSTRUCT_N_CTX:-2048}"
       - "--n-gpu-layers"
-      - "${LLM_INSTRUCT_N_GPU_LAYERS:-999}"
+      - "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
       - "--jinja"
     ports:
       - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
