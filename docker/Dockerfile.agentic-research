@@ -45,7 +45,7 @@ COPY src ./src
 COPY scripts ./scripts
 COPY configs ./configs
 COPY urls.txt ./
-RUN poetry install --only main --no-ansi --only-root
+RUN poetry install --no-ansi --only-root
 RUN mkdir -p data output debug_output logs
 
 ENTRYPOINT ["poetry", "run"]
