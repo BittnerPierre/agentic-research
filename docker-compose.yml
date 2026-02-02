@@ -34,6 +34,7 @@ services:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
       - ./data:/app/data
+      - ./data/chroma-cache:/root/.cache/chroma
       - ./output:/app/output
       - ./logs:/app/logs
     stdin_open: true
@@ -56,6 +57,7 @@ services:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
       - ./data:/app/data
+      - ./data/chroma-cache:/root/.cache/chroma
       - ./output:/app/output
       - ./logs:/app/logs
       - ./evaluations:/app/evaluations

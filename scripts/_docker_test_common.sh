@@ -58,11 +58,29 @@ run_docker_test() {
     dataprep agentic-research
 
   if [ "${stack}" = "local" ]; then
-    docker compose "${compose_files[@]}" --env-file "${env_file}" up -d \
-      chromadb dataprep llama-cpp-cpu
+  docker compose "${compose_files[@]}" --env-file "${env_file}" up -d \
+    chromadb dataprep llama-cpp-cpu
   else
     docker compose "${compose_files[@]}" --env-file "${env_file}" up -d \
       chromadb dataprep embeddings-gpu llm-instruct llm-reasoning
+  fi
+
+  if [ "${mode}" = "smoke" ] && [ "${PREWARM_CHROMA:-1}" = "1" ]; then
+    echo "Pre-warming Chroma client cache (ONNX download)..."
+    docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm agentic-research \
+      python - <<'PY'
+import chromadb
+
+client = chromadb.HttpClient(host="chromadb", port=8000)
+collection = client.get_or_create_collection(name="prewarm")
+try:
+    collection.add(ids=["warmup"], documents=["warmup"])
+except Exception:
+    # Ignore duplicates or existing IDs.
+    pass
+collection.query(query_texts=["warmup"], n_results=1)
+print("Chroma client cache warmup complete.")
+PY
   fi
 
   # Avoid bash array compatibility issues on macOS (bash 3.x).

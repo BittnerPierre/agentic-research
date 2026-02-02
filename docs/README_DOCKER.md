@@ -123,6 +123,8 @@ bash scripts/test_docker_dgx.sh
 - Ensure `chromadb` service is running: `docker compose ps`
 - Check logs: `docker compose logs chromadb`
 - Verify config uses `chroma_host: chromadb`
+- If you see repeated ONNX model downloads, ensure the Chroma client cache volume is mounted
+  (./data/chroma-cache -> /root/.cache/chroma in docker-compose.yml for agentic-research/evaluations).
 
 ### Model loading issues (DGX)
 
