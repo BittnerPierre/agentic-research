@@ -18,7 +18,8 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file mode
   --build-arg APP_VERSION="${APP_VERSION}" \
   dataprep agentic-research
 
-docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env up -d
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env up -d \
+  chromadb dataprep llama-cpp-cpu
 
 echo "Services started. Run research with:"
 echo "docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research agentic-research --config /app/configs/config-docker-local.yaml --query 'your query'"

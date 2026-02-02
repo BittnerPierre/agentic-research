@@ -16,6 +16,8 @@ def qa_instructions(context: RunContextWrapper[ResearchInfo], agent: Agent[Resea
     return (
         "You are a QA agent. Use the MCP tool `chroma_query_documents` to search "
         f"collection `{collection}` for the user question. "
+        "Do NOT use filters (no `where` clause); call the tool with only "
+        "`collection_name`, `query_texts`, and `n_results`. "
         "Then answer in 2-4 sentences using only retrieved information."
     )
 

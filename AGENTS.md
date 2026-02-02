@@ -38,6 +38,14 @@
 - CI/CD checks are mandatory and must pass before merge: Lint, Format, Tests (Python 3.12).
 - The CI workflow is defined in `.github/workflows/ci.yml` and typically runs in ~2–3 minutes.
 
+## GitHub Messaging Rules
+- Do not use backticks in GitHub issue/PR comments or bodies (shell interpolation risk). Use plain text instead.
+
+## Change Approval Rules
+- Do not apply cross-file or convention changes without explicit approval.
+- If a change affects more than 3 files, present the plan and wait for a clear “OK” before editing.
+- If instructions are ambiguous, ask for clarification instead of acting.
+
 ## Configuration & Runtime Notes
 - Default manager selection lives in `configs/config-default.yaml` (`manager.default_manager`).
 - You can override the default manager with `DEFAULT_MANAGER` environment variable.

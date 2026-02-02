@@ -7,6 +7,8 @@ x-llama-build: &llama-build
 services:
   dataprep:
     command: ["dataprep_server", "--config", "configs/config-docker-dgx.yaml"]
+    volumes:
+      - ./test_files:/app/test_files
 
   agentic-research:
     command: ["agentic-research", "--config", "configs/config-docker-dgx.yaml"]
@@ -15,6 +17,8 @@ services:
       - chromadb
       - llm-instruct
       - llm-reasoning
+    volumes:
+      - ./test_files:/app/test_files
 
   chromadb:
     image: chromadb/chroma:latest

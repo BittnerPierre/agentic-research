@@ -361,6 +361,18 @@ class ChromaVectorBackend:
         client = self._client(config)
         return client.get_or_create_collection(name=name)
 
+    def _collection_has_document(self, collection, doc_id: str) -> bool:
+        try:
+            result = collection.get(where={"document_id": doc_id}, limit=1)
+        except Exception:
+            logger.warning(
+                "[upload_files_to_vectorstore] Failed to check collection for document_id=%s",
+                doc_id,
+            )
+            return False
+        ids = result.get("ids") if isinstance(result, dict) else None
+        return bool(ids)
+
     def resolve_store_id(self, vectorstore_name: str, config) -> str | None:
         config.vector_search.index_name = vectorstore_name
         VectorStoreRegistry.set(self.provider, vectorstore_name, vectorstore_name)
@@ -390,7 +402,9 @@ class ChromaVectorBackend:
         reuse_count = 0
 
         for entry, file_path in entries_to_process:
-            if entry.vector_doc_id:
+            if entry.vector_doc_id and self._collection_has_document(
+                collection, entry.vector_doc_id
+            ):
                 files_uploaded.append(
                     {"filename": entry.filename, "doc_id": entry.vector_doc_id, "status": "reused"}
                 )
@@ -407,7 +421,7 @@ class ChromaVectorBackend:
                 continue
 
             embeddings = embed(chunks)
-            doc_id = f"doc_{entry.filename}"
+            doc_id = entry.vector_doc_id or f"doc_{entry.filename}"
             ids = [f"{doc_id}:{idx}" for idx in range(len(chunks))]
             metadatas = [
                 {
