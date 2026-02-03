@@ -15,11 +15,11 @@ services:
       - ./test_files:/app/test_files
 
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:1.4.1
     ports:
       - "8000:8000"
     volumes:
-      - ./data/chromadb:/chroma/chroma
+      - ./data/chromadb:/data
     environment:
       ANONYMIZED_TELEMETRY: "False"
 

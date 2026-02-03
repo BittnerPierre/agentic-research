@@ -22,6 +22,22 @@ def _parse_log_level(log_level: str, default: int = logging.INFO) -> tuple[int, 
     return default, False
 
 
+class _NameRewriteFormatter(logging.Formatter):
+    def __init__(self, *args, prefix_to_strip: str = "src.", replacement: str = "agentic-research.", **kwargs):
+        super().__init__(*args, **kwargs)
+        self._prefix_to_strip = prefix_to_strip
+        self._replacement = replacement
+
+    def format(self, record: logging.LogRecord) -> str:
+        original_name = record.name
+        if original_name.startswith(self._prefix_to_strip):
+            record.name = f"{self._replacement}{original_name[len(self._prefix_to_strip):]}"
+        try:
+            return super().format(record)
+        finally:
+            record.name = original_name
+
+
 def setup_run_logging(
     log_dir: str = "logs",
     log_level: str = "INFO",
@@ -61,7 +77,7 @@ def setup_run_logging(
     # File handler - detailed logging
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)  # Always capture DEBUG in file
-    file_formatter = logging.Formatter(log_format, datefmt=date_format)
+    file_formatter = _NameRewriteFormatter(log_format, datefmt=date_format)
     file_handler.setFormatter(file_formatter)
     root_logger.addHandler(file_handler)
 
@@ -69,7 +85,7 @@ def setup_run_logging(
     console_handler = logging.StreamHandler(sys.stdout)
     console_level, is_valid = _parse_log_level(log_level, default=logging.INFO)
     console_handler.setLevel(console_level)
-    console_formatter = logging.Formatter(log_format, datefmt=date_format)
+    console_formatter = _NameRewriteFormatter(log_format, datefmt=date_format)
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 
@@ -81,6 +97,8 @@ def setup_run_logging(
             "mcp.client.stdio",
             "mcp.client.sse",
             "mcp.server",
+            "mcp.server.lowlevel",
+            "mcp.server.lowlevel.server",
             "openai.agents",
             "openai._base_client",
             "httpx",
@@ -103,6 +121,9 @@ def setup_run_logging(
             "LiteLLM",
             "litellm",
             "mcp.client.stdio",
+            "mcp.server",
+            "mcp.server.lowlevel",
+            "mcp.server.lowlevel.server",
             "httpx",
             "httpcore",
             "httpcore.http11",
@@ -110,8 +131,14 @@ def setup_run_logging(
             "chromadb",
             "chromadb.api",
             "chromadb._client",
+            "uvicorn",
+            "uvicorn.access",
+            "uvicorn.error",
         ):
-            logging.getLogger(logger_name).setLevel(third_party_level_value)
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(third_party_level_value)
+            logger.handlers.clear()
+            logger.propagate = True
 
         class _ThirdPartyFileFilter(logging.Filter):
             def filter(self, record: logging.LogRecord) -> bool:
@@ -186,7 +213,7 @@ def setup_server_logging(
         log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
     )
     file_handler.setLevel(logging.DEBUG)  # Always capture DEBUG in file
-    file_formatter = logging.Formatter(log_format, datefmt=date_format)
+    file_formatter = _NameRewriteFormatter(log_format, datefmt=date_format)
     file_handler.setFormatter(file_formatter)
     root_logger.addHandler(file_handler)
 
@@ -194,7 +221,7 @@ def setup_server_logging(
     console_handler = logging.StreamHandler(sys.stdout)
     console_level, is_valid = _parse_log_level(log_level, default=logging.INFO)
     console_handler.setLevel(console_level)
-    console_formatter = logging.Formatter(log_format, datefmt=date_format)
+    console_formatter = _NameRewriteFormatter(log_format, datefmt=date_format)
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 
@@ -205,6 +232,9 @@ def setup_server_logging(
             "litellm",
             "mcp.client.stdio",
             "mcp.client.sse",
+            "mcp.server",
+            "mcp.server.lowlevel",
+            "mcp.server.lowlevel.server",
             "openai.agents",
             "openai._base_client",
             "httpx",
@@ -225,6 +255,9 @@ def setup_server_logging(
             "LiteLLM",
             "litellm",
             "mcp.client.stdio",
+            "mcp.server",
+            "mcp.server.lowlevel",
+            "mcp.server.lowlevel.server",
             "httpx",
             "httpcore",
             "httpcore.http11",
@@ -232,8 +265,14 @@ def setup_server_logging(
             "chromadb",
             "chromadb.api",
             "chromadb._client",
+            "uvicorn",
+            "uvicorn.access",
+            "uvicorn.error",
         ):
-            logging.getLogger(logger_name).setLevel(third_party_level_value)
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(third_party_level_value)
+            logger.handlers.clear()
+            logger.propagate = True
 
         class _ThirdPartyFileFilter(logging.Filter):
             def filter(self, record: logging.LogRecord) -> bool:
