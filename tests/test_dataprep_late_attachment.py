@@ -206,13 +206,12 @@ def test_late_attachment_chroma_reindexes_missing_collection(monkeypatch, tmp_pa
         def get(self, **_kwargs):
             return {"ids": []}
 
-        def add(self, ids, documents, metadatas, embeddings):
+        def add(self, ids, documents, metadatas):
             self.add_calls.append(
                 {
                     "ids": ids,
                     "documents": documents,
                     "metadatas": metadatas,
-                    "embeddings": embeddings,
                 }
             )
 
@@ -221,10 +220,6 @@ def test_late_attachment_chroma_reindexes_missing_collection(monkeypatch, tmp_pa
     monkeypatch.setattr(
         "src.dataprep.vector_backends.ChromaVectorBackend._collection",
         lambda _self, _config, _name: fake_collection,
-    )
-    monkeypatch.setattr(
-        "src.dataprep.vector_backends.get_embedding_function",
-        lambda _config: (lambda chunks: [[0.0, 0.0, 0.0] for _ in chunks]),
     )
     monkeypatch.setattr(
         "src.dataprep.vector_backends.chunk_text",

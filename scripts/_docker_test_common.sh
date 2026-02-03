@@ -67,16 +67,24 @@ run_docker_test() {
 
   if [ "${mode}" = "smoke" ] && [ "${PREWARM_CHROMA:-1}" = "1" ]; then
     echo "Pre-warming Chroma client cache (ONNX download)..."
-    docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm agentic-research \
-      python - <<'PY'
+    docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm \
+      -e CONFIG_PATH="${config_path}" \
+      agentic-research python - <<'PY'
+import os
 import chromadb
+from src.config import get_config
+from src.dataprep.chroma_embedding_factory import get_chroma_embedding_function
 
+config_path = os.environ["CONFIG_PATH"]
+config = get_config(config_path)
+embedding_fn = get_chroma_embedding_function(config)
 client = chromadb.HttpClient(host="chromadb", port=8000)
-collection = client.get_or_create_collection(name="prewarm")
+collection = client.get_or_create_collection(
+    name="prewarm", embedding_function=embedding_fn
+)
 try:
     collection.add(ids=["warmup"], documents=["warmup"])
 except Exception:
-    # Ignore duplicates or existing IDs.
     pass
 collection.query(query_texts=["warmup"], n_results=1)
 print("Chroma client cache warmup complete.")

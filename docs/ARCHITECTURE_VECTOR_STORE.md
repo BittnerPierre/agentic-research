@@ -37,6 +37,9 @@ Configuration entry points
 
 - Embeddings (DGX service):
   - models.env: EMBEDDINGS_MODEL_PATH (model for embeddings-gpu)
+  - configs/config-docker-dgx.yaml: vector_search.chroma_embedding_model (model name)
+  - Note: these two must be kept in sync today (path vs model name). If you change
+    the embedding model, update both places to avoid mismatches.
 
 - Chunking & indexing:
   - config files: vector_search.chunk_size, vector_search.chunk_overlap

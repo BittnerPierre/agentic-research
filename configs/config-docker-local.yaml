@@ -9,12 +9,12 @@ vector_store:
 vector_search:
   provider: "chroma"
   index_name: "agentic-research-local"
-  embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
   chunk_size: 800
   chunk_overlap: 120
   chroma_host: "chromadb"
   chroma_port: 8000
   chroma_ssl: false
+  chroma_embedding_provider: "default"
   top_k: 5
   score_threshold: null
 

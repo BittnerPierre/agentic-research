@@ -26,7 +26,7 @@ class _FakeClient:
     def __init__(self):
         self.collections = {}
 
-    def get_or_create_collection(self, name):
+    def get_or_create_collection(self, name, **_kwargs):
         if name not in self.collections:
             self.collections[name] = _FakeCollection()
         return self.collections[name]
@@ -73,10 +73,6 @@ def test_chroma_upload_and_search(monkeypatch, tmp_path):
         "src.dataprep.vector_backends.chromadb.HttpClient",
         lambda **_kwargs: client,
     )
-    monkeypatch.setattr(
-        "src.dataprep.vector_backends.get_embedding_function",
-        lambda _config: (lambda texts: [[0.1, 0.2] for _ in texts]),
-    )
 
     result = upload_files_to_vectorstore(
         inputs=[str(source_file)], config=config, vectorstore_name="test-collection"
@@ -86,6 +82,7 @@ def test_chroma_upload_and_search(monkeypatch, tmp_path):
     collection = client.collections["test-collection"]
     assert collection.add_calls
     add_call = collection.add_calls[0]
+    assert "embeddings" not in add_call
     assert len(add_call["documents"]) == 2
 
     search_result = vector_search(query="query", config=config, top_k=2)
