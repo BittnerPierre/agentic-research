@@ -23,7 +23,9 @@ def _parse_log_level(log_level: str, default: int = logging.INFO) -> tuple[int, 
 
 
 class _NameRewriteFormatter(logging.Formatter):
-    def __init__(self, *args, prefix_to_strip: str = "src.", replacement: str = "agentic-research.", **kwargs):
+    def __init__(
+        self, *args, prefix_to_strip: str = "src.", replacement: str = "agentic-research.", **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self._prefix_to_strip = prefix_to_strip
         self._replacement = replacement
