@@ -4,8 +4,7 @@ Architecture Vector Store
 Scope
 -----
 This document covers retrieval, late attachment, and embeddings for the current
-implementation, the supported modes, and remaining work for the DGX embeddings
-service.
+implementation and the supported modes.
 
 Supported Modes (Architecture)
 ------------------------------
@@ -26,7 +25,7 @@ The system supports three vector_search modes:
      late chunking behavior).
    - Two setups:
      a) in-process (default ONNX all-MiniLM-L6-v2)
-     b) remote embeddings service (DGX Spark)
+     b) remote embeddings service (DGX Spark; OpenAI-compatible /v1/embeddings)
 
 Configuration entry points
 --------------------------
@@ -82,17 +81,11 @@ That is effectively the same model as sentence-transformers/all-MiniLM-L6-v2,
 so the behavior is acceptable for local development.
 
 
-Target Architecture (to implement)
-----------------------------------
-
-Goal: use the same embedding function for both indexing and retrieval by
-persisting it on the collection at creation time (dataprep).
-
 EmbeddingFactory
 ----------------
-We need a shared EmbeddingFactory with two modes:
-1) in-process: local embedding model (CPU) for MacBook/local dev
-2) remote: embeddings-gpu service for DGX
+We use a shared EmbeddingFactory with two modes:
+1) in-process: default Chroma embedding (ONNX all-MiniLM-L6-v2) for local dev
+2) remote: embeddings-gpu service for DGX (OpenAI-compatible /v1/embeddings)
 
 Dataprep uses the factory to attach the embedding function to the collection.
 chroma-mcp then uses the persisted embedding function when handling query_texts.
@@ -111,9 +104,8 @@ DGX (remote service)
   agentic-research -> chroma-mcp -> uses collection embedding function
   chromadb         -> stores vectors, no embedding computation
 
-Note: in practice, EmbeddingFactory is invoked by dataprep at collection
-creation time. chroma-mcp uses the persisted embedding function from the
-collection. The diagrams above reflect the logical flow, not direct calls.
+Note: EmbeddingFactory is invoked by dataprep at collection creation time.
+chroma-mcp uses the persisted embedding function from the collection.
 
 
 Findings
@@ -128,14 +120,9 @@ Findings
   all-MiniLM-L6-v2) and its cache (persisted in docker-compose.yml).
 
 
-Remaining Work (issues)
------------------------
-- Issue #40: implement EmbeddingFactory and a custom embedding function that can
-  call the embeddings-gpu service (and in-process local embeddings). Ensure both
-  dataprep and chroma-mcp use the same embedding function.
-- Issue #53 (done): late attachment re-indexing when Chroma collection is
-  recreated or missing data.
-- Issue #52 (done): persist chroma client cache and prewarm to avoid timeouts.
+Open follow-ups (issues)
+------------------------
+- Issue #54: remove duplication between models.env and config YAML for embedding model.
 
 Reference implementations (Chroma)
 ----------------------------------

@@ -1,12 +1,14 @@
-﻿# Embeddings Architecture (Local + Service)
+Embeddings Architecture (Local + Service)
+=========================================
 
 This note documents how embeddings are computed in two modes:
 
-1) In‑process (local CPU) embedding
+1) In-process (local CPU) embedding
 2) Remote embedding service (GPU)
 
 The goal is to keep the **same embedding function** for both indexing (dataprep)
-and retrieval (MCP / chroma‑mcp).
+and retrieval (MCP / chroma-mcp). This is achieved by persisting the embedding
+function on the Chroma collection at creation time.
 
 ---
 
@@ -19,8 +21,8 @@ and retrieval (MCP / chroma‑mcp).
 └─────────────┬──────────────┘
               │ query_texts
               ▼
-   (EmbeddingFactory: in-process)
-   sentence-transformers / local model
+   (Collection embedding function)
+   default Chroma embedding (ONNX)
               │ query_embeddings
               ▼
          chromadb (server)
@@ -31,7 +33,7 @@ and retrieval (MCP / chroma‑mcp).
               │ docs
               ▼
    (EmbeddingFactory: in-process)
-   sentence-transformers / local model
+   default Chroma embedding (ONNX)
               │ embeddings
               ▼
          chromadb (server)
@@ -40,7 +42,7 @@ and retrieval (MCP / chroma‑mcp).
 **Key points**
 - Embeddings are computed **inside the app containers** (agentic-research, dataprep).
 - Chroma only stores vectors and serves similarity search.
-- The same embedding function must be used for both index and query.
+- The embedding function is persisted on the collection by dataprep and reused by chroma-mcp.
 
 ---
 
@@ -53,8 +55,8 @@ and retrieval (MCP / chroma‑mcp).
 └─────────────┬──────────────┘
               │ query_texts
               ▼
-   (EmbeddingFactory: remote)
-   embeddings-gpu service
+   (Collection embedding function)
+   embeddings-gpu service (OpenAI-compatible /v1/embeddings)
               │ query_embeddings
               ▼
          chromadb (server)
@@ -65,19 +67,20 @@ and retrieval (MCP / chroma‑mcp).
               │ docs
               ▼
    (EmbeddingFactory: remote)
-   embeddings-gpu service
+   embeddings-gpu service (OpenAI-compatible /v1/embeddings)
               │ embeddings
               ▼
          chromadb (server)
 ```
 
 **Key points**
-- Both dataprep and chroma‑mcp call the **same remote embeddings service**.
+- Dataprep attaches a remote embedding function (OpenAIEmbeddingFunction) to the collection.
+- chroma-mcp uses the persisted embedding function when querying with query_texts.
 - Chroma never computes embeddings on its own; it only stores and queries vectors.
 
 ---
 
-## EmbeddingFactory (proposed)
+## EmbeddingFactory (current)
 
 ```
 EmbeddingFactory
@@ -85,8 +88,6 @@ EmbeddingFactory
   └─ remote: /v1/embeddings (embeddings-gpu)
 ```
 
-The factory must be used in:
-- dataprep (indexing)
-- chroma-mcp client (query)
-
-This guarantees consistent vectors across index + retrieval.
+The factory is used in dataprep (indexing). chroma-mcp does not call the factory
+directly; it uses the embedding function persisted on the collection. This
+guarantees consistent vectors across index + retrieval.
