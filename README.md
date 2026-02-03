@@ -17,9 +17,16 @@ For Docker/Docker Compose usage (local, DGX Spark, smoke tests, logs), see
 
 ## Dependencies
 
+- Dependency requirements are driven by the `vector_search.provider`, not by the
+  environment (local vs DGX).
 - `sentence-transformers` is required when using the default
-  `sentence-transformers:*` embedding function (used by local/chroma providers).
+  `sentence-transformers:*` embedding function (used by `local`/`chroma`).
   The first run will download the model weights.
+- `chromadb` (Python client) is required for the `chroma` provider because
+  dataprep uses `chromadb.HttpClient` and the `chroma-mcp` client depends on it.
+
+Note: we could modularize dependencies later (e.g. `agentic-research[chroma]`,
+`agentic-research[openai]`), but for now we keep a single package for simplicity.
 
 ## Architecture
 
