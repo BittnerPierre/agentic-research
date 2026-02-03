@@ -16,7 +16,7 @@ vector_search:
   chroma_ssl: false
   # Uses Chroma OpenAIEmbeddingFunction, but the api_base points to llama.cpp embeddings (not OpenAI).
   chroma_embedding_provider: "openai"
-  chroma_embedding_api_base: "http://embeddings-gpu:8003"
+  chroma_embedding_api_base: "http://embeddings-gpu:8003/v1"
   chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
   chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
   top_k: 5
