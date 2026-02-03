@@ -5,6 +5,30 @@ x-llama-build: &llama-build
   image: local/llama.cpp:server-cuda
 
 services:
+  dataprep:
+    command: ["dataprep_server", "--config", "configs/config-docker-dgx.yaml"]
+    volumes:
+      - ./test_files:/app/test_files
+
+  agentic-research:
+    command: ["agentic-research", "--config", "configs/config-docker-dgx.yaml"]
+    depends_on:
+      - dataprep
+      - chromadb
+      - llm-instruct
+      - llm-reasoning
+    volumes:
+      - ./test_files:/app/test_files
+
+  chromadb:
+    image: chromadb/chroma:1.4.1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chromadb:/data
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+
   embeddings-gpu:
     <<: *llama-build
     volumes:
@@ -27,9 +51,6 @@ services:
       - "--embeddings"
     ports:
       - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend
 
   llm-instruct:
     <<: *llama-build
@@ -52,13 +73,10 @@ services:
       - "-n"
       - "${LLM_INSTRUCT_N_CTX:-2048}"
       - "--n-gpu-layers"
-      - "${LLM_INSTRUCT_N_GPU_LAYERS:-999}"
+      - "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
       - "--jinja"
     ports:
       - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend
 
   llm-reasoning:
     <<: *llama-build
@@ -85,6 +103,3 @@ services:
       - "--jinja"
     ports:
       - "${LLM_REASONING_PORT:-8004}:${LLM_REASONING_PORT:-8004}"
-    profiles:
-      - v1-dgx
-      - v1-dgx-backend

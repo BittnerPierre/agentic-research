@@ -11,7 +11,7 @@ from typing import ClassVar, Protocol
 import chromadb
 from openai import OpenAI
 
-from .embeddings import get_embedding_function
+from .chroma_embedding_factory import get_chroma_embedding_function
 from .knowledge_db import KnowledgeDBManager
 from .models import UploadResult
 from .vector_search import (
@@ -359,7 +359,20 @@ class ChromaVectorBackend:
 
     def _collection(self, config, name: str):
         client = self._client(config)
-        return client.get_or_create_collection(name=name)
+        embedding_function = get_chroma_embedding_function(config)
+        return client.get_or_create_collection(name=name, embedding_function=embedding_function)
+
+    def _collection_has_document(self, collection, doc_id: str) -> bool:
+        try:
+            result = collection.get(where={"document_id": doc_id}, limit=1)
+        except Exception:
+            logger.warning(
+                "[upload_files_to_vectorstore] Failed to check collection for document_id=%s",
+                doc_id,
+            )
+            return False
+        ids = result.get("ids") if isinstance(result, dict) else None
+        return bool(ids)
 
     def resolve_store_id(self, vectorstore_name: str, config) -> str | None:
         config.vector_search.index_name = vectorstore_name
@@ -383,14 +396,15 @@ class ChromaVectorBackend:
             f"{step1_time - start_time:.2f}s - {len(entries_to_process)} entries"
         )
 
-        embed = get_embedding_function(config)
         files_uploaded: list[dict] = []
         files_attached: list[dict] = []
         upload_count = 0
         reuse_count = 0
 
         for entry, file_path in entries_to_process:
-            if entry.vector_doc_id:
+            if entry.vector_doc_id and self._collection_has_document(
+                collection, entry.vector_doc_id
+            ):
                 files_uploaded.append(
                     {"filename": entry.filename, "doc_id": entry.vector_doc_id, "status": "reused"}
                 )
@@ -406,8 +420,7 @@ class ChromaVectorBackend:
             if not chunks:
                 continue
 
-            embeddings = embed(chunks)
-            doc_id = f"doc_{entry.filename}"
+            doc_id = entry.vector_doc_id or f"doc_{entry.filename}"
             ids = [f"{doc_id}:{idx}" for idx in range(len(chunks))]
             metadatas = [
                 {
@@ -423,7 +436,6 @@ class ChromaVectorBackend:
                 ids=ids,
                 documents=chunks,
                 metadatas=metadatas,
-                embeddings=embeddings,
             )
 
             db_manager.update_vector_doc_id(entry.filename, doc_id)
@@ -457,12 +469,9 @@ class ChromaVectorBackend:
         effective_threshold = (
             score_threshold if score_threshold is not None else config.vector_search.score_threshold
         )
-        embed = get_embedding_function(config)
-        query_embedding = embed([query])[0]
-
         collection = self._collection(config, config.vector_search.index_name)
         result = collection.query(
-            query_embeddings=[query_embedding],
+            query_texts=[query],
             n_results=effective_top_k,
             include=["documents", "metadatas", "distances"],
         )

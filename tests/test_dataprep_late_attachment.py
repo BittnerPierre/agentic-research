@@ -11,6 +11,7 @@ from src.dataprep.mcp_functions import (
     upload_files_to_vectorstore,
     vector_search,
 )
+from src.dataprep.models import KnowledgeEntry
 from src.dataprep.web_loader_improved import WebDocument
 
 
@@ -173,5 +174,63 @@ def test_late_attachment_openai_by_url(monkeypatch, tmp_path):
     assert result.upload_count == 1
     assert created_ids == ["file_1"]
     assert attached_ids == [("vs_123", "file_1")]
+
+    _restore_config(config, snapshot)
+
+
+def test_late_attachment_chroma_reindexes_missing_collection(monkeypatch, tmp_path):
+    config, snapshot = _setup_config(tmp_path, provider="chroma")
+
+    storage_dir = Path(config.data.local_storage_dir)
+    filename = "smoke_local_doc.md"
+    content = "Smoke test content for late attachment."
+    (storage_dir / filename).write_text(content, encoding="utf-8")
+
+    db_manager = KnowledgeDBManager(Path(config.data.knowledge_db_path))
+    db_manager.add_entry(
+        KnowledgeEntry(
+            url="file://smoke_local_doc.md",
+            filename=filename,
+            keywords=[],
+            summary=None,
+            title=None,
+            content_length=len(content),
+            vector_doc_id="doc_smoke_local_doc.md",
+        )
+    )
+
+    class _FakeCollection:
+        def __init__(self):
+            self.add_calls: list[dict] = []
+
+        def get(self, **_kwargs):
+            return {"ids": []}
+
+        def add(self, ids, documents, metadatas):
+            self.add_calls.append(
+                {
+                    "ids": ids,
+                    "documents": documents,
+                    "metadatas": metadatas,
+                }
+            )
+
+    fake_collection = _FakeCollection()
+
+    monkeypatch.setattr(
+        "src.dataprep.vector_backends.ChromaVectorBackend._collection",
+        lambda _self, _config, _name: fake_collection,
+    )
+    monkeypatch.setattr(
+        "src.dataprep.vector_backends.chunk_text",
+        lambda _content, **_kwargs: [content],
+    )
+
+    result = upload_files_to_vectorstore(
+        inputs=[filename], config=config, vectorstore_name="test-index"
+    )
+    assert result.upload_count == 1
+    assert result.reuse_count == 0
+    assert fake_collection.add_calls
 
     _restore_config(config, snapshot)

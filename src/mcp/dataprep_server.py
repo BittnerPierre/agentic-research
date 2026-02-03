@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 from typing import Any
 
 from fastmcp import FastMCP
@@ -170,7 +171,11 @@ def start_server(host: str = "0.0.0.0", port: int = 8001):
 def main():
     """Démarre le serveur MCP dataprep."""
     parser = argparse.ArgumentParser(description="DataPrep MCP Server")
-    parser.add_argument("--config", type=str, help="Configuration file to use")
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Configuration file to use (default: configs/config-default.yaml)",
+    )
     parser.add_argument("--host", type=str, help="Server host override")
     parser.add_argument("--port", type=int, help="Server port override")
     args = parser.parse_args()
@@ -186,6 +191,7 @@ def main():
         third_party_level="ERROR",
     )
     logger.info(f"DataPrep MCP Server log file: {log_file}")
+    logger.info(f"App version: {os.getenv('APP_VERSION', 'unknown')}")
     start_server(host=host, port=port)
 
 

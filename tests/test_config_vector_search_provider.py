@@ -9,14 +9,15 @@ import yaml
 from src.config import ConfigManager
 
 
-def test_config_yaml_defaults_to_local_provider():
-    config_path = Path(__file__).resolve().parents[1] / "config.yaml"
+def test_config_yaml_defaults_to_openai_provider():
+    config_path = Path(__file__).resolve().parents[1] / "configs/config-default.yaml"
     config = ConfigManager(config_path).load_config()
-    assert config.vector_search.provider == "local"
+    assert config.vector_search.provider == "openai"
 
 
 def test_config_manager_reads_provider_override(tmp_path):
-    config_path = tmp_path / "config.yaml"
+    config_path = tmp_path / "configs/config-default.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
     config_data = {
         "config_name": "test",
         "vector_store": {"name": "vs", "description": "desc", "expires_after_days": 1},

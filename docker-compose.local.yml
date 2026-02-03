@@ -1,0 +1,42 @@
+services:
+  dataprep:
+    command: ["dataprep_server", "--config", "configs/config-docker-local.yaml"]
+    volumes:
+      - ./test_files:/app/test_files
+
+  agentic-research:
+    command:
+      ["agentic-research", "--config", "configs/config-docker-local.yaml"]
+    depends_on:
+      - dataprep
+      - chromadb
+      - llama-cpp-cpu
+    volumes:
+      - ./test_files:/app/test_files
+
+  chromadb:
+    image: chromadb/chroma:1.4.1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chromadb:/data
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+
+  llama-cpp-cpu:
+    image: local/llama.cpp:server
+    ports:
+      - "8002:8002"
+    volumes:
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface}:/models
+    command:
+      [
+        "-m",
+        "${LOCAL_LLM_MODEL_PATH:-/models/hub/models--bartowski--Qwen2.5-3B-Instruct-GGUF/snapshots/f302c64a2269a69fb27b2f9473b362f5bb8e78d8/Qwen2.5-3B-Instruct-Q4_K_M.gguf}",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8002",
+        "--ctx-size",
+        "4096",
+      ]

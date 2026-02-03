@@ -8,8 +8,8 @@ vector_store:
   expires_after_days: 30
 
 vector_search:
-  provider: "local"
-  index_name: "agentic-research"
+  provider: "chroma"
+  index_name: "agentic-research-dgx"
   embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
   chunk_size: 800
   chunk_overlap: 120
@@ -70,20 +70,35 @@ mcp:
   # Timeout pour les appels d'outils MCP (en secondes)
   # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
   # Valeur par défaut dans le SDK: 5.0s
-  client_timeout_seconds: 60.0
+  client_timeout_seconds: 10.0
 
 # Configuration Models
 models:
-  research_model: "openai/gpt-4.1-mini"
-  planning_model: "openai/o4-mini"
-  search_model: "openai/gpt-4.1-mini" # Used for vector search summaries
-  writer_model: "openai/gpt-4.1-mini"
-  knowledge_preparation_model: "openai/gpt-4.1-mini"
+  research_model:
+    name:  "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
+    api_key: "dummy"
+  planning_model:
+    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
+    api_key: "dummy"
+  search_model:
+    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
+    api_key: "dummy"
+  writer_model:
+    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
+    api_key: "dummy"
+  knowledge_preparation_model:
+    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    base_url: "http://llm-instruct:8002"
+    api_key: "dummy"
 
 # Configuration du manager
 manager:
   default_manager: "agentic_manager" # Options: agentic_manager, manager, ou chemin.vers.ClasseManager
 
 agents:
-  max_search_plan: "2-3"
+  max_search_plan: "5-7"
   output_dir: "output/"

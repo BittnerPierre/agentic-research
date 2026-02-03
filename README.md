@@ -17,9 +17,21 @@ For Docker/Docker Compose usage (local, DGX Spark, smoke tests, logs), see
 
 ## Dependencies
 
+- Dependency requirements are driven by the `vector_search.provider`, not by the
+  environment (local vs DGX).
 - `sentence-transformers` is required when using the default
-  `sentence-transformers:*` embedding function (used by local/chroma providers).
+  `sentence-transformers:*` embedding function (used by `local`/`chroma`).
   The first run will download the model weights.
+- `chromadb` (Python client) is required for the `chroma` provider because
+  dataprep uses `chromadb.HttpClient` and the `chroma-mcp` client depends on it.
+
+Note on embeddings config: in DGX Docker, the embeddings model is configured in
+two places: models.env (full path for embeddings-gpu) and
+configs/config-docker-dgx.yaml (model name for Chroma embedding function). For
+now, keep them in sync whenever the embedding model changes.
+
+Note: we could modularize dependencies later (e.g. `agentic-research[chroma]`,
+`agentic-research[openai]`), but for now we keep a single package for simplicity.
 
 ## Architecture
 
@@ -77,7 +89,7 @@ poetry run dataprep_server --host 127.0.0.1 --port 8010
 
 ### Configuration
 
-The default manager can be configured in `config.yaml`:
+The default manager can be configured in `configs/config-default.yaml`:
 
 ```yaml
 manager:
@@ -85,6 +97,7 @@ manager:
 ```
 
 You can also set the default manager via the `DEFAULT_MANAGER` environment variable.
+Use `--config` to load a different config file.
 
 ## Vector search providers
 

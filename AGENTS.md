@@ -4,7 +4,7 @@
 - `src/` contains the application code (CLI entrypoints, managers, agents, MCP integrations).
 - `tests/` holds pytest-based unit/integration tests (e.g., `tests/test_*.py`).
 - `evaluations/` contains evaluation runners and baselines used for research experiments.
-- `configs/` and `config.yaml` store runtime configuration defaults.
+- `configs/` and `configs/config-default.yaml` store runtime configuration defaults.
 - `data/`, `output/`, `logs/`, and `traces/` are runtime artifacts and should not be treated as source of truth.
 - `docs/` and `external-references/` collect supporting documentation and references.
 
@@ -15,6 +15,7 @@
 - `poetry run dataprep_server` starts the MCP dataprep server used by the agents.
 - `poetry run pytest` runs the test suite (pytest is configured in `pyproject.toml`).
 - `poetry run ruff check .` and `poetry run ruff format .` enforce linting and formatting.
+- These commands mirror CI checks; run them locally before pushing.
 
 ## Coding Style & Naming Conventions
 - Python 3.12, 4-space indentation, line length 100 (ruff).
@@ -33,10 +34,20 @@
 - Commit messages follow Conventional Commits (e.g., `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`).
 - Add a co-author trailer for this agent: `Co-Authored-By: Codex <noreply@openai.com>`.
 - PRs should describe scope, link issues, and include test evidence (command output or notes).
-- PRs are generally reviewed/merged by another coding agent; do not push to `main` except emergency hotfixes.
+- PRs are required for all changes; direct push to `main` is blocked by branch protection.
+- CI/CD checks are mandatory and must pass before merge: Lint, Format, Tests (Python 3.12).
+- The CI workflow is defined in `.github/workflows/ci.yml` and typically runs in ~2–3 minutes.
+
+## GitHub Messaging Rules
+- Do not use backticks in GitHub issue/PR comments or bodies (shell interpolation risk). Use plain text instead.
+
+## Change Approval Rules
+- Do not apply cross-file or convention changes without explicit approval.
+- If a change affects more than 3 files, present the plan and wait for a clear “OK” before editing.
+- If instructions are ambiguous, ask for clarification instead of acting.
 
 ## Configuration & Runtime Notes
-- Default manager selection lives in `config.yaml` (`manager.default_manager`).
+- Default manager selection lives in `configs/config-default.yaml` (`manager.default_manager`).
 - You can override the default manager with `DEFAULT_MANAGER` environment variable.
 
 ## Architecture & Planning Notes

@@ -83,10 +83,10 @@ def test_file_search_agent_tool_selection():
     _restore_config(config, snapshot)
 
 
-def test_vector_search_default_provider_is_local():
+def test_vector_search_default_provider_is_openai():
     config = get_config()
     snapshot = _snapshot_config(config)
-    assert config.vector_search.provider == "local"
+    assert config.vector_search.provider == "openai"
     _restore_config(config, snapshot)
 
 
