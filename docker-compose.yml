@@ -9,6 +9,8 @@ services:
       - "8001:8001"
     env_file:
       - .env
+    environment:
+      CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
@@ -30,6 +32,7 @@ services:
       MCP_FS_COMMAND: node
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
       LITELLM_LOG: ERROR
+      CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
@@ -53,6 +56,7 @@ services:
       MCP_FS_COMMAND: node
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
       LITELLM_LOG: ERROR
+      CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt

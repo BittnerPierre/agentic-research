@@ -25,6 +25,11 @@ For Docker/Docker Compose usage (local, DGX Spark, smoke tests, logs), see
 - `chromadb` (Python client) is required for the `chroma` provider because
   dataprep uses `chromadb.HttpClient` and the `chroma-mcp` client depends on it.
 
+Note on embeddings config: in DGX Docker, the embeddings model is configured in
+two places: models.env (full path for embeddings-gpu) and
+configs/config-docker-dgx.yaml (model name for Chroma embedding function). For
+now, keep them in sync whenever the embedding model changes.
+
 Note: we could modularize dependencies later (e.g. `agentic-research[chroma]`,
 `agentic-research[openai]`), but for now we keep a single package for simplicity.
 

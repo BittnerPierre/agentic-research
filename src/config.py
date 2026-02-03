@@ -44,6 +44,10 @@ class VectorSearchConfig(BaseModel):
     chroma_host: str = Field(default="127.0.0.1")
     chroma_port: int = Field(default=8000)
     chroma_ssl: bool = Field(default=False)
+    chroma_embedding_provider: str = Field(default="default")
+    chroma_embedding_api_base: str | None = Field(default=None)
+    chroma_embedding_model: str | None = Field(default=None)
+    chroma_embedding_api_key_env: str = Field(default="CHROMA_OPENAI_API_KEY")
     top_k: int = Field(default=5)
     score_threshold: float | None = Field(default=None)
 

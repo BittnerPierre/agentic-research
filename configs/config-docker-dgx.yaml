@@ -9,12 +9,16 @@ vector_store:
 vector_search:
   provider: "chroma"
   index_name: "agentic-research-dgx"
-  embedding_function: "sentence-transformers:all-MiniLM-L6-v2"
   chunk_size: 800
   chunk_overlap: 120
   chroma_host: "chromadb"
   chroma_port: 8000
   chroma_ssl: false
+  # Uses Chroma OpenAIEmbeddingFunction, but the api_base points to llama.cpp embeddings (not OpenAI).
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://embeddings-gpu:8003"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
   top_k: 5
   score_threshold: null
 
