@@ -48,10 +48,8 @@ debug_output/
 traces/
 output/
 logs/
-data/*.json
-data/*.md
-data/vector_index/
-data/embeddings/
+data/*
+!data/.gitkeep
 models/
 *.log
 
