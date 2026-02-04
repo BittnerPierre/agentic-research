@@ -160,6 +160,7 @@ LLM_REASONING_BATCH_SIZE=512
 **Solution** : Fonction `validate_and_classify_input()` dans `src/dataprep/input_validation.py` :
 
 ```python
+import re
 from enum import Enum
 from typing import Literal
 
@@ -167,10 +168,11 @@ class InputType(str, Enum):
     FILE_ID = "file_id"
     URL = "url"
     FILENAME = "filename"
+    LOCAL_PATH = "local_path"
     INVALID = "invalid"
 
 def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
-    """Valide et classifie une entrée (file_id, URL, filename)."""
+    """Valide et classifie une entrée (file_id, URL, filename, path)."""
     # File ID OpenAI
     if value.startswith("file-"):
         return (InputType.FILE_ID, None)
@@ -184,9 +186,18 @@ def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
             return (InputType.INVALID, "URL contient caractères non-ASCII")
         return (InputType.URL, None)
     
-    # Filename local
-    if "/" in value or "\\" in value or value.endswith((".txt", ".md", ".pdf")):
+    # Filename strict (sans séparateurs de chemin, évite path traversal)
+    # Format: nom_fichier.ext (alphanumériques, tirets, underscores)
+    if re.fullmatch(r"[a-zA-Z0-9_\-\.]+\.(txt|md|pdf|json|yaml)", value):
         return (InputType.FILENAME, None)
+    
+    # Path local (avec séparateurs)
+    # ⚠️ Attention : accepté en mode mono-user, mais validation chemin recommandée
+    if "/" in value or "\\" in value:
+        # Détection path traversal basique
+        if ".." in value:
+            return (InputType.INVALID, "Path traversal détecté")
+        return (InputType.LOCAL_PATH, None)
     
     return (InputType.INVALID, "Format non reconnu")
 ```
@@ -235,11 +246,22 @@ Ne pas "perdre le contexte" au retry. Le retry doit :
 
 **Implémentation** : Encapsuler comme "same task, patch mode" dans le Runner.
 
-**Option Pass@K conditionnelle** (si retry échoue) :
-- Générer 2 candidats
-- Prendre le premier valide
-- **Uniquement sur writer JSON** (étape critique)
-- Coût acceptable car conditionnel
+**Séquence de récupération (ordre fixé)** :
+
+Pour l'étape critique (writer JSON) :
+
+1. **Génération initiale** (structured output)
+2. **Validation** Pydantic
+3. ❌ Si échec → **Retry patch-mode** (max 1) avec error hint
+4. **Validation** Pydantic
+5. ❌ Si échec → **Pass@K=2** (générer 2 candidats, prendre premier valide)
+6. **Validation** Pydantic
+7. ❌ Si échec → **Fallback markdown** (voir S5)
+
+**Justification Pass@K conditionnel** :
+- Coût acceptable car **rare + ciblé** (uniquement après échec retry)
+- Uniquement sur writer JSON (étape critique)
+- Alternative à l'échec total
 
 ### S5 : Markdown fallback pour writer
 
@@ -332,6 +354,15 @@ def save_report_programmatically(
 
 **Principe** : Réduire pression contextuelle via `call_model_input_filter` (Agents SDK).
 
+**Périmètre d'application** :
+
+- ✅ **Activé pour** : `writer_agent`, `planner_agent`
+  - Conversations longues avec beaucoup de contexte accumulé
+  - Trimming bénéfique pour la qualité (focus sur récent)
+- ❌ **Désactivé pour** : `search_agent`, agents de tooling
+  - Risque de perdre des références/citations critiques
+  - Besoin de garder historique complet des résultats
+
 ```python
 from openai.agents.filters import call_model_input_filter
 
@@ -341,10 +372,16 @@ def trim_old_messages(messages: list, keep_last_n: int = 10) -> list:
     recent_msgs = [m for m in messages if m.get("role") != "system"][-keep_last_n:]
     return system_msgs + recent_msgs
 
-# Dans agent config
-agent = Agent(
+# Configuration sélective par agent
+writer_agent = Agent(
     model="...",
-    call_model_input_filter=trim_old_messages,
+    call_model_input_filter=trim_old_messages,  # ✅ Activé
+    ...
+)
+
+search_agent = Agent(
+    model="...",
+    # ❌ Pas de trimming (garde tout l'historique)
     ...
 )
 ```
