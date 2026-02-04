@@ -1,8 +1,13 @@
 # Plan de robustification du système agentic-research sur DGX Spark
 
-**Version**: 2.0  
+**Version**: 2.2.1  
 **Date**: 4 février 2026  
 **Objectif**: Fiabiliser le workflow en 1/2 à 1 journée (UAT inclus)
+
+**Amendements V2.2.1 (Codex)** :
+- Clarification du contrat `validate_and_classify_input` et exemples d’usage alignés
+- Durcissement du parsing markdown (fallback titre) + validation post-parse
+- Clarification UAT en critères opératoires et ajout Go/NoGo
 
 ---
 
