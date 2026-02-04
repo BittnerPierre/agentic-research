@@ -78,10 +78,47 @@ Le flag `-n` seul est **ambigu** (CLI vs server ont des conventions différentes
 - Output incohérent sous pression mémoire
 
 **Preuve attendue** (test contrôlé) :
-- Prompt de X tokens mesuré
-- ctx-size fixé bas
-- n-predict très haut
-- → Vérifier que sortie s'arrête quand contexte est plein
+
+Pour valider H1, exécuter ce test minimal **avant** Phase 1 :
+
+```bash
+# Test direct avec llama.cpp server (service isolé)
+docker run --rm -it --gpus all \
+  -v ${MODELS_DIR}:/models \
+  ghcr.io/ggml-org/llama.cpp:server \
+  --ctx-size 512 \          # Contexte volontairement TRÈS petit
+  --n-predict 2000 \        # Output demandé GRAND
+  -m /models/gpt-oss-20b-mxfp4.gguf \
+  --prompt "Generate a very long JSON object with at least 50 fields describing a research report." \
+  --log-disable
+
+# Attendu : sortie tronquée vers ~450 tokens (512 - prompt)
+# → Preuve que ctx-size limite output même si n-predict est élevé
+```
+
+Alternative (script Python minimal) :
+
+```python
+# test_ctx_saturation.py
+import requests, tiktoken
+
+prompt = "Generate JSON..." * 100  # ~1500 tokens
+enc = tiktoken.get_encoding("cl100k_base")
+prompt_tokens = len(enc.encode(prompt))
+
+response = requests.post("http://localhost:8002/completion", json={
+    "prompt": prompt,
+    "n_predict": 4000
+})
+
+output = response.json()["content"]
+output_tokens = len(enc.encode(output))
+
+print(f"Prompt: {prompt_tokens} tokens")
+print(f"Output: {output_tokens} tokens")
+print(f"Total: {prompt_tokens + output_tokens} (ctx-size actuel: 2048)")
+# Si total ≈ 2048 → H1 confirmé
+```
 
 ### H2 : Fragilité structured output avec modèles quantifiés
 
@@ -148,6 +185,26 @@ LLM_INSTRUCT_BATCH_SIZE=512
 LLM_REASONING_BATCH_SIZE=512
 ```
 
+**⚠️ Note sur defaults** :
+
+Les valeurs par défaut **doivent rester cohérentes** entre `models.env` et `docker-compose.dgx.yml`.
+
+**Stratégie recommandée** :
+- `docker-compose.dgx.yml` : Utilise `${VAR:-default}` (fallback si variable absente)
+- `models.env` : Fournit les valeurs explicites (prioritaires)
+- Éviter divergence : si `models.env` change, vérifier que defaults dans compose sont cohérents
+
+Exemple dans `docker-compose.dgx.yml` :
+```yaml
+- "--ctx-size"
+- "${LLM_INSTRUCT_CTX_SIZE:-8192}"  # ✅ Default = valeur models.env
+```
+
+**Risque si divergence** :
+- `models.env` dit `CTX_SIZE=8192`
+- `docker-compose.yml` dit `${CTX_SIZE:-2048}` (default 2048)
+- → Si variable non chargée, on retombe sur 2048 (régression silencieuse)
+
 **Validation** :
 1. Smoke test complet (query simple → rapport final)
 2. Vérifier logs : pas de troncature EOF
@@ -162,7 +219,6 @@ LLM_REASONING_BATCH_SIZE=512
 ```python
 import re
 from enum import Enum
-from typing import Literal
 
 class InputType(str, Enum):
     FILE_ID = "file_id"
@@ -172,7 +228,16 @@ class InputType(str, Enum):
     INVALID = "invalid"
 
 def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
-    """Valide et classifie une entrée (file_id, URL, filename, path)."""
+    """
+    Valide et classifie une entrée (file_id, URL, filename, path).
+    
+    **Contrat de retour** : (InputType, error_msg)
+    - Si valide → (type, None)
+    - Si invalide → (INVALID, message d'erreur)
+    
+    ⚠️ Le second élément est TOUJOURS un message d'erreur (ou None si valide).
+    Pour obtenir la valeur normalisée, utiliser `value` directement si error_msg est None.
+    """
     # File ID OpenAI
     if value.startswith("file-"):
         return (InputType.FILE_ID, None)
@@ -202,7 +267,23 @@ def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
     return (InputType.INVALID, "Format non reconnu")
 ```
 
-**Intégration** : `upload_files_to_vectorstore` appelle cette fonction en entrée et rejette `INVALID` immédiatement.
+**Intégration** : `upload_files_to_vectorstore` appelle cette fonction et traite les erreurs :
+
+```python
+input_type, error_msg = validate_and_classify_input(file_or_url)
+
+if input_type == InputType.INVALID:
+    raise ValueError(f"Input invalide: {error_msg}")
+
+# Ici input_type est valide, utiliser file_or_url directement
+if input_type == InputType.FILE_ID:
+    # Traiter file_id...
+    pass
+elif input_type == InputType.URL:
+    # Traiter URL...
+    pass
+# etc.
+```
 
 ### S3 : Support file_id dans upload_files_to_vectorstore
 
@@ -291,9 +372,20 @@ import re
 from src.agents.schemas import ReportData
 
 def parse_markdown_report(markdown: str, research_topic: str) -> ReportData:
-    """Parse markdown → ReportData avec validation."""
+    """
+    Parse markdown → ReportData avec validation.
+    
+    ⚠️ Impose titre : soit extrait du markdown, soit fallback sur research_topic.
+    """
     # Extraire titre
     title_match = re.search(r'^#\s+(.+)$', markdown, re.MULTILINE)
+    
+    # Fallback titre si absent
+    if title_match:
+        title = title_match.group(1).strip()
+    else:
+        # Générer titre safe depuis research_topic
+        title = research_topic if research_topic else "Untitled Research Report"
     
     # Extraire summary
     summary_match = re.search(
@@ -309,11 +401,15 @@ def parse_markdown_report(markdown: str, research_topic: str) -> ReportData:
         re.MULTILINE
     )
     
+    # Si pas de titre dans markdown, insérer au début
+    if not title_match:
+        markdown = f"# {title}\n\n{markdown}"
+    
     # Validation post-parse (Pydantic)
     return ReportData(
         markdown_report=markdown,
         short_summary=summary_match.group(1).strip() if summary_match else "",
-        follow_up_questions=questions[:3],
+        follow_up_questions=questions[:3] if questions else [],
         research_topic=research_topic
     )
 ```
@@ -330,25 +426,54 @@ def parse_markdown_report(markdown: str, research_topic: str) -> ReportData:
 **Solution** : Appel programmatique après génération réussie :
 
 ```python
+import json
+from pathlib import Path
+from src.agents.schemas import ReportData
+
 def save_report_programmatically(
     report: ReportData,
     output_dir: Path,
     timestamp: str
 ) -> Path:
-    """Sauvegarde déterministe du rapport (sans tool call)."""
+    """
+    Sauvegarde déterministe du rapport (sans tool call).
+    
+    ⚠️ Écrit TOUJOURS les métadonnées, même si rapport vide/invalide.
+    Permet traçabilité des échecs.
+    """
     filename = f"research_report_{timestamp}.md"
     filepath = output_dir / filename
     
-    filepath.write_text(report.markdown_report, encoding="utf-8")
-    
-    # Métadonnées
+    # Métadonnées (TOUJOURS écrire, même si rapport invalide)
     meta_file = output_dir / f"metadata_{timestamp}.json"
-    meta_file.write_text(report.model_dump_json(indent=2))
+    metadata = report.model_dump()
+    metadata["_saved_at"] = timestamp
+    metadata["_is_valid"] = bool(report.markdown_report and len(report.markdown_report) > 100)
+    
+    meta_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    
+    # Rapport markdown (lever si vide critique)
+    if not report.markdown_report:
+        # Écrire fichier vide + marquer invalide dans metadata (déjà fait)
+        filepath.write_text("# [Rapport vide - échec génération]\n", encoding="utf-8")
+        raise ValueError(f"Rapport vide généré (metadata sauvegardé: {meta_file})")
+    
+    filepath.write_text(report.markdown_report, encoding="utf-8")
     
     return filepath
 ```
 
-**Intégration** : Manager appelle cette fonction directement après `writer_agent.run()`.
+**Intégration** : Manager appelle cette fonction directement après `writer_agent.run()` :
+
+```python
+try:
+    report = writer_agent.run(...)
+    filepath = save_report_programmatically(report, output_dir, timestamp)
+    logger.info(f"Rapport sauvegardé: {filepath}")
+except ValueError as e:
+    logger.error(f"Rapport invalide mais metadata tracée: {e}")
+    # Continuer ou lever selon politique
+```
 
 ### S7 : Context trimming (conversations longues)
 
@@ -462,16 +587,42 @@ search_agent = Agent(
 
 ### UAT (1-2h)
 
-**Tests de bout en bout** :
-1. Query simple (smoke test)
-2. Query complexe (syllabus multi-topics)
-3. Query avec URLs externes (test Issue #47)
-4. Query forcing file_id usage (test Issue #6)
+**Tests de bout en bout** (critères opérationnels) :
 
-**Validation** :
-- Taux de complétion : objectif **80%+** (vs <50% actuellement)
-- Logs : pas de troncature EOF, pas d'URLs corrompues
-- Rapports : qualité acceptable, sauvegarde automatique
+Exécuter **4 queries** représentatives :
+1. **Query simple** (smoke test) : "Explain Retrieval Augmented Generation"
+2. **Query complexe** (syllabus multi-topics) : syllabus avec 5+ sources
+3. **Query URLs externes** (test Issue #47) : avec URLs non-syllabus
+4. **Query file_id** (test Issue #6) : forcer usage file_id dans tools
+
+**Critères de succès** (opérationnels, non métriques) :
+
+✅ **Minimal** (Go/NoGo) :
+- **Au moins 3/4 queries** complètent jusqu'au bout (rapport final généré)
+- **Fichiers présents** : `research_report_*.md` + `metadata_*.json` pour chaque run réussi
+- **Logs propres** : pas de troncature EOF, pas d'URLs corrompues (Issue #47)
+
+✅ **Optimal** :
+- **4/4 queries** complètent
+- **Métadonnées `_is_valid: true`** pour tous les rapports
+- **Save déterministe** : tous les rapports sauvegardés automatiquement (pas de skip)
+
+✅ **Validation manuelle** (échantillon) :
+- Lire 1 rapport : structure markdown correcte, contenu cohérent
+- Vérifier metadata : `short_summary` non vide, `follow_up_questions` présentes
+
+**Commandes de test** :
+
+```bash
+# Run UAT
+for query in "query1.md" "query2.md" "query3.md" "query4.md"; do
+  poetry run agentic-research --query "$query" --output-dir "uat_output/"
+done
+
+# Vérifier résultats
+ls -lh uat_output/  # Doit montrer 3-4 fichiers .md + .json
+grep -l "_is_valid.*true" uat_output/metadata_*.json | wc -l  # Objectif: 3-4
+```
 
 ---
 
