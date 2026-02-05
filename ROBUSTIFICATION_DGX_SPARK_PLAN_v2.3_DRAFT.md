@@ -1,12 +1,12 @@
 # Plan de robustification du système agentic-research sur DGX Spark
 
-**Version**: 2.3.0 DRAFT  
+**Version**: 2.3.1 DRAFT  
 **Date**: 4 février 2026  
 **Objectif**: Fiabiliser le workflow en 1 journée (UAT inclus) + mesurer fiabilité modèles
 
-**⚠️ DRAFT v2.3.0** : Refonte architecture majeure pour validation avant intégration dans le plan principal.
+**⚠️ DRAFT v2.3.1** : Refonte architecture majeure pour validation avant intégration dans le plan principal.
 
-**Amendements V2.3.0 (Architecture majeure)** :
+**Amendements V2.3.1 (Architecture majeure)** :
 - **Refonte S4-S8** : Framework fallback générique (Strategy pattern) dès S4 (pas de hard-coding)
 - **Nouveau S6** : Logging et métriques pour évaluation modèles (compatible `./evaluations/`)
 - **Context trimming** : Écarté de cette itération (hors scope robustification simple)
