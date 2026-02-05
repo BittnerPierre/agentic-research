@@ -1,12 +1,21 @@
 # Plan de robustification du système agentic-research sur DGX Spark
 
-**Version**: 2.3.0 DRAFT  
+**Version**: 2.3.1 DRAFT  
 **Date**: 4 février 2026  
 **Objectif**: Fiabiliser le workflow en 1 journée (UAT inclus) + mesurer fiabilité modèles
 
-**⚠️ DRAFT v2.3.0** : Refonte architecture majeure pour validation avant intégration dans le plan principal.
+**⚠️ DRAFT v2.3.1** : Refonte architecture majeure pour validation avant intégration dans le plan principal.
 
-**Amendements V2.3.0 (Architecture majeure)** :
+**Note de lecture** :
+- Ce document est un plan : les extraits de code/commandes sont illustratifs et
+  non prescriptifs.
+- L'implémentation finale reste à la main du développeur ; adapter aux
+  contraintes réelles et éviter les chemins en dur.
+- **Périmètre** : robustification uniquement (pas de nouvelles features). On
+  conserve l'approche actuelle : répertoire syllabus monté en volume Docker ;
+  l'envoi de fichiers sera traité ultérieurement.
+
+**Amendements V2.3.1 (Architecture majeure)** :
 - **Refonte S4-S8** : Framework fallback générique (Strategy pattern) dès S4 (pas de hard-coding)
 - **Nouveau S6** : Logging et métriques pour évaluation modèles (compatible `./evaluations/`)
 - **Context trimming** : Écarté de cette itération (hors scope robustification simple)
@@ -105,7 +114,7 @@ docker run --rm -it --gpus all \
 # → Preuve que ctx-size limite output même si n-predict est élevé
 ```
 
-Alternative (script Python minimal) :
+Alternative (script Python minimal, optionnelle ; nécessite tiktoken) :
 
 ```python
 # test_ctx_saturation.py
@@ -810,7 +819,7 @@ class FallbackMetrics:
         """Exporte pour analyse post-run et ./evaluations/."""
         data = {
             "meta": {
-                "version": "2.3.0",
+                "version": "2.3.1",
                 "timestamp": datetime.now().isoformat(),
                 "total_runs": len(self.runs)
             },
@@ -876,7 +885,7 @@ class FallbackMetrics:
 ```json
 {
   "meta": {
-    "version": "2.3.0",
+    "version": "2.3.1",
     "timestamp": "2026-02-04T15:30:00",
     "total_runs": 12
   },
@@ -1027,7 +1036,8 @@ except ValueError as e:
 
 (Voir S2 dans document principal v2.2.1 - conservation intégrale)
 
-**⚠️ Note** : Cette section est déjà implémentée en v2.2.1, voir lignes 218-291 du document principal.
+**⚠️ Note** : Cette section n'est pas implémentée à ce jour ; s'appuyer sur la
+S2 du plan principal v2.2.1 pour le design et les tests.
 
 ---
 
@@ -1233,9 +1243,13 @@ Exécuter **4 queries** représentatives :
 
 **Extraction et analyse métriques** :
 
+**Note** : Les commandes ci-dessous sont indicatives. Adapter les chemins et,
+pour un fichier, utiliser `--syllabus` (approche volume) ou injecter son contenu
+dans `--query` selon la CLI.
+
 ```bash
 # Run UAT
-cd /Users/pierrebittner/Documents/GitHub/DeepResearch/codex/agentic-research
+cd /chemin/vers/agentic-research
 
 # Test 1: Smoke simple
 poetry run agentic-research --query "Explain RAG" --output-dir "uat_output/"
@@ -1491,7 +1505,7 @@ result = await Runner.run(agent, context=research_info)  # ✅ garde contexte
 
 ## Conclusion
 
-Ce plan v2.3.0 se concentre sur **l'essentiel exécutable en 1 journée** avec **framework réutilisable et mesurable** :
+Ce plan v2.3.1 se concentre sur **l'essentiel exécutable en 1 journée** avec **framework réutilisable et mesurable** :
 
 1. **Phase 1 (bloquante)** : Corriger config llama.cpp (cause racine H1)
 2. **Phase 2 (core)** : Framework fallback générique + défenses + métriques (4-5h)
@@ -1505,7 +1519,7 @@ Ce plan v2.3.0 se concentre sur **l'essentiel exécutable en 1 journée** avec *
 
 **Go/NoGo** : Validation Phase 1 (smoke test 3/3) avant Phase 2-3.
 
-**Différences clés v2.3.0 vs v2.2.1** :
+**Différences clés v2.3.1 vs v2.2.1** :
 - ✅ Framework Strategy générique (pas hard-coding retry)
 - ✅ Logging/métriques pour évaluation modèles (compatible `./evaluations/`)
 - ✅ Configuration YAML par agent (itération rapide)
