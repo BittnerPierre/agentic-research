@@ -1,4 +1,4 @@
-# Research bot
+# Agentic Research
 
 [![CI](https://github.com/BittnerPierre/agentic-research/workflows/CI/badge.svg)](https://github.com/BittnerPierre/agentic-research/actions/workflows/ci.yml)
 
