@@ -4,7 +4,18 @@
 **Date**: 4 février 2026  
 **Objectif**: Fiabiliser le workflow en 1 journée (UAT inclus) + mesurer fiabilité modèles
 
+**⚠️ DRAFT v2.3.1** : Refonte architecture majeure pour validation avant intégration dans le plan principal.
+
+**Amendements V2.3.1 (Architecture majeure)** :
+
+- **Refonte S4-S8** : Framework fallback générique (Strategy pattern) dès S4 (pas de hard-coding)
+- **Nouveau S6** : Logging et métriques pour évaluation modèles (compatible `./evaluations/`)
+- **Context trimming** : Écarté de cette itération (hors scope robustification simple)
+- **Phases restructurées** : Phase 2 groupée (framework + défenses + métriques, 4-5h avec TDD)
+- **UAT renforcé** : Génération syllabus test bout-en-bout + extraction métriques JSON
+
 **Amendements V2.3.0 (Architecture majeure)** :
+
 - **Refonte S4-S8** : Framework fallback générique (Strategy pattern) dès S4 (pas de hard-coding)
 - **Nouveau S6** : Logging et métriques pour évaluation modèles (compatible `./evaluations/`)
 - **Context trimming** : Écarté de cette itération (hors scope robustification simple)
@@ -12,6 +23,7 @@
 - **UAT renforcé** : Génération syllabus test bout-en-bout + extraction métriques JSON
 
 **Amendements V2.2.1 (Codex)** :
+
 - Clarification du contrat `validate_and_classify_input` et exemples d’usage alignés
 - Durcissement du parsing markdown (fallback titre) + validation post-parse
 - Clarification UAT en critères opératoires et ajout Go/NoGo
@@ -23,6 +35,7 @@
 Le système **agentic-research** (multi-agent OpenAI Agents SDK + MCP) présente un **taux d'échec élevé** en mode local DGX Spark, principalement des **`ModelBehaviorError`** (JSON invalide, EOF, troncatures).
 
 **Setup DGX actuel** :
+
 - **Modèles** : Qwen3-Embedding (4B-Q8), gpt-oss-20b-mxfp4 (instruct), Ministral-3-14B-Q8 (reasoning)
 - **Moteur d'inférence** : llama.cpp server
 - **Vector store** : ChromaDB local
@@ -37,16 +50,19 @@ Le système **agentic-research** (multi-agent OpenAI Agents SDK + MCP) présente
 ### Logs analysés
 
 **`test_files/writer_error.txt`** :
+
 ```
 ModelBehaviorError: [...] Invalid JSON: EOF while parsing a string at line 1 column 6639
 TypeAdapter(ReportData); 1 validation error for ReportData
 ```
 
 **`test_files/dgx-spark-run.log`** :
+
 - Mêmes erreurs JSON truncated
 - `pydantic_core.ValidationError` sur JSONRPCMessage (MCP stdout non-JSON)
 
 **Issues GitHub** :
+
 - **#46** : gpt-oss-20b JSON invalide (structured output)
 - **#47** : gpt-oss-20b génère URLs corrompues/hallucinations
 - **#6** : upload_files_to_vectorstore fail si agent passe file_id au lieu de filename
@@ -64,7 +80,7 @@ TypeAdapter(ReportData); 1 validation error for ReportData
 llm-instruct:
   command:
     - "-n"
-    - "${LLM_INSTRUCT_N_CTX:-2048}"  # ⚠️ Flag AMBIGU
+    - "${LLM_INSTRUCT_N_CTX:-2048}" # ⚠️ Flag AMBIGU
     - "--n-gpu-layers"
     - "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
     # ❌ MANQUE: --n-predict (max output tokens)
@@ -74,6 +90,7 @@ llm-instruct:
 **⚠️ ERREUR DE FLAG** (feedback reçu) :
 
 Dans **llama.cpp server**, la syntaxe correcte est :
+
 - **`--ctx-size`** (ou `-c`) : taille du contexte (input + output combinés)
 - **`--n-predict`** : nombre max de tokens de sortie
 - **`--batch-size`** (ou `-b`) : taille des batchs de traitement
@@ -81,11 +98,13 @@ Dans **llama.cpp server**, la syntaxe correcte est :
 Le flag `-n` seul est **ambigu** (CLI vs server ont des conventions différentes).
 
 **Mécanique du contexte** :
+
 - Le `ctx-size` est **input + output** (tout ce qui passe dans le contexte)
 - Si prompt = 1500 tokens et ctx-size = 2048, il reste **~548 tokens max** pour la génération
 - Sans `--n-predict` explicite, le modèle peut s'arrêter prématurément ou tronquer
 
 **Conséquence** :
+
 - Troncature en plein JSON → `EOF while parsing`
 - Output incohérent sous pression mémoire
 
@@ -135,6 +154,7 @@ print(f"Total: {prompt_tokens + output_tokens} (ctx-size actuel: 2048)")
 ### H2 : Fragilité structured output avec modèles quantifiés
 
 Modèles petits/quantifiés (gpt-oss-20b-mxfp4) moins fiables sur JSON strict :
+
 - Hallucinations (URLs corrompues #47)
 - Non-respect schéma Pydantic
 
@@ -143,6 +163,7 @@ Modèles petits/quantifiés (gpt-oss-20b-mxfp4) moins fiables sur JSON strict :
 Workflow multi-agent → conversations longues → contexte saturé → qualité ↓
 
 Référence : `docs/Deep Research - How to Build a Multi-Agent Research Workflow That Actually Works.pdf` :
+
 > "Garder une conversation courte augmente la qualité du rendu."
 
 ### H4 : Appels fonctions non déterministes
@@ -160,11 +181,11 @@ Writer agent doit appeler `save_report` tool → modèle peut skip ou boucler su
 ```yaml
 llm-instruct:
   command:
-    - "--ctx-size"  # ✅ CORRECTION (était "-n")
-    - "${LLM_INSTRUCT_CTX_SIZE:-8192}"  # 2048 → 8192
-    - "--n-predict"  # ✅ NOUVEAU
-    - "${LLM_INSTRUCT_N_PREDICT:-4096}"  # Limite explicite output
-    - "--batch-size"  # ✅ CORRECTION (était "--n-batch")
+    - "--ctx-size" # ✅ CORRECTION (était "-n")
+    - "${LLM_INSTRUCT_CTX_SIZE:-8192}" # 2048 → 8192
+    - "--n-predict" # ✅ NOUVEAU
+    - "${LLM_INSTRUCT_N_PREDICT:-4096}" # Limite explicite output
+    - "--batch-size" # ✅ CORRECTION (était "--n-batch")
     - "${LLM_INSTRUCT_BATCH_SIZE:-512}"
     - "--n-gpu-layers"
     - "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
@@ -202,22 +223,26 @@ LLM_REASONING_BATCH_SIZE=512
 Les valeurs par défaut **doivent rester cohérentes** entre `models.env` et `docker-compose.dgx.yml`.
 
 **Stratégie recommandée** :
+
 - `docker-compose.dgx.yml` : Utilise `${VAR:-default}` (fallback si variable absente)
 - `models.env` : Fournit les valeurs explicites (prioritaires)
 - Éviter divergence : si `models.env` change, vérifier que defaults dans compose sont cohérents
 
 Exemple dans `docker-compose.dgx.yml` :
+
 ```yaml
 - "--ctx-size"
-- "${LLM_INSTRUCT_CTX_SIZE:-8192}"  # ✅ Default = valeur models.env
+- "${LLM_INSTRUCT_CTX_SIZE:-8192}" # ✅ Default = valeur models.env
 ```
 
 **Risque si divergence** :
+
 - `models.env` dit `CTX_SIZE=8192`
 - `docker-compose.yml` dit `${CTX_SIZE:-2048}` (default 2048)
 - → Si variable non chargée, on retombe sur 2048 (régression silencieuse)
 
 **Validation** :
+
 1. Smoke test complet (query simple → rapport final)
 2. Vérifier logs : pas de troncature EOF
 3. Mesurer taux de complétion sur 3-5 runs
@@ -242,18 +267,18 @@ class InputType(str, Enum):
 def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
     """
     Valide et classifie une entrée (file_id, URL, filename, path).
-    
+
     **Contrat de retour** : (InputType, error_msg)
     - Si valide → (type, None)
     - Si invalide → (INVALID, message d'erreur)
-    
+
     ⚠️ Le second élément est TOUJOURS un message d'erreur (ou None si valide).
     Pour obtenir la valeur normalisée, utiliser `value` directement si error_msg est None.
     """
     # File ID OpenAI
     if value.startswith("file-"):
         return (InputType.FILE_ID, None)
-    
+
     # URL
     if value.startswith(("http://", "https://")):
         # Détection caractères corrompus/non-ASCII
@@ -262,12 +287,12 @@ def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
         except UnicodeEncodeError:
             return (InputType.INVALID, "URL contient caractères non-ASCII")
         return (InputType.URL, None)
-    
+
     # Filename strict (sans séparateurs de chemin, évite path traversal)
     # Format: nom_fichier.ext (alphanumériques, tirets, underscores)
     if re.fullmatch(r"[a-zA-Z0-9_\-\.]+\.(txt|md|pdf|json|yaml)", value):
         return (InputType.FILENAME, None)
-    
+
     # Path local (avec séparateurs)
     # ⚠️ Attention : accepté en mode mono-user, mais validation chemin recommandée
     if "/" in value or "\\" in value:
@@ -275,7 +300,7 @@ def validate_and_classify_input(value: str) -> tuple[InputType, str | None]:
         if ".." in value:
             return (InputType.INVALID, "Path traversal détecté")
         return (InputType.LOCAL_PATH, None)
-    
+
     return (InputType.INVALID, "Format non reconnu")
 ```
 
@@ -333,6 +358,7 @@ if input_type == InputType.FILE_ID:
 **⚠️ Correction importante** (feedback reçu) :
 
 Ne pas "perdre le contexte" au retry. Le retry doit :
+
 - Garder **mêmes inputs structurants** (search results, plan, etc.)
 - Ajouter **error hint** ("patch minimal")
 - Ne pas créer "nouvelle question"
@@ -352,6 +378,7 @@ Pour l'étape critique (writer JSON) :
 7. ❌ Si échec → **Fallback markdown** (voir S5)
 
 **Justification Pass@K conditionnel** :
+
 - Coût acceptable car **rare + ciblé** (uniquement après échec retry)
 - Uniquement sur writer JSON (étape critique)
 - Alternative à l'échec total
@@ -366,12 +393,15 @@ Pour l'étape critique (writer JSON) :
 # [Titre du rapport]
 
 ## Executive Summary
+
 [résumé en 2-3 paragraphes]
 
 ## [Sections du rapport]
+
 ...
 
 ## Follow-up Questions
+
 1. Question 1
 2. Question 2
 3. Question 3
@@ -386,37 +416,37 @@ from src.agents.schemas import ReportData
 def parse_markdown_report(markdown: str, research_topic: str) -> ReportData:
     """
     Parse markdown → ReportData avec validation.
-    
+
     ⚠️ Impose titre : soit extrait du markdown, soit fallback sur research_topic.
     """
     # Extraire titre
     title_match = re.search(r'^#\s+(.+)$', markdown, re.MULTILINE)
-    
+
     # Fallback titre si absent
     if title_match:
         title = title_match.group(1).strip()
     else:
         # Générer titre safe depuis research_topic
         title = research_topic if research_topic else "Untitled Research Report"
-    
+
     # Extraire summary
     summary_match = re.search(
         r'##\s+Executive Summary\s+(.+?)(?=##|\Z)',
         markdown,
         re.DOTALL | re.IGNORECASE
     )
-    
+
     # Extraire questions
     questions = re.findall(
         r'^\d+\.\s+(.+)$',
         markdown,
         re.MULTILINE
     )
-    
+
     # Si pas de titre dans markdown, insérer au début
     if not title_match:
         markdown = f"# {title}\n\n{markdown}"
-    
+
     # Validation post-parse (Pydantic)
     return ReportData(
         markdown_report=markdown,
@@ -427,6 +457,7 @@ def parse_markdown_report(markdown: str, research_topic: str) -> ReportData:
 ```
 
 **Tests de parsing** :
+
 - Sections manquantes
 - Headings alternatifs
 - Validation Pydantic post-parse
@@ -449,29 +480,29 @@ def save_report_programmatically(
 ) -> Path:
     """
     Sauvegarde déterministe du rapport (sans tool call).
-    
+
     ⚠️ Écrit TOUJOURS les métadonnées, même si rapport vide/invalide.
     Permet traçabilité des échecs.
     """
     filename = f"research_report_{timestamp}.md"
     filepath = output_dir / filename
-    
+
     # Métadonnées (TOUJOURS écrire, même si rapport invalide)
     meta_file = output_dir / f"metadata_{timestamp}.json"
     metadata = report.model_dump()
     metadata["_saved_at"] = timestamp
     metadata["_is_valid"] = bool(report.markdown_report and len(report.markdown_report) > 100)
-    
+
     meta_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    
+
     # Rapport markdown (lever si vide critique)
     if not report.markdown_report:
         # Écrire fichier vide + marquer invalide dans metadata (déjà fait)
         filepath.write_text("# [Rapport vide - échec génération]\n", encoding="utf-8")
         raise ValueError(f"Rapport vide généré (metadata sauvegardé: {meta_file})")
-    
+
     filepath.write_text(report.markdown_report, encoding="utf-8")
-    
+
     return filepath
 ```
 
@@ -544,6 +575,7 @@ search_agent = Agent(
 **Justification initiale** : Faisabilité inconnue, effort incertain.
 
 **⚠️ Reconsidération** (feedback reçu) :
+
 - Grammars attaquent **classe d'erreurs** (syntaxe JSON) à la source
 - **Décision révisée** : Non prioritaire tant que S1 pas corrigé
 - **Reconsidérer si** : Taux fallback markdown > 30% après S1-S7
@@ -561,6 +593,7 @@ search_agent = Agent(
 **Objectif** : Éliminer cause racine H1.
 
 **Tâches** :
+
 1. Corriger `docker-compose.dgx.yml` : `-n` → `--ctx-size`, ajouter `--n-predict`, `--batch-size`
 2. Mettre à jour `models.env` avec nouvelles variables
 3. Redémarrer services : `docker-compose -f docker-compose.dgx.yml up -d`
@@ -574,6 +607,7 @@ search_agent = Agent(
 **Objectif** : Robustesse sur inputs fragiles + save déterministe.
 
 **Tâches** :
+
 1. Implémenter `validate_and_classify_input()` + tests unitaires
 2. Ajouter `find_by_file_id()` dans `KnowledgeDBManager`
 3. Intégrer validation dans `upload_files_to_vectorstore`
@@ -588,6 +622,7 @@ search_agent = Agent(
 **Objectif** : Filet de sécurité si structured output échoue encore.
 
 **Tâches** :
+
 1. Implémenter `parse_markdown_report()` + tests
 2. Créer prompt `file_writer_agent_markdown.md`
 3. Wrapper `run_writer_with_markdown_fallback()` (structured → retry → markdown)
@@ -602,6 +637,7 @@ search_agent = Agent(
 **Tests de bout en bout** (critères opérationnels) :
 
 Exécuter **4 queries** représentatives :
+
 1. **Query simple** (smoke test) : "Explain Retrieval Augmented Generation"
 2. **Query complexe** (syllabus multi-topics) : syllabus avec 5+ sources
 3. **Query URLs externes** (test Issue #47) : avec URLs non-syllabus
@@ -610,16 +646,19 @@ Exécuter **4 queries** représentatives :
 **Critères de succès** (opérationnels, non métriques) :
 
 ✅ **Minimal** (Go/NoGo) :
+
 - **Au moins 3/4 queries** complètent jusqu'au bout (rapport final généré)
 - **Fichiers présents** : `research_report_*.md` + `metadata_*.json` pour chaque run réussi
 - **Logs propres** : pas de troncature EOF, pas d'URLs corrompues (Issue #47)
 
 ✅ **Optimal** :
+
 - **4/4 queries** complètent
 - **Métadonnées `_is_valid: true`** pour tous les rapports
 - **Save déterministe** : tous les rapports sauvegardés automatiquement (pas de skip)
 
 ✅ **Validation manuelle** (échantillon) :
+
 - Lire 1 rapport : structure markdown correcte, contenu cohérent
 - Vérifier metadata : `short_summary` non vide, `follow_up_questions` présentes
 
@@ -643,12 +682,14 @@ grep -l "_is_valid.*true" uat_output/metadata_*.json | wc -l  # Objectif: 3-4
 ### 7.1. Flags llama.cpp : pourquoi cette correction est critique
 
 **Avant** (ambigu) :
+
 ```yaml
 - "-n"
 - "2048"
 ```
 
 **Après** (explicite) :
+
 ```yaml
 - "--ctx-size"
 - "8192"
@@ -657,6 +698,7 @@ grep -l "_is_valid.*true" uat_output/metadata_*.json | wc -l  # Objectif: 3-4
 ```
 
 **Impact** :
+
 - Contexte clair : input + output = 8192 tokens max
 - Limite sortie explicite : 4096 tokens max
 - Pas de truncation silencieuse
@@ -664,12 +706,14 @@ grep -l "_is_valid.*true" uat_output/metadata_*.json | wc -l  # Objectif: 3-4
 ### 7.2. Retry avec contexte vs nouvelle question
 
 **Mauvais** :
+
 ```python
 retry_prompt = f"L'erreur était : {error}. Réessaye."
 result = await Runner.run(agent, retry_prompt)  # ❌ perd contexte
 ```
 
 **Bon** :
+
 ```python
 # Même task, mêmes inputs, + hint
 messages.append({"role": "system", "content": f"Erreur validation : {error}. Corrige JSON minimal."})
@@ -679,10 +723,12 @@ result = await Runner.run(agent, context=research_info)  # ✅ garde contexte
 ### 7.3. Pass@K conditionnel vs systématique
 
 **Coût Pass@K systématique** :
+
 - Writer : 2000 tokens output × 3 candidats = 6000 tokens
 - × Tous les runs → coût prohibitif
 
 **Pass@K conditionnel** (après échec) :
+
 - Uniquement si structured output + retry échouent
 - Sur writer JSON uniquement (étape critique)
 - Coût acceptable : rare + ciblé
@@ -690,15 +736,18 @@ result = await Runner.run(agent, context=research_info)  # ✅ garde contexte
 ### 7.4. Grammars llama.cpp : quand reconsidérer
 
 **Critère de reconsidération** :
+
 - Après Phase 1-3 implémentées
 - **Si** : Taux fallback markdown > 30%
 - **Action** : Test pilote grammars JSON sur writer agent
 
 **Avantage grammars** :
+
 - Garantie syntaxe JSON à la source (pas repair a posteriori)
 - Réduit retry/fallback
 
 **Risque** :
+
 - Peut impacter créativité/qualité contenu
 - Nécessite tuning per-model
 
@@ -707,17 +756,20 @@ result = await Runner.run(agent, context=research_info)  # ✅ garde contexte
 ## 8. Critères de succès
 
 ### Minimal (Go/NoGo itération)
+
 - ✅ Config llama.cpp corrigée et validée (Phase 1)
 - ✅ Smoke test complète 3/3 fois sans troncature EOF
 - ✅ Issues #6 et #47 résolus (Phase 2)
 
 ### Optimal (objectif 1j)
+
 - ✅ Toutes les phases (1+2+3) implémentées
 - ✅ Taux de complétion ≥80% sur UAT (4 queries)
 - ✅ Markdown fallback opérationnel
 - ✅ Save programmatique déterministe
 
 ### Stretch (si temps)
+
 - ✅ Context trimming activé et testé
 - ✅ Pass@K conditionnel implémenté
 - ✅ Documentation technique mise à jour
@@ -733,6 +785,7 @@ Ce plan se concentre sur **l'essentiel exécutable en 1/2 à 1 journée** :
 3. **Phase 3 (optionnel)** : Fallbacks markdown + context trimming
 
 **Prochaines étapes hors scope** :
+
 - Évaluation comparative modèles (dense vs MoE, mono vs duo)
 - Optimisation prompts par modèle
 - Frameworks long-running (Restate/Temporal)
