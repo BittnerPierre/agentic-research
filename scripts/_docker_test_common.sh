@@ -42,7 +42,7 @@ run_docker_test() {
       ;;
     e2e)
       manager_args=""
-      query="Smoke test: ${stack} docker stack"
+      query=""
       ;;
     *)
       echo "Error: unknown MODE '${mode}'. Use MODE=smoke or MODE=e2e."
@@ -92,9 +92,15 @@ PY
   fi
 
   # Avoid bash array compatibility issues on macOS (bash 3.x).
-  docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm agentic-research \
-    agentic-research ${manager_args:+${manager_args}} --config "${config_path}" \
-    --query "${query}"
+  if [ -n "${query}" ]; then
+    docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm agentic-research \
+      agentic-research ${manager_args:+${manager_args}} --config "${config_path}" \
+      --query "${query}"
+  else
+    docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm agentic-research \
+      agentic-research ${manager_args:+${manager_args}} --config "${config_path}" \
+      --syllabus /app/test_files/syllabus.md
+  fi
 
   if ! docker compose "${compose_files[@]}" --env-file "${env_file}" logs agentic-research \
     | grep -q "chroma_query_documents"; then
