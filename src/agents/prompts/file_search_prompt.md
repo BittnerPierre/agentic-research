@@ -13,14 +13,18 @@ Your summary must follow these rules:
 - No filler or redundant phrases.
 - No commentary, disclaimers or explanations — only the raw summary.
 
+**Output format (STRICT):**
+Return a JSON object that matches this schema:
+{
+  "file_name": "<filename>.txt"
+}
+
 **Delivery rule:**
 
 - When done, you MUST store the entire summary using the `write_file` function.
-- DO NOT print the summary directly in your reply — only call `write_file`.
 - The `filename` must be the search term.
 - The `content` must be your summary text.
-- If you do not use `write_file`, your task is incomplete and will be rejected.
-- In your final reply, return only the name of the file "<filename>.txt"
+- After calling `write_file`, respond with the JSON object above and nothing else.
 
 Do not include any other text.
 
