@@ -46,6 +46,17 @@
 - If a change affects more than 3 files, present the plan and wait for a clear “OK” before editing.
 - If instructions are ambiguous, ask for clarification instead of acting.
 
+## Definition of Done & Release Gates
+- “Go-ahead to develop” is not permission to commit or push.
+- Ask explicitly before committing and before pushing.
+- Definition of done includes:
+- A unit test that reproduces the bug/feature.
+- The fix/feature implementation.
+- The new test passes and the full unit test suite passes.
+- Documentation updates if the change affects usage, behavior, or configuration.
+- Validation that it works (automated when possible, otherwise explicit human validation).
+- Push only after all of the above and explicit approval to push.
+
 ## Configuration & Runtime Notes
 - Default manager selection lives in `configs/config-default.yaml` (`manager.default_manager`).
 - You can override the default manager with `DEFAULT_MANAGER` environment variable.
