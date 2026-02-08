@@ -4,7 +4,7 @@ from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
-from .schemas import FileSearchResult, ResearchInfo
+from .schemas import ResearchInfo
 from .utils import (
     adjust_model_settings_for_base_url,
     extract_model_name,
@@ -77,7 +77,6 @@ def create_file_search_agent(
         model=model,
         model_settings=model_settings,
         mcp_servers=mcp_servers,
-        output_type=FileSearchResult,
     )
 
     return file_search_agent
