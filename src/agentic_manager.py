@@ -10,7 +10,7 @@ from .agents.file_search_agent import create_file_search_agent
 from .agents.file_search_planning_agent import create_file_planner_agent
 from .agents.file_writer_agent import create_writer_agent
 from .agents.schemas import ReportData, ResearchInfo
-from .agents.utils import coerce_report_data
+from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
 from .printer import Printer
 
@@ -78,6 +78,16 @@ class AgenticResearchManager:
             self.printer.update_item("final_report", final_report, is_done=True)
 
             self.printer.end()
+
+        print("\n\n=====SAVING REPORT=====\n\n")
+        _new_report = await save_final_report_function(
+            research_info.output_dir,
+            report.research_topic,
+            report.markdown_report,
+            report.short_summary,
+            report.follow_up_questions,
+        )
+        print(f"Report saved: {_new_report.file_name}")
 
         print("\n\n=====REPORT=====\n\n")
         print(f"Report: {report.markdown_report}")
