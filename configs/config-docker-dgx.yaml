@@ -93,3 +93,4 @@ manager:
 agents:
   max_search_plan: "5-7"
   output_dir: "output/"
+  writer_output_format: "markdown"

@@ -8,8 +8,10 @@ from agents.mcp import MCPServer
 from .agents.agentic_research_agent import create_research_supervisor_agent
 from .agents.file_search_agent import create_file_search_agent
 from .agents.file_search_planning_agent import create_file_planner_agent
-from .agents.file_writer_agent import ReportData, create_writer_agent
+from .agents.file_writer_agent import create_writer_agent
 from .agents.schemas import ResearchInfo
+from .agents.schemas import ReportData
+from .agents.utils import coerce_report_data
 from .config import get_config
 from .printer import Printer
 
@@ -100,4 +102,5 @@ class AgenticResearchManager:
             "Doing Agentic Research",
             is_done=True,
         )
-        return result.final_output_as(ReportData)
+        output = result.final_output
+        return coerce_report_data(output, query)

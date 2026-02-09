@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 
 from agents import RunContextWrapper, function_tool
@@ -6,6 +7,46 @@ from agents.extensions.models.litellm_model import LitellmModel
 from agents.mcp import ToolFilterContext
 
 from .schemas import ReportData, ResearchInfo
+
+WRITER_OUTPUT_FORMAT_JSON = """Respond in this JSON format:
+
+{{
+  "file_name": "<file_name>",
+  "research_topic": "<research_topic>",
+  "short_summary": "<short_summary>",
+  "markdown_report": "# <report_title/>\\n\\n## Raw Notes\\n\\n<raw_notes/>## Detailed Agenda\\n\\n<detailed_agenda/>\\n\\n## Report\\n\\n<report/>\\n\\n## FINAL STEP\\n",
+  "follow_up_questions": ["<question_1/>", "<question_2/>", "<question_3/>"]
+}}"""
+
+WRITER_OUTPUT_FORMAT_MARKDOWN = """Return a markdown document only (no JSON, no code fences).
+
+Required headings (exact strings):
+- "# <Report Title>"
+- "## Executive Summary"
+- "## Raw Notes"
+- "## Detailed Agenda"
+- "## Report"
+
+Optional heading:
+- "## Follow-up Questions"
+
+The final line must be exactly "## FINAL STEP"."""
+
+
+def get_writer_output_formatting(output_format: str) -> str:
+    if output_format == "json":
+        return WRITER_OUTPUT_FORMAT_JSON
+    if output_format == "markdown":
+        return WRITER_OUTPUT_FORMAT_MARKDOWN
+    raise ValueError(f"Unsupported writer_output_format: {output_format}")
+
+
+def get_writer_output_type(output_format: str) -> type[ReportData] | type[str]:
+    if output_format == "json":
+        return ReportData
+    if output_format == "markdown":
+        return str
+    raise ValueError(f"Unsupported writer_output_format: {output_format}")
 
 
 def load_prompt_from_file(folder_path: str, file_path: str) -> str:
@@ -67,6 +108,80 @@ def generate_final_report_filename(research_topic: str) -> str:
     topic = topic[:50]
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     return f"{topic}_final_report_{timestamp}.md"
+
+
+def _extract_section(markdown: str, heading: str) -> str | None:
+    pattern = rf"^##\s+{re.escape(heading)}\s*$"
+    match = re.search(pattern, markdown, flags=re.MULTILINE | re.IGNORECASE)
+    if not match:
+        return None
+    start = match.end()
+    next_heading = re.search(r"^##\s+\S.*$", markdown[start:], flags=re.MULTILINE)
+    end = start + next_heading.start() if next_heading else len(markdown)
+    section = markdown[start:end].strip()
+    return section or None
+
+
+def _compact_text(text: str) -> str:
+    text = re.sub(r"\\s+", " ", text.strip())
+    return text
+
+
+def _first_sentences(text: str, max_sentences: int = 3) -> str:
+    if not text:
+        return ""
+    parts = re.split(r"(?<=[.!?])\\s+", text)
+    return " ".join(parts[:max_sentences]).strip()
+
+
+def parse_writer_markdown(markdown_report: str, research_topic: str) -> ReportData:
+    """
+    Parse a markdown-only writer output into a ReportData object.
+    """
+    if not markdown_report or not markdown_report.strip():
+        raise ValueError("Writer markdown report is empty.")
+
+    title_match = re.search(r"^#\s+(.+)$", markdown_report, flags=re.MULTILINE)
+    title = title_match.group(1).strip() if title_match else "Report"
+
+    executive_summary = _extract_section(markdown_report, "Executive Summary")
+    if executive_summary:
+        short_summary = _compact_text(executive_summary)
+    else:
+        short_summary = _first_sentences(_compact_text(markdown_report))
+
+    follow_up_section = _extract_section(markdown_report, "Follow-up Questions")
+    follow_up_questions: list[str] = []
+    if follow_up_section:
+        for line in follow_up_section.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            bullet_match = re.match(r"^[-*]\s+(.*)$", line)
+            numbered_match = re.match(r"^\d+\.\s+(.*)$", line)
+            if bullet_match:
+                follow_up_questions.append(bullet_match.group(1).strip())
+            elif numbered_match:
+                follow_up_questions.append(numbered_match.group(1).strip())
+        follow_up_questions = [q for q in follow_up_questions if q]
+
+    file_name = generate_final_report_filename(research_topic)
+
+    return ReportData(
+        file_name=file_name,
+        research_topic=research_topic,
+        short_summary=short_summary or title,
+        markdown_report=markdown_report,
+        follow_up_questions=follow_up_questions,
+    )
+
+
+def coerce_report_data(output: ReportData | str, research_topic: str) -> ReportData:
+    if isinstance(output, ReportData):
+        return output
+    if isinstance(output, str):
+        return parse_writer_markdown(output, research_topic)
+    raise TypeError(f"Unsupported writer output type: {type(output)}")
 
 
 @function_tool

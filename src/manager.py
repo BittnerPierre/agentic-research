@@ -11,7 +11,9 @@ from agents.mcp import MCPServer
 from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
 from .agents.schemas import ResearchInfo
 from .agents.search_agent import search_agent
-from .agents.writer_agent import ReportData, writer_agent
+from .agents.schemas import ReportData
+from .agents.utils import coerce_report_data
+from .agents.writer_agent import writer_agent
 from .printer import Printer
 
 
@@ -125,4 +127,5 @@ class StandardResearchManager:
                 last_update = time.time()
 
         self.printer.mark_item_done("writing")
-        return result.final_output_as(ReportData)
+        output = result.final_output
+        return coerce_report_data(output, query)
