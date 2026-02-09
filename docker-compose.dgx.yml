@@ -40,16 +40,15 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    command:
-      - "-m"
-      - "${EMBEDDINGS_MODEL_PATH:-/mnt/models/models--Qwen--Qwen3-Embedding-4B-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Qwen3-Embedding-4B-Q8_0.gguf}"
-      - "--port"
-      - "${EMBEDDINGS_PORT:-8003}"
-      - "--host"
-      - "0.0.0.0"
-      - "--jinja"
-      - "--embeddings"
-      - "${EMBEDDINGS_EXTRA_PARAMS:-}"
+    entrypoint: ["/bin/sh", "-lc"]
+    command: >-
+      exec /app/llama-server
+      -m "${EMBEDDINGS_MODEL_PATH:-/mnt/models/models--Qwen--Qwen3-Embedding-4B-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Qwen3-Embedding-4B-Q8_0.gguf}"
+      --port "${EMBEDDINGS_PORT:-8003}"
+      --host "0.0.0.0"
+      --jinja
+      --embeddings
+      ${EMBEDDINGS_EXTRA_PARAMS:+$EMBEDDINGS_EXTRA_PARAMS}
     ports:
       - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
 
@@ -64,25 +63,19 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    command:
-      - "-m"
-      - "${LLM_INSTRUCT_MODEL_PATH:-/mnt/models/models--ggml-org--gpt-oss-20b-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/gpt-oss-20b-mxfp4.gguf}"
-      - "--port"
-      - "${LLM_INSTRUCT_PORT:-8002}"
-      - "--host"
-      - "0.0.0.0"
-      - "--ctx-size"
-      - "${LLM_INSTRUCT_CTX_SIZE:-32768}"
-      - "--n-predict"
-      - "${LLM_INSTRUCT_N_PREDICT:-8192}"
-      - "-b"
-      - "${LLM_INSTRUCT_BATCH_SIZE:-512}"
-      - "-ub"
-      - "${LLM_INSTRUCT_UBATCH_SIZE:-512}"
-      - "--n-gpu-layers"
-      - "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
-      - "--jinja"
-      - "${LLM_INSTRUCT_EXTRA_PARAMS:-}"
+    entrypoint: ["/bin/sh", "-lc"]
+    command: >-
+      exec /app/llama-server
+      -m "${LLM_INSTRUCT_MODEL_PATH:-/mnt/models/models--ggml-org--gpt-oss-20b-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/gpt-oss-20b-mxfp4.gguf}"
+      --port "${LLM_INSTRUCT_PORT:-8002}"
+      --host "0.0.0.0"
+      --ctx-size "${LLM_INSTRUCT_CTX_SIZE:-32768}"
+      --n-predict "${LLM_INSTRUCT_N_PREDICT:-8192}"
+      -b "${LLM_INSTRUCT_BATCH_SIZE:-512}"
+      -ub "${LLM_INSTRUCT_UBATCH_SIZE:-512}"
+      --n-gpu-layers "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
+      --jinja
+      ${LLM_INSTRUCT_EXTRA_PARAMS:+$LLM_INSTRUCT_EXTRA_PARAMS}
     ports:
       - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
 
@@ -97,24 +90,18 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    command:
-      - "-m"
-      - "${LLM_REASONING_MODEL_PATH:-/mnt/models/models--mistralai--Ministral-3-14B-Reasoning-2512-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Ministral-3-14B-Reasoning-2512-Q8_0.gguf}"
-      - "--port"
-      - "${LLM_REASONING_PORT:-8004}"
-      - "--host"
-      - "0.0.0.0"
-      - "--ctx-size"
-      - "${LLM_REASONING_CTX_SIZE:-32768}"
-      - "--n-predict"
-      - "${LLM_REASONING_N_PREDICT:-8192}"
-      - "-b"
-      - "${LLM_REASONING_BATCH_SIZE:-512}"
-      - "-ub"
-      - "${LLM_REASONING_UBATCH_SIZE:-512}"
-      - "--n-gpu-layers"
-      - "${LLM_REASONING_N_GPU_LAYERS:-999}"
-      - "--jinja"
-      - "${LLM_REASONING_EXTRA_PARAMS:-}"
+    entrypoint: ["/bin/sh", "-lc"]
+    command: >-
+      exec /app/llama-server
+      -m "${LLM_REASONING_MODEL_PATH:-/mnt/models/models--mistralai--Ministral-3-14B-Reasoning-2512-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Ministral-3-14B-Reasoning-2512-Q8_0.gguf}"
+      --port "${LLM_REASONING_PORT:-8004}"
+      --host "0.0.0.0"
+      --ctx-size "${LLM_REASONING_CTX_SIZE:-32768}"
+      --n-predict "${LLM_REASONING_N_PREDICT:-8192}"
+      -b "${LLM_REASONING_BATCH_SIZE:-512}"
+      -ub "${LLM_REASONING_UBATCH_SIZE:-512}"
+      --n-gpu-layers "${LLM_REASONING_N_GPU_LAYERS:-999}"
+      --jinja
+      ${LLM_REASONING_EXTRA_PARAMS:+$LLM_REASONING_EXTRA_PARAMS}
     ports:
       - "${LLM_REASONING_PORT:-8004}:${LLM_REASONING_PORT:-8004}"
