@@ -7,11 +7,11 @@ from src.agents.utils import (
 
 def test_writer_output_formatting_json():
     formatting = get_writer_output_formatting("json")
-    assert "\"file_name\"" in formatting
-    assert "\"research_topic\"" in formatting
-    assert "\"short_summary\"" in formatting
-    assert "\"markdown_report\"" in formatting
-    assert "\"follow_up_questions\"" in formatting
+    assert '"file_name"' in formatting
+    assert '"research_topic"' in formatting
+    assert '"short_summary"' in formatting
+    assert '"markdown_report"' in formatting
+    assert '"follow_up_questions"' in formatting
 
 
 def test_writer_output_formatting_markdown():
