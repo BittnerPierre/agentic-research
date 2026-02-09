@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import time
+import urllib.request
+from dataclasses import asdict
 
 from rich.console import Console
 
@@ -174,16 +178,21 @@ class DeepResearchManager:
         formatted_results = (
             "\n".join(f"- {fname}" for fname in search_results) if search_results else "None"
         )
-        input = (
+        prompt_text = (
             f"Rédige un rapport de recherche exhaustif et détaillé repondant à la demande suivante:\n\n {query}.\n\n"
             f"Utilise l'agenda produit ainsi que les contenus des fichiers attachés "
             f" pour rédiger un rapport conforme aux attentes.\n\n"
             f"Search results:\n{formatted_results}"
         )
 
+        if self._restate_writer_enabled():
+            report = await self._write_report_via_restate(prompt_text)
+            self.printer.mark_item_done("writing")
+            return report
+
         result = Runner.run_streamed(
             self.writer_agent,
-            input,
+            prompt_text,
             context=self.research_info,
         )
         update_messages = [
@@ -207,3 +216,38 @@ class DeepResearchManager:
 
         self.printer.mark_item_done("writing")
         return result.final_output_as(ReportData)
+
+    def _restate_writer_enabled(self) -> bool:
+        value = os.getenv("RESTATE_WRITER_ENABLED", "")
+        return value.lower() in ("1", "true", "yes", "on")
+
+    async def _write_report_via_restate(self, prompt_text: str) -> ReportData:
+        ingress = os.getenv("RESTATE_INGRESS_URL", "http://localhost:8080").rstrip("/")
+        service = os.getenv("RESTATE_WRITER_SERVICE", "WriterAgentRestate")
+        handler = os.getenv("RESTATE_WRITER_HANDLER", "run")
+        timeout = int(os.getenv("RESTATE_INGRESS_TIMEOUT", "120"))
+
+        payload = {
+            "prompt": prompt_text,
+            "research_info": asdict(self.research_info),
+        }
+        url = f"{ingress}/{service}/{handler}"
+        data = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        def _post() -> bytes:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.read()
+
+        try:
+            raw = await asyncio.to_thread(_post)
+            parsed = json.loads(raw.decode("utf-8"))
+        except Exception as exc:
+            raise RuntimeError("Restate writer invocation failed") from exc
+
+        return ReportData(**parsed)

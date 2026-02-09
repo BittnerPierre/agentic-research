@@ -5,7 +5,7 @@
 ### Local Development Stack
 
 - **Use case**: Local dev, CPU only
-- **Services**: ChromaDB + llama-cpp-cpu + dataprep + CLI
+- **Services**: ChromaDB + llama-cpp-cpu + dataprep + restate + writer-restate + CLI
 - **Configuration**: `configs/config-docker-local.yaml`
 - **Models**: CPU, light models
   - `sentence-transformers` is included in the Docker image (used by the default embedding function).
@@ -14,7 +14,7 @@
 ### DGX Spark Production Stack
 
 - **Use case**: DGX Spark GPU
-- **Services**: ChromaDB + embeddings-gpu + llm-instruct + llm-reasoning + dataprep + CLI
+- **Services**: ChromaDB + embeddings-gpu + llm-instruct + llm-reasoning + dataprep + restate + writer-restate + CLI
 - **Configuration**: `configs/config-docker-dgx.yaml`
 - **Models**: GPU GGUF models wired via `models.env`
 
@@ -42,7 +42,18 @@
 Note: Docker on macOS runs Linux containers, so llama.cpp runs CPU-only in Docker. For Metal GPU
 inference, run llama.cpp natively on macOS outside Docker.
 
-3. Run research:
+3. Register the Writer Restate service:
+
+   ```bash
+   restate deployments register http://writer-restate:9080 -y --use-http1.1 --force
+   ```
+
+   Or via Docker CLI image:
+   ```bash
+   bash scripts/restate_register.sh
+   ```
+
+4. Run research (deep_manager uses Restate writer by default):
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research \
      agentic-research --config /app/configs/config-docker-local.yaml \
@@ -55,7 +66,7 @@ inference, run llama.cpp natively on macOS outside Docker.
 bash scripts/test_docker_local_smoke.sh
 ```
 
-4. Stop services:
+5. Stop services:
    ```bash
    bash scripts/stop-docker-local.sh
    ```
@@ -76,7 +87,18 @@ bash scripts/test_docker_local_smoke.sh
    bash scripts/start-docker-dgx.sh
    ```
 
-3. Run research:
+3. Register the Writer Restate service:
+
+   ```bash
+   restate deployments register http://writer-restate:9080 -y --use-http1.1 --force
+   ```
+
+   Or via Docker CLI image:
+   ```bash
+   bash scripts/restate_register.sh
+   ```
+
+4. Run research (deep_manager uses Restate writer by default):
 
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.dgx.yml \
@@ -85,7 +107,7 @@ bash scripts/test_docker_local_smoke.sh
      --query "Your research question"
    ```
 
-4. Stop services:
+5. Stop services:
    ```bash
    bash scripts/stop-docker-dgx.sh
    ```
@@ -115,6 +137,10 @@ bash scripts/test_docker_local.sh
 ```bash
 bash scripts/test_docker_dgx.sh
 ```
+
+## UAT Restate
+
+Voir `docs/UAT_RESTATE.md` pour le parcours UAT Restate + Writer.
 
 ## Troubleshooting
 

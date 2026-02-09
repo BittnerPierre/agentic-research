@@ -1,4 +1,12 @@
 services:
+  restate:
+    image: docker.restate.dev/restatedev/restate:latest
+    ports:
+      - "8080:8080"
+      - "9070:9070"
+      - "9071:9071"
+    restart: unless-stopped
+
   dataprep:
     build:
       context: .
@@ -33,6 +41,8 @@ services:
       MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
       LITELLM_LOG: ERROR
       CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
+      RESTATE_WRITER_ENABLED: "true"
+      RESTATE_INGRESS_URL: http://restate:8080
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
@@ -42,6 +52,25 @@ services:
       - ./logs:/app/logs
     stdin_open: true
     tty: true
+
+  writer-restate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agentic-research
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+    env_file:
+      - .env
+    environment:
+      LITELLM_LOG: ERROR
+    volumes:
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./logs:/app/logs
+    command: ["python", "scripts/restate_writer_service.py"]
+    depends_on:
+      - restate
 
   evaluations:
     build:

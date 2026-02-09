@@ -5,6 +5,12 @@ x-llama-build: &llama-build
   image: local/llama.cpp:server-cuda
 
 services:
+  writer-restate:
+    environment:
+      RESTATE_WRITER_CONFIG: configs/config-docker-dgx.yaml
+    ports:
+      - "9080:9080"
+
   dataprep:
     command: ["dataprep_server", "--config", "configs/config-docker-dgx.yaml"]
     volumes:

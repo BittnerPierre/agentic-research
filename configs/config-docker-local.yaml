@@ -84,8 +84,8 @@ models:
 
 # Configuration du manager
 manager:
-  default_manager: "agentic_manager"
+  default_manager: "deep_manager"
 
 agents:
-  max_search_plan: "5-7"
+  max_search_plan: "2-3"
   output_dir: "output/"

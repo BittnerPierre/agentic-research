@@ -32,7 +32,7 @@ sur resilience, observabilite, et overhead.
 | Timeout LLM | Timeout sur 2e call | TBD | TBD | TBD |
 | Tool error | save_report echoue 1 fois | TBD | TBD | TBD |
 | JSON truncation | sortie invalide | TBD | TBD | TBD |
-| Crash process | kill pendant execution | TBD | TBD | TBD |
+| Crash process | kill pendant execution | 1 (local) | n/a | succes (reprise) |
 
 Notes:
 - Chaque scenario doit avoir >= 3 runs.
@@ -77,6 +77,7 @@ Observabilite:
 - Invocation Restate OK (HTTP ingress 8080, handler `run`).
 - Sortie LLM generee mais demande des fichiers de recherche (search_results vide).
 - Test utile pour valider l integration Restate + DGX, pas la qualite du writer.
+- Crash test: invocation asynchrone lancee, service arrete puis relance, invocation terminee avec succes.
 
 ---
 
