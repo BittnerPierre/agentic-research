@@ -14,15 +14,11 @@ from langsmith.wrappers import OpenAIAgentsTracingProcessor
 from agents import add_trace_processor
 from agents.mcp import MCPServerSse, MCPServerStdio
 
-from .agentic_manager import AgenticResearchManager
 from .agents.schemas import ResearchInfo
 from .agents.utils import context_aware_filter
 from .config import get_config
 from .dataprep.vector_backends import get_vector_backend
-from .deep_research_manager import DeepResearchManager
 from .logging_config import setup_run_logging
-from .manager import StandardResearchManager
-from .qa_manager import QAManager
 from .tracing.trace_processor import FileTraceProcessor
 
 
@@ -31,12 +27,20 @@ def get_manager_class(manager_path: str):
     if not manager_path or "." not in manager_path:
         # Default managers
         if manager_path == "agentic_manager":
+            from .agentic_manager import AgenticResearchManager
+
             return AgenticResearchManager
         elif manager_path == "manager":
+            from .manager import StandardResearchManager
+
             return StandardResearchManager
         elif manager_path == "deep_manager":
+            from .deep_research_manager import DeepResearchManager
+
             return DeepResearchManager
         elif manager_path == "qa_manager":
+            from .qa_manager import QAManager
+
             return QAManager
         else:
             raise ValueError(f"Unknown manager: {manager_path}")

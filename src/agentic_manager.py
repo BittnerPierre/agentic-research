@@ -8,8 +8,9 @@ from agents.mcp import MCPServer
 from .agents.agentic_research_agent import create_research_supervisor_agent
 from .agents.file_search_agent import create_file_search_agent
 from .agents.file_search_planning_agent import create_file_planner_agent
-from .agents.file_writer_agent import ReportData, create_writer_agent
-from .agents.schemas import ResearchInfo
+from .agents.file_writer_agent import create_writer_agent
+from .agents.schemas import ReportData, ResearchInfo
+from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
 from .printer import Printer
 
@@ -78,6 +79,16 @@ class AgenticResearchManager:
 
             self.printer.end()
 
+        print("\n\n=====SAVING REPORT=====\n\n")
+        _new_report = await save_final_report_function(
+            research_info.output_dir,
+            report.research_topic,
+            report.markdown_report,
+            report.short_summary,
+            report.follow_up_questions,
+        )
+        print(f"Report saved: {_new_report.file_name}")
+
         print("\n\n=====REPORT=====\n\n")
         print(f"Report: {report.markdown_report}")
         print("\n\n=====FOLLOW UP QUESTIONS=====\n\n")
@@ -100,4 +111,5 @@ class AgenticResearchManager:
             "Doing Agentic Research",
             is_done=True,
         )
-        return result.final_output_as(ReportData)
+        output = result.final_output
+        return coerce_report_data(output, query)
