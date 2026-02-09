@@ -99,9 +99,12 @@ def test_writer_trajectory_spec_checkpoints():
     assert "report_generation_report" in checkpoint_ids
     assert "save_report" in checkpoint_ids
 
-    # Verify all are required
+    # Verify required flags (save_report is optional when saved programmatically)
     for checkpoint in trajectory:
-        assert checkpoint["required"] is True
+        if checkpoint["id"] == "save_report":
+            assert checkpoint["required"] is False
+        else:
+            assert checkpoint["required"] is True
 
 
 def test_full_workflow_trajectory_spec_structure():

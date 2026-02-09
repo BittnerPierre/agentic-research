@@ -88,7 +88,7 @@ def _prepare_writer_inputs(test_case: dict) -> tuple[list[str], list[str], Path]
     return agenda, prepared_files, temp_dir
 
 
-# ✅ ORDRE CORRIGÉ : read_multiple_files PUIS save_report PUIS generations
+# ✅ ORDRE CORRIGÉ : read_multiple_files PUIS générations (save_report optionnel)
 TRAJECTORY_SPEC = {
     "trajectory_spec": [
         {
@@ -118,7 +118,7 @@ TRAJECTORY_SPEC = {
             "expected_content": "## Report",
             "required": True,
         },
-        {"id": "save_report", "type": "function_call", "name": "save_report", "required": True},
+        {"id": "save_report", "type": "function_call", "name": "save_report", "required": False},
     ]
 }
 

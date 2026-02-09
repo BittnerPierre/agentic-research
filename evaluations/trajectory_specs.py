@@ -114,8 +114,8 @@ WRITER_TRAJECTORY_SPEC = {
             "id": "save_report",
             "type": "function_call",
             "name": "save_report",
-            "required": True,
-            "description": "Writer saves report to file",
+            "required": False,
+            "description": "Writer saves report to file (optional if saved programmatically)",
         },
     ]
 }
@@ -181,8 +181,8 @@ FULL_WORKFLOW_TRAJECTORY_SPEC = {
             "id": "writer_save",
             "type": "function_call",
             "name": "save_report",
-            "required": True,
-            "description": "Writer saves final report",
+            "required": False,
+            "description": "Writer saves final report (optional if saved programmatically)",
         },
     ]
 }
