@@ -82,7 +82,7 @@ models:
 
 # Configuration du manager
 manager:
-  default_manager: "agentic_manager" # Options: agentic_manager,deep_manager, ou chemin.vers.ClasseManager
+  default_manager: "deep_manager" # Options: agentic_manager,deep_manager, ou chemin.vers.ClasseManager
 
 agents:
   max_search_plan: "5-7"
