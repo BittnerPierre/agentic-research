@@ -49,6 +49,7 @@ services:
       - "0.0.0.0"
       - "--jinja"
       - "--embeddings"
+      - "${EMBEDDINGS_EXTRA_PARAMS:-}"
     ports:
       - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
 
@@ -81,6 +82,7 @@ services:
       - "--n-gpu-layers"
       - "${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
       - "--jinja"
+      - "${LLM_INSTRUCT_EXTRA_PARAMS:-}"
     ports:
       - "${LLM_INSTRUCT_PORT:-8002}:${LLM_INSTRUCT_PORT:-8002}"
 
@@ -113,5 +115,6 @@ services:
       - "--n-gpu-layers"
       - "${LLM_REASONING_N_GPU_LAYERS:-999}"
       - "--jinja"
+      - "${LLM_REASONING_EXTRA_PARAMS:-}"
     ports:
       - "${LLM_REASONING_PORT:-8004}:${LLM_REASONING_PORT:-8004}"
