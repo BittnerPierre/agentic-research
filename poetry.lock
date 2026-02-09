@@ -5213,6 +5213,67 @@ files = [
 requests = ">=2.0.1,<3.0.0"
 
 [[package]]
+name = "restate-sdk"
+version = "0.14.2"
+description = "A Python SDK for Restate"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "restate_sdk-0.14.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f8c881cd6939e0a788b638da9627563248a0d427699b29afe95acbe201489c17"},
+    {file = "restate_sdk-0.14.2-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:2bb42f4c9b912dd4c3394a3897d92dadac07f164436e82752b6f186787255d40"},
+    {file = "restate_sdk-0.14.2-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:2a7509d78a39b06008bfe653ed2c158d9bb284f17c399907871ac18d5fea22e1"},
+    {file = "restate_sdk-0.14.2-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:feac5a9d5c4de5cf28cb7c87298f1956e31d2e0c66520593c6e320206fe662a4"},
+    {file = "restate_sdk-0.14.2-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:e96e62be9cffbe9754163cb008f61d529a376003bbf9cb55c24779641110264b"},
+    {file = "restate_sdk-0.14.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:021d283d7eefdb24d32a90d6db52ed28a75d60e3ae8b21c39d0da044192dd5d9"},
+    {file = "restate_sdk-0.14.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1a75980e6fe2f176b282ba04498cb0613a59f03dc6a882dc4bd3620b9982f0c9"},
+    {file = "restate_sdk-0.14.2-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:213974ea94cf15459ea12a6a8b91f77f49e232d35b3b375be04be0fcf7cf3ed5"},
+    {file = "restate_sdk-0.14.2-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:617cd91710621dcf0749be8518541ce4a8dec145d93e4515d0b907533c246590"},
+    {file = "restate_sdk-0.14.2-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:ee3bc571649738d54b11ab4375600582c737d7f65bc4ff4de186f30af02410fa"},
+    {file = "restate_sdk-0.14.2-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:102f755e43b50f19d6d1ca868cf7783f7c5e6ce24b894a0951ef7ed6577bf575"},
+    {file = "restate_sdk-0.14.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4666a128976f5247cc4c43942c3c52f5b4322f928284122f07a9512274dd8eee"},
+    {file = "restate_sdk-0.14.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ff67ba763a276740bf8d3a108842e20a33e80449956b489521a64af4546eb11c"},
+    {file = "restate_sdk-0.14.2-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:5e2ebe9559d16ef95dae0ff7f49da80788018b78581f5f57c7a8df5eb39ff244"},
+    {file = "restate_sdk-0.14.2-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:cb2be964bb01cd824d762706f2884d48f0edea27525b8a1f66d942442b35d66a"},
+    {file = "restate_sdk-0.14.2-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:c1973fbf177176191fc564bb03c1274d52e3c406eaf92ca5e2eb97583fd06ba7"},
+    {file = "restate_sdk-0.14.2-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:2f7eb5a3db15ea12aae2821b7329ff545b764ae4986fb8de686918b1bc948c40"},
+    {file = "restate_sdk-0.14.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7c77b0890fb77f4ee72a1e6e43c1c5db3aae4a7f7438f7ceb13195fc7b133d38"},
+    {file = "restate_sdk-0.14.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cbec9d18c8501f158616fb9f795b657cc7d650b4794ae198a5f14641736c6a69"},
+    {file = "restate_sdk-0.14.2-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:fe95136343ba176ac451723fecefc2a4b7f70f451f4fc73885cef9c40cdd78c3"},
+    {file = "restate_sdk-0.14.2-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:90ffd858b62969f6df0fa7854a3d03c9b2a24f5a035161d151165b50407a93d4"},
+    {file = "restate_sdk-0.14.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:4790537c7df2d766bb313f7ea3c1f6b233ac4c98339147280a954ca32208ac48"},
+    {file = "restate_sdk-0.14.2-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:3ecf8eed7c48cab93f5768d2f9f7920f941a59dbcdf1e263015754d7779da9d2"},
+    {file = "restate_sdk-0.14.2-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:49a449fac9ad52609c8ccbba4943b27c9048dc51137e8b4dc50401e1a49cccd0"},
+    {file = "restate_sdk-0.14.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:3d6bdcca9430e8c36366696dbe797483a365cd2d074d0af5ee20065dd21320ca"},
+    {file = "restate_sdk-0.14.2-cp314-cp314-macosx_10_12_x86_64.whl", hash = "sha256:9eca50c8bdc5e48116e3d97f94d8d632368a3e699252df67a963ed4b9b1a782e"},
+    {file = "restate_sdk-0.14.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:6bf032a8995829f3a3f7e604420854e26f0a9d239d79c20efad8bdbde31a4490"},
+    {file = "restate_sdk-0.14.2-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7ce1661dda6dbe4d774c54acc05b2863d4c6bb5e30b9e42efdc47960b39d81b"},
+    {file = "restate_sdk-0.14.2-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:4c2088dc68624e055022c1ee42029a85483b33168d689acf54eb68f14f3d25fc"},
+    {file = "restate_sdk-0.14.2-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:7b0b2a6e0d0fddf584bccd48b7543c835024cb4c6de709bc4233c7e811d573b4"},
+    {file = "restate_sdk-0.14.2-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:75ebcc9aaeb9770b7f0f93c9966b893c9ff2d483c7897ac432379a96737b761d"},
+    {file = "restate_sdk-0.14.2-cp314-cp314t-manylinux_2_28_aarch64.whl", hash = "sha256:ef756fb934920a618712c4e315612249cd1d3940707acdbcb53e8539a64123b4"},
+    {file = "restate_sdk-0.14.2-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:9146034daf6525db1ca4fac949d9ef4c23bd28840d1703056c118134040d0dc7"},
+    {file = "restate_sdk-0.14.2-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:820e2195029e8c61cf25596791c9facd4847d5ba5d3ca317fe757453dde8b790"},
+    {file = "restate_sdk-0.14.2-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:9eed4fe6b87b1e2652575b7c355139a3c3397679b2073b92e785d332fc8ce1e8"},
+    {file = "restate_sdk-0.14.2-pp310-pypy310_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:e2e9bc780d561b432b5b171d1b42c9a36729d49162f64aca1a97af83aba3bed3"},
+    {file = "restate_sdk-0.14.2-pp310-pypy310_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:a36627c8e449cb6072eff20551411cda5a67fd69a16ced82adcf7a163bee6611"},
+    {file = "restate_sdk-0.14.2-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:31167fada2bf5f8ea47774d5cef0c37243fa946e793574c74aaf49b429b4b7f3"},
+    {file = "restate_sdk-0.14.2-pp311-pypy311_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:c8aa71996b791fd6c98a6b082e28ac391fc474e41d21d2be0211eb8b94c09381"},
+    {file = "restate_sdk-0.14.2-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:20638034092281c450e6a99f0abf7dab50343ea9052e5e33136b77d6e737d5fa"},
+    {file = "restate_sdk-0.14.2-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:47f92cd870b27e0bd37aede7a952cdd03b90ca94b777dcfc728d020d1ee9d73b"},
+    {file = "restate_sdk-0.14.2.tar.gz", hash = "sha256:973cfa58c922ce3fe8fdd45fbdeeef5dc43436852af0418fa43e949e8ce4aace"},
+]
+
+[package.extras]
+adk = ["google-adk (>=1.20.0)"]
+client = ["httpx[http2]"]
+harness = ["httpx", "hypercorn", "testcontainers"]
+lint = ["mypy (>=1.11.2)", "pyright (>=1.1.390)", "ruff (>=0.6.9)"]
+openai = ["openai-agents (>=0.6.1)"]
+pydantic-ai = ["pydantic-ai-slim (>=1.35.0)"]
+serde = ["dacite", "msgspec", "pydantic"]
+test = ["anyio", "hypercorn", "pytest"]
+
+[[package]]
 name = "rich"
 version = "14.2.0"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
@@ -7004,4 +7065,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "cccebb436653d249b5460c39d80a61699713a5ecd6862799d995ee65fb399702"
+content-hash = "726bccaedfb7d0f968f454226ea28d94acf08bf1f12e0416d1d5e2249d5691fc"

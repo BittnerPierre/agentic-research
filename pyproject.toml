@@ -39,6 +39,7 @@ langsmith = "^0.4.4"
 litellm = "~1.76.3"
 chromadb = "1.4.1"
 sentence-transformers = "^5.2.0"
+restate-sdk = "^0.14.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
