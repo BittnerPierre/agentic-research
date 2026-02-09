@@ -70,6 +70,8 @@ FROM base
 ENV LLAMA_ARG_HOST=0.0.0.0
 
 COPY --from=build /app/full/llama-server /app
+COPY docker/llama-server-entrypoint.sh /app/llama-server-entrypoint.sh
+RUN chmod +x /app/llama-server-entrypoint.sh
 
 WORKDIR /app
 
