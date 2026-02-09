@@ -4,6 +4,7 @@ from agents import Agent
 from ..config import get_config
 from .utils import get_writer_output_formatting, get_writer_output_type
 
+
 def _build_prompt() -> str:
     config = get_config()
     output_format = config.agents.writer_output_format

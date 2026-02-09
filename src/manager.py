@@ -9,9 +9,8 @@ from agents import Runner, custom_span, gen_trace_id, trace
 from agents.mcp import MCPServer
 
 from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
-from .agents.schemas import ResearchInfo
+from .agents.schemas import ReportData, ResearchInfo
 from .agents.search_agent import search_agent
-from .agents.schemas import ReportData
 from .agents.utils import coerce_report_data
 from .agents.writer_agent import writer_agent
 from .printer import Printer

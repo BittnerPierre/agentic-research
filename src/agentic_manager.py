@@ -9,8 +9,7 @@ from .agents.agentic_research_agent import create_research_supervisor_agent
 from .agents.file_search_agent import create_file_search_agent
 from .agents.file_search_planning_agent import create_file_planner_agent
 from .agents.file_writer_agent import create_writer_agent
-from .agents.schemas import ResearchInfo
-from .agents.schemas import ReportData
+from .agents.schemas import ReportData, ResearchInfo
 from .agents.utils import coerce_report_data
 from .config import get_config
 from .printer import Printer
