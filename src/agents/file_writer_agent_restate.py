@@ -44,8 +44,8 @@ def build_writer_restate_service(
     writer_agent = create_writer_agent(list(mcp_servers or []), config_file=config_file)
     writer_service = restate.Service("WriterAgentRestate")
 
-    @writer_service.handler()
-    async def generate_report(_ctx: restate.Context, request: WriterRestateRequest) -> ReportData:
+    @writer_service.handler(name="run")
+    async def run(_ctx: restate.Context, request: WriterRestateRequest) -> ReportData:
         result = await DurableRunner.run(
             writer_agent,
             request.prompt,

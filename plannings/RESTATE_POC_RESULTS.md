@@ -73,7 +73,8 @@ Observabilite:
 - Exemples de traces utiles (captures si possible): a collecter
 
 ### 5.4 Notes test manuel local
-- Invocation Restate OK (HTTP ingress 8080).
+- Restate en container (ports 8080/9070), writer expose en local et enregistre via IP host.
+- Invocation Restate OK (HTTP ingress 8080, handler `run`).
 - Sortie LLM generee mais demande des fichiers de recherche (search_results vide).
 - Test utile pour valider l integration Restate + DGX, pas la qualite du writer.
 
