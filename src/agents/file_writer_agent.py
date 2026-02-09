@@ -9,10 +9,12 @@ from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
-from .schemas import ReportData, ResearchInfo
+from .schemas import ResearchInfo
 from .utils import (
     adjust_model_settings_for_base_url,
     extract_model_name,
+    get_writer_output_formatting,
+    get_writer_output_type,
     load_prompt_from_file,
     resolve_model,
 )
@@ -28,7 +30,14 @@ def dynamic_instructions(
     if prompt_template is None:
         raise ValueError(f"{prompt_file} is None")
 
-    dynamic_prompt = prompt_template.format(RECOMMENDED_PROMPT_PREFIX=RECOMMENDED_PROMPT_PREFIX)
+    config = get_config()
+    output_format = config.agents.writer_output_format
+    output_formatting = get_writer_output_formatting(output_format)
+
+    dynamic_prompt = prompt_template.format(
+        RECOMMENDED_PROMPT_PREFIX=RECOMMENDED_PROMPT_PREFIX,
+        WRITER_OUTPUT_FORMATTING=output_formatting,
+    )
 
     prompt = (
         f"{dynamic_prompt}"
@@ -87,6 +96,7 @@ def create_writer_agent(mcp_servers: list[MCPServer] | None = None, do_save_repo
     mcp_servers = mcp_servers or []
 
     config = get_config()
+    output_format = config.agents.writer_output_format
     model_spec = config.models.writer_model
     model = resolve_model(model_spec)
 
@@ -98,7 +108,7 @@ def create_writer_agent(mcp_servers: list[MCPServer] | None = None, do_save_repo
         name="writer_agent",
         instructions=dynamic_instructions,
         model=model,
-        output_type=ReportData,
+        output_type=get_writer_output_type(output_format),
         mcp_servers=mcp_servers,
         # handoffs=[save_agent],
         # tools=[

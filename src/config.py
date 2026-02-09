@@ -4,7 +4,7 @@ import logging
 import os
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -148,6 +148,7 @@ class AgentsConfig(BaseModel):
 
     max_search_plan: str = Field(default="8-12")
     output_dir: str = Field(default="output/")
+    writer_output_format: Literal["json", "markdown"] = Field(default="json")
 
 
 class Config(BaseModel):

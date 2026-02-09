@@ -19,7 +19,7 @@ from .agents.schemas import (
     ReportData,
     ResearchInfo,
 )
-from .agents.utils import save_final_report_function
+from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
 from .printer import Printer
 
@@ -206,4 +206,5 @@ class DeepResearchManager:
                 last_update = time.time()
 
         self.printer.mark_item_done("writing")
-        return result.final_output_as(ReportData)
+        output = result.final_output
+        return coerce_report_data(output, query)

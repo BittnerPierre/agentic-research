@@ -5,8 +5,9 @@ import pytest
 from agents import Agent, Runner, function_tool
 from agents.models import get_default_model_settings
 from src.agents.file_writer_agent import dynamic_instructions
-from src.agents.schemas import ReportData, ResearchInfo
-from src.agents.utils import extract_model_name
+from src.agents.schemas import ResearchInfo
+from src.agents.utils import coerce_report_data, extract_model_name, get_writer_output_type
+from src.config import get_config
 
 
 def _has_live_mistral_config() -> bool:
@@ -46,11 +47,14 @@ async def test_writer_agent_includes_thinking_tag(tmp_path):
     model = os.getenv("WRITER_MODEL_UNDER_TEST", "litellm/mistral/mistral-small-latest")
     model_settings = get_default_model_settings(extract_model_name(model))
 
+    config = get_config()
+    output_type = get_writer_output_type(config.agents.writer_output_format)
+
     writer_agent = Agent(
         name="writer_agent",
         instructions=dynamic_instructions,
         model=model,
-        output_type=ReportData,
+        output_type=output_type,
         model_settings=model_settings,
         tools=[read_multiple_files],
     )
@@ -68,7 +72,10 @@ async def test_writer_agent_includes_thinking_tag(tmp_path):
         max_turns=6,
     )
 
-    final_output = result.final_output_as(ReportData, raise_if_incorrect_type=True)
+    output = result.final_output
+    final_output = coerce_report_data(output, "prompt_engineering")
     assert "## Raw Notes" in final_output.markdown_report
     assert "## Detailed Agenda" in final_output.markdown_report
     assert "## Report" in final_output.markdown_report
+    if config.agents.writer_output_format == "markdown":
+        assert "## Executive Summary" in final_output.markdown_report
