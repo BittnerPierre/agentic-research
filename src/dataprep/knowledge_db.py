@@ -20,6 +20,7 @@ class KnowledgeDBManager:
     _instance: ClassVar["KnowledgeDBManager | None"] = None
     _url_index: ClassVar[dict[str, KnowledgeEntry]] = {}  # Index par URL (transient)
     _name_index: ClassVar[dict[str, KnowledgeEntry]] = {}  # Index par nom de fichier (transient)
+    _openai_file_id_index: ClassVar[dict[str, KnowledgeEntry]] = {}  # Index par file_id
 
     def __new__(cls, db_path: Path | None = None):
         """Implémentation du pattern Singleton."""
@@ -52,11 +53,17 @@ class KnowledgeDBManager:
             db = self.get_all_entries()
             self._url_index = {str(entry.url): entry for entry in db.entries}
             self._name_index = {entry.filename: entry for entry in db.entries}
+            self._openai_file_id_index = {
+                entry.openai_file_id: entry
+                for entry in db.entries
+                if entry.openai_file_id is not None
+            }
             logger.info(f"Indexes built: {len(self._url_index)} entries indexed")
         except Exception as e:
             logger.warning(f"Failed to build indexes: {e}")
             self._url_index = {}
             self._name_index = {}
+            self._openai_file_id_index = {}
 
     @contextmanager
     def _file_lock(self, mode="r+"):
@@ -143,6 +150,8 @@ class KnowledgeDBManager:
         # Mettre à jour les index
         self._url_index[str(entry.url)] = entry
         self._name_index[entry.filename] = entry
+        if entry.openai_file_id:
+            self._openai_file_id_index[entry.openai_file_id] = entry
 
         logger.info(f"Entry added to knowledge base: {entry.filename}")
 
@@ -169,6 +178,7 @@ class KnowledgeDBManager:
         if filename in self._name_index:
             self._name_index[filename].openai_file_id = openai_file_id
             self._name_index[filename].last_uploaded_at = datetime.now()
+            self._openai_file_id_index[openai_file_id] = self._name_index[filename]
 
         logger.info(f"Updated OpenAI file id for {filename}: {openai_file_id}")
 
@@ -193,6 +203,23 @@ class KnowledgeDBManager:
             self._name_index[filename].vector_doc_id = vector_doc_id
 
         logger.info(f"Updated vector doc id for {filename}: {vector_doc_id}")
+
+    def find_by_openai_file_id(self, openai_file_id: str) -> KnowledgeEntry | None:
+        """Recherche d'une entrée par openai_file_id (via index)."""
+        if openai_file_id in self._openai_file_id_index:
+            return self._openai_file_id_index[openai_file_id]
+
+        try:
+            with self._file_lock("r") as f:
+                data = json.load(f)
+                db = KnowledgeDatabase(**data)
+                entry = next((e for e in db.entries if e.openai_file_id == openai_file_id), None)
+                if entry:
+                    self._openai_file_id_index[openai_file_id] = entry
+                return entry
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.warning(f"Failed to search by openai_file_id: {e}")
+            return None
 
     def get_all_entries_info(self) -> list[dict[str, Any]]:
         """Retourne la liste de toutes les entrées de la base de connaissances."""

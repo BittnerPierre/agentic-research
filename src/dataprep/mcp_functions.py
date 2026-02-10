@@ -11,6 +11,7 @@ from .knowledge_db import KnowledgeDBManager
 from .models import KnowledgeEntry, UploadResult
 from .vector_backends import get_vector_backend
 from .vector_search import VectorSearchResult
+from .vector_store_utils import validate_url
 from .web_loader_improved import load_documents_from_urls
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ def download_and_store_url(url: str, config) -> str:
     Returns:
         str: Nom du fichier local (.md)
     """
+    validate_url(url)
     # 1. Lookup dans knowledge_db.json
     db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
     existing_entry = db_manager.lookup_url(url)
