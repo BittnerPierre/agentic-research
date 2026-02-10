@@ -66,31 +66,31 @@ mcp:
 # Configuration Models
 models:
   research_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    name: "openai/rm"
     base_url: "http://llm-instruct:8002"
     api_key: "dummy"
   planning_model:
-    name: "openai/Ministral-3-14B-Reasoning-2512-Q8_0.gguf"
+    name: "openai/pm"
     base_url: "http://llm-reasoning:8004"
     api_key: "dummy"
   search_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    name: "openai/sm"
     base_url: "http://llm-instruct:8002"
     api_key: "dummy"
   writer_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    name: "openai/wm"
     base_url: "http://llm-instruct:8002"
     api_key: "dummy"
   knowledge_preparation_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
+    name: "openai/kpm"
     base_url: "http://llm-instruct:8002"
     api_key: "dummy"
 
 # Configuration du manager
 manager:
-  default_manager: "agentic_manager"
+  default_manager: "deep_manager"
 
 agents:
-  max_search_plan: "5-7"
+  max_search_plan: "2-3"
   output_dir: "output/"
   writer_output_format: "markdown"

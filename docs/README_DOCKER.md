@@ -69,6 +69,17 @@ bash scripts/test_docker_local_smoke.sh
    # Edit models.env with your snapshot IDs
    ```
 
+   **Optional Extra Parameters**: For models requiring additional llama.cpp parameters (e.g., Mistral-Small-3.2-24B-Instruct), you can set optional extra parameters:
+
+   ```bash
+   # Example for Mistral-Small-3.2-24B-Instruct
+   LLM_INSTRUCT_EXTRA_PARAMS="--temp 0.15 --top-k -1 --top-p 1.00 -ngl 99"
+   LLM_REASONING_EXTRA_PARAMS="--temp 0.2 --top-p 0.95"
+   # EMBEDDINGS_EXTRA_PARAMS="--some-embedding-param value"
+   ```
+
+   Leave these variables empty or unset for models that don't require extra parameters (like GPT-OSS).
+
 2. Start services:
 
    ```bash
@@ -131,6 +142,17 @@ bash scripts/test_docker_dgx.sh
 - Verify `models.env` paths are correct
 - Check GPU availability: `docker compose logs llm-instruct`
 - Ensure models are available under `${MODELS_DIR}`
+
+### Extra Parameters Configuration
+
+- **Issue**: Model behaves unexpectedly or requires specific llama.cpp parameters
+- **Solution**: Set the appropriate `*_EXTRA_PARAMS` variables in `models.env`:
+  ```bash
+  # For Mistral-Small-3.2-24B-Instruct stability
+  LLM_INSTRUCT_EXTRA_PARAMS="--temp 0.15 --top-k -1 --top-p 1.00 -ngl 99"
+  ```
+- **Verification**: Check the command line in service logs: `docker compose logs llm-instruct`
+- **Default**: Leave empty (`""`) for models like GPT-OSS that don't need extra parameters
 
 ## Configuration Details
 

@@ -33,6 +33,8 @@ services:
     <<: *llama-build
     volumes:
       - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
+    environment:
+      EXTRA_PARAMS: "${EMBEDDINGS_EXTRA_PARAMS-}"
     deploy:
       resources:
         reservations:
@@ -40,6 +42,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    entrypoint: ["/app/llama-server-entrypoint.sh"]
     command:
       - "-m"
       - "${EMBEDDINGS_MODEL_PATH:-/mnt/models/models--Qwen--Qwen3-Embedding-4B-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Qwen3-Embedding-4B-Q8_0.gguf}"
@@ -56,6 +59,8 @@ services:
     <<: *llama-build
     volumes:
       - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
+    environment:
+      EXTRA_PARAMS: "${LLM_INSTRUCT_EXTRA_PARAMS-}"
     deploy:
       resources:
         reservations:
@@ -63,6 +68,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    entrypoint: ["/app/llama-server-entrypoint.sh"]
     command:
       - "-m"
       - "${LLM_INSTRUCT_MODEL_PATH:-/mnt/models/models--ggml-org--gpt-oss-20b-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/gpt-oss-20b-mxfp4.gguf}"
@@ -88,6 +94,8 @@ services:
     <<: *llama-build
     volumes:
       - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
+    environment:
+      EXTRA_PARAMS: "${LLM_REASONING_EXTRA_PARAMS-}"
     deploy:
       resources:
         reservations:
@@ -95,6 +103,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    entrypoint: ["/app/llama-server-entrypoint.sh"]
     command:
       - "-m"
       - "${LLM_REASONING_MODEL_PATH:-/mnt/models/models--mistralai--Ministral-3-14B-Reasoning-2512-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Ministral-3-14B-Reasoning-2512-Q8_0.gguf}"

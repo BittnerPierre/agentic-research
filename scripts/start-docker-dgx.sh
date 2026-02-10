@@ -10,7 +10,7 @@ APP_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo dev)
 
 docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env build \
   --build-arg APP_VERSION="${APP_VERSION}" \
-  dataprep agentic-research
+  dataprep agentic-research embeddings-gpu llm-instruct llm-reasoning
 
 docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env up -d \
   chromadb dataprep embeddings-gpu llm-instruct llm-reasoning
