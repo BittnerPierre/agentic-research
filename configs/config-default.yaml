@@ -42,7 +42,7 @@ mcp:
   # Timeout pour les appels d'outils MCP (en secondes)
   # Augmenté à 10s car upload_files_to_vectorstore peut prendre ~6.5s
   # Valeur par défaut dans le SDK: 5.0s
-  client_timeout_seconds: 60.0
+  client_timeout_seconds: 10.0
 
 # Configuration Models
 models:
