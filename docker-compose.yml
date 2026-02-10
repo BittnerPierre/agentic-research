@@ -5,6 +5,8 @@ services:
       - "8080:8080"
       - "9070:9070"
       - "9071:9071"
+    volumes:
+      - restate_data:/restate-data
     restart: unless-stopped
 
   dataprep:

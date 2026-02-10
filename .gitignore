@@ -51,6 +51,7 @@ logs/
 data/*
 !data/.gitkeep
 models/
+restate-data/
 *.log
 
 # Evaluation artifacts (keep baselines, ignore temporary results)
