@@ -46,3 +46,78 @@ class EvaluationResult(BaseModel):
 
     def __str__(self) -> str:
         return f"EvaluationResult(judgment={self.judgment}, reasoning={self.reasoning[:50]}...)"
+
+
+# ========== Benchmark Schemas ==========
+
+
+class RAGTriadResult(BaseModel):
+    """RAG Triad evaluation scores (0-1 for each dimension)."""
+
+    groundedness: float = Field(ge=0.0, le=1.0, description="Report grounded in Raw Notes")
+    context_relevance: float = Field(ge=0.0, le=1.0, description="Sources are relevant")
+    answer_relevance: float = Field(ge=0.0, le=1.0, description="Report answers the question")
+    average: float = Field(ge=0.0, le=1.0, description="Average of the 3 scores")
+    reasoning: dict[str, str] = Field(
+        default_factory=dict, description="Reasoning for each dimension"
+    )
+
+
+class TimingResult(BaseModel):
+    """Timing information for workflow phases."""
+
+    total_seconds: float = Field(description="Total workflow duration in seconds")
+    phases: dict[str, float] = Field(
+        description="Duration of each phase (knowledge_preparation, planning, search, writing)"
+    )
+
+
+class AgentCallsResult(BaseModel):
+    """Agent call statistics."""
+
+    knowledge_preparation_agent: int = Field(default=0)
+    file_planner_agent: int = Field(default=0)
+    file_search_agent: int = Field(default=0)
+    writer_agent: int = Field(default=0)
+    total: int = Field(default=0, description="Total number of agent calls")
+    failures: int = Field(default=0, description="Number of failed calls")
+
+
+class TokensResult(BaseModel):
+    """Token usage statistics (optional)."""
+
+    total_input: int = Field(description="Total input tokens")
+    total_output: int = Field(description="Total output tokens")
+    total: int = Field(description="Total tokens (input + output)")
+
+
+class SetupMetadata(BaseModel):
+    """Metadata about the model setup used for benchmark."""
+
+    setup_name: str = Field(description="Setup name (ministral, glm, etc.)")
+    models_env_file: str = Field(description="Models env file used (models.ministral.env)")
+    models: dict[str, dict] = Field(
+        description="Model configurations (instruct, reasoning, embeddings)"
+    )
+
+
+class BenchmarkResult(BaseModel):
+    """Complete benchmark result with all metrics."""
+
+    # Existing metrics
+    quality_result: EvaluationResult
+    trajectory_report: str
+    report_path: str
+
+    # New benchmark metrics
+    timing: TimingResult
+    rag_triad: RAGTriadResult
+    agent_calls: AgentCallsResult
+    tokens: TokensResult | None = None
+    setup_metadata: SetupMetadata
+
+    # Additional context
+    test_case: str | None = None
+    config_file: str = "configs/config-docker-dgx.yaml"
+    config_name: str | None = None
+    trace_id: str | None = None
