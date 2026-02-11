@@ -67,7 +67,7 @@ evaluations/sav_file/
 !.env.template
 .env.local
 models.env
-models*.env
+# models*.env
 
 # Ruff cache
 .ruff_cache/
