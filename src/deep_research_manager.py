@@ -29,6 +29,7 @@ class DeepResearchManager:
         self.console = Console()
         self.printer = Printer(self.console)
         self._config = get_config()
+        self.timings = {}  # Store timing information for benchmarking
         # Désactiver le tracing automatique pour cet appel
         # self._run_config = RunConfig(
         #     workflow_name="deep_research",
@@ -49,6 +50,9 @@ class DeepResearchManager:
         self.dataprep_server = dataprep_server
         self.vector_mcp_server = vector_mcp_server
         self.research_info = research_info
+
+        # Start timing
+        workflow_start = time.time()
 
         trace_id = gen_trace_id()
         with trace(
@@ -81,20 +85,37 @@ class DeepResearchManager:
             )
             self.writer_agent = create_writer_agent([self.fs_server], do_save_report=False)
 
+            # Phase 1: Knowledge Preparation
+            prep_start = time.time()
             agenda = await self._prepare_knowledge(query)
+            self.timings["knowledge_preparation"] = time.time() - prep_start
             print("\n\n=====AGENDA=====\n\n")
             print(agenda)
 
+            # Phase 2: Planning
+            plan_start = time.time()
             search_plan = await self._plan_file_searches(agenda)
+            self.timings["planning"] = time.time() - plan_start
             print("\n\n=====SEARCH PLAN=====\n\n")
             print(search_plan)
+
+            # Phase 3: Search
+            search_start = time.time()
             search_results = await self._perform_file_searches(search_plan)
+            self.timings["search"] = time.time() - search_start
+
+            # Phase 4: Writing
+            write_start = time.time()
             report = await self._write_report(query, search_results)
+            self.timings["writing"] = time.time() - write_start
 
             final_report = f"Report summary\n\n{report.short_summary}"
             self.printer.update_item("final_report", final_report, is_done=True)
 
             self.printer.end()
+
+        # Total timing
+        self.timings["total"] = time.time() - workflow_start
 
         print("\n\n=====SAVING REPORT=====\n\n")
         _new_report = await save_final_report_function(
