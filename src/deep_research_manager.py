@@ -30,6 +30,14 @@ class DeepResearchManager:
         self.printer = Printer(self.console)
         self._config = get_config()
         self.timings = {}  # Store timing information for benchmarking
+        self.agent_calls = {  # Track agent calls for benchmarking
+            "knowledge_preparation_agent": 0,
+            "file_planner_agent": 0,
+            "file_search_agent": 0,
+            "writer_agent": 0,
+            "total": 0,
+            "failures": 0,
+        }
         # Désactiver le tracing automatique pour cet appel
         # self._run_config = RunConfig(
         #     workflow_name="deep_research",
@@ -139,6 +147,8 @@ class DeepResearchManager:
             query,
             context=self.research_info,
         )
+        self.agent_calls["knowledge_preparation_agent"] += 1
+        self.agent_calls["total"] += 1
         self.printer.update_item(
             "preparing", "Préparation de la connaissance terminée", is_done=True
         )
@@ -152,6 +162,8 @@ class DeepResearchManager:
             f"{query}",
             context=self.research_info,
         )
+        self.agent_calls["file_planner_agent"] += 1
+        self.agent_calls["total"] += 1
         self.printer.update_item(
             "planning",
             f"Effectuera {len(result.final_output.searches)} recherches dans les fichiers",
@@ -185,8 +197,11 @@ class DeepResearchManager:
                 input_text,
                 context=self.research_info,
             )
+            self.agent_calls["file_search_agent"] += 1
+            self.agent_calls["total"] += 1
             return str(result.final_output_as(FileSearchResult).file_name)
         except Exception:
+            self.agent_calls["failures"] += 1
             return None
 
     async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
@@ -227,5 +242,7 @@ class DeepResearchManager:
                 last_update = time.time()
 
         self.printer.mark_item_done("writing")
+        self.agent_calls["writer_agent"] += 1
+        self.agent_calls["total"] += 1
         output = result.final_output
         return coerce_report_data(output, query)
