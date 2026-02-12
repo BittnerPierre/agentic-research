@@ -954,17 +954,18 @@ class TestBenchmarkRunnerHelpers:
         assert str(Path.cwd() / "data") not in args
 
     def test_normalize_runtime_paths_canonicalizes_var_prefix(self):
+        import os
+
         from evaluations.benchmark_runner import BenchmarkRunner
 
         runner = BenchmarkRunner()
 
-        temp_dir, output_dir = runner._normalize_runtime_paths(
-            "/var/folders/k7/8s142pls7tgglxgtr3dkl7nw0000gn/T/bench_w6rwxxsf",
-            "/Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/out",
-        )
+        raw_temp = "/var/folders/k7/8s142pls7tgglxgtr3dkl7nw0000gn/T/bench_w6rwxxsf"
+        raw_out = "/Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/out"
+        temp_dir, output_dir = runner._normalize_runtime_paths(raw_temp, raw_out)
 
-        assert temp_dir.startswith("/private/var/folders/")
-        assert output_dir == "/Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/out"
+        assert temp_dir == os.path.realpath(raw_temp)
+        assert output_dir == os.path.realpath(raw_out)
 
 
 class TestBenchmarkComparator:

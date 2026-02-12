@@ -5,8 +5,9 @@ Uses LLM-as-a-judge to evaluate the quality of RAG (Retrieval-Augmented Generati
 along three critical dimensions.
 """
 
-from agents import Agent, Runner
 from pydantic import BaseModel, Field
+
+from agents import Agent, Runner
 
 from .schemas import RAGTriadResult
 

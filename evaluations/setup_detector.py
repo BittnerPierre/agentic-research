@@ -7,7 +7,6 @@ le symlink models.env et en parsant le fichier .env correspondant.
 
 import os
 import re
-from pathlib import Path
 
 
 def detect_active_setup(models_env_path: str = "models/models.env") -> dict:
@@ -256,7 +255,7 @@ def get_setup_summary(setup_metadata: dict) -> str:
 
         if "ctx_size" in model_info:
             lines.append(f"    - Context size: {model_info['ctx_size']}")
-        if "extra_params" in model_info and model_info["extra_params"]:
+        if model_info.get("extra_params"):
             lines.append(f"    - Extra params: {model_info['extra_params']}")
 
     return "\n".join(lines)
