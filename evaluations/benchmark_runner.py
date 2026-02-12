@@ -49,6 +49,16 @@ class BenchmarkRunner:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+    def _quality_tier_from_score(self, quality_score_100: float) -> str:
+        """Map quality score to a user-facing tier."""
+        if quality_score_100 >= 95.0:
+            return "GOOD"
+        if quality_score_100 >= 80.0:
+            return "PASS"
+        if quality_score_100 >= 60.0:
+            return "BORDERLINE"
+        return "FAIL"
+
     async def run_benchmark(
         self,
         config_file: str,
@@ -101,9 +111,16 @@ class BenchmarkRunner:
 
             print(f"\n✅ Run {i+1} completed:")
             print(f"   - Timing: {run_result['timing']['total_seconds']:.1f}s")
-            print(f"   - Quality: {run_result['quality_result']['judgment']}")
+            print(
+                "   - Quality: "
+                f"{self._quality_tier_from_score(run_result['scores']['content_quality_100'])}"
+            )
             print(f"   - Agent calls: {run_result['agent_calls']['total']}")
             print(f"   - Overall score: {run_result['scores']['overall_100']:.1f}/100")
+            print(f"   - Spec compliance: {run_result['scores']['spec_compliance_100']:.1f}/100")
+            print(f"   - Content quality: {run_result['scores']['content_quality_100']:.1f}/100")
+            print(f"   - RAG compliance: {run_result['scores']['rag_compliance_100']:.1f}/100")
+            print(f"   - Efficiency: {run_result['scores']['efficiency_100']:.1f}/100")
 
         # 5. Detect outliers
         print("\n🔍 Analyzing runs...")
@@ -522,9 +539,15 @@ async def main():
     print("="*60)
     print(f"Setup: {result['setup_metadata']['setup_name']}")
     print(f"Average timing: {result['average']['timing']['total_seconds']:.1f}s")
-    print(f"Average quality: {result['runs'][0]['quality_result']['judgment']}")
+    avg_quality = runner._quality_tier_from_score(result["average"]["scores"]["content_quality_100"])
+    print(f"Average quality: {avg_quality}")
     print(f"Average RAG Triad: {result['average']['rag_triad']['average']:.2f}")
     print(f"Average overall score: {result['average']['scores']['overall_100']:.1f}/100")
+    print(f"Average spec compliance: {result['average']['scores']['spec_compliance_100']:.1f}/100")
+    print(f"Average content quality: {result['average']['scores']['content_quality_100']:.1f}/100")
+    print(f"Average RAG compliance: {result['average']['scores']['rag_compliance_100']:.1f}/100")
+    print(f"Average efficiency: {result['average']['scores']['efficiency_100']:.1f}/100")
+    print(f"Analysis: {result['average']['scores']['analysis']}")
 
 
 def cli_main():
