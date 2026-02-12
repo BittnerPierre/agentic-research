@@ -26,7 +26,9 @@ from .benchmark_trace_processor import BenchmarkTraceProcessor
 from .prompts import llm_as_judge_prompt_v1
 from .rag_triad_evaluator import evaluate_rag_triad, extract_raw_notes_from_report
 from .schemas import EvaluationResult
+from .scoring import compute_score_breakdown
 from .setup_detector import detect_active_setup, get_setup_summary
+from .spec_compliance_evaluator import evaluate_spec_compliance
 from .trace_analyzer import TraceAnalyzer
 
 
@@ -101,6 +103,7 @@ class BenchmarkRunner:
             print(f"   - Timing: {run_result['timing']['total_seconds']:.1f}s")
             print(f"   - Quality: {run_result['quality_result']['judgment']}")
             print(f"   - Agent calls: {run_result['agent_calls']['total']}")
+            print(f"   - Overall score: {run_result['scores']['overall_100']:.1f}/100")
 
         # 5. Detect outliers
         print("\n🔍 Analyzing runs...")
@@ -259,6 +262,16 @@ class BenchmarkRunner:
         print("  🎯 Evaluating RAG Triad...")
         raw_notes = extract_raw_notes_from_report(report_markdown)
         rag_triad = await evaluate_rag_triad(report_markdown, raw_notes, syllabus)
+        rag_triad_data = rag_triad.model_dump() if hasattr(rag_triad, "model_dump") else rag_triad
+        print("  📏 Evaluating syllabus compliance...")
+        spec_compliance = await evaluate_spec_compliance(report_markdown, syllabus, raw_notes)
+        scores = compute_score_breakdown(
+            spec_result=spec_compliance,
+            quality_result=quality_result,
+            rag_triad_average=rag_triad_data["average"],
+            timing=timing.model_dump(),
+            agent_calls=agent_calls.model_dump(),
+        )
 
         # Compile results
         result = {
@@ -268,7 +281,9 @@ class BenchmarkRunner:
             "timing": timing.model_dump(),
             "agent_calls": agent_calls.model_dump(),
             "quality_result": quality_result.model_dump(),
-            "rag_triad": rag_triad.model_dump(),
+            "rag_triad": rag_triad_data,
+            "spec_compliance": spec_compliance.model_dump(),
+            "scores": scores.model_dump(),
         }
 
         # Save individual run result
@@ -350,10 +365,23 @@ class BenchmarkRunner:
             "average": sum(r["rag_triad"]["average"] for r in runs) / len(runs),
         }
 
+        avg_scores = {
+            key: sum(r["scores"][key] for r in runs) / len(runs)
+            for key in (
+                "spec_compliance_100",
+                "content_quality_100",
+                "rag_compliance_100",
+                "efficiency_100",
+                "overall_100",
+            )
+        }
+        avg_scores["analysis"] = runs[-1]["scores"].get("analysis", "")
+
         return {
             "timing": avg_timing,
             "agent_calls": avg_agent_calls,
             "rag_triad": avg_rag_triad,
+            "scores": avg_scores,
         }
 
     def _load_syllabus(self, syllabus_file: str) -> str:
@@ -496,6 +524,7 @@ async def main():
     print(f"Average timing: {result['average']['timing']['total_seconds']:.1f}s")
     print(f"Average quality: {result['runs'][0]['quality_result']['judgment']}")
     print(f"Average RAG Triad: {result['average']['rag_triad']['average']:.2f}")
+    print(f"Average overall score: {result['average']['scores']['overall_100']:.1f}/100")
 
 
 def cli_main():
