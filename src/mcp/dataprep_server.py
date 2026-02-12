@@ -64,8 +64,10 @@ def create_dataprep_server() -> FastMCP:
             logger.info(f"[MCP Tool] download_and_store_url completed successfully: {result}")
             return result
         except Exception as e:
+            # Do not raise here: we return an explicit error string so the caller agent
+            # can continue with available sources instead of breaking the full workflow.
             logger.exception(f"[MCP Tool] download_and_store_url failed: {e}")
-            raise
+            return f"ERROR: download_and_store_url failed for {url}: {e}"
 
     @mcp.tool()
     def upload_files_to_vectorstore_tool(

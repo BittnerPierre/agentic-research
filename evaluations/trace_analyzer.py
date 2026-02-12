@@ -55,13 +55,17 @@ class TraceAnalyzer:
 
         total_seconds = 0.0
 
+        trace_start_candidates = []
+        trace_end_candidates = []
+
         # Analyze all traces (typically one main workflow trace)
         for trace in self.data.get("traces", []):
             # Calculate total timing from trace start/end
             if trace.get("started_at") and trace.get("ended_at"):
                 start = datetime.fromisoformat(trace["started_at"])
                 end = datetime.fromisoformat(trace["ended_at"])
-                total_seconds = (end - start).total_seconds()
+                trace_start_candidates.append(start)
+                trace_end_candidates.append(end)
 
             # Analyze spans to identify phases
             for span in trace.get("spans", []):
@@ -69,7 +73,21 @@ class TraceAnalyzer:
                 if duration is None:
                     continue
 
-                span_name = span.get("name", "").lower()
+                start = self._parse_dt(span.get("started_at"))
+                end = self._parse_dt(span.get("ended_at"))
+                if start:
+                    trace_start_candidates.append(start)
+                if end:
+                    trace_end_candidates.append(end)
+
+                span_name = self._safe_lower(span.get("name"))
+                metadata = span.get("metadata", {})
+                if not isinstance(metadata, dict):
+                    metadata = {}
+                if not span_name:
+                    span_name = self._safe_lower(metadata.get("span_name"))
+                if not span_name:
+                    span_name = self._safe_lower(metadata.get("agent_name"))
 
                 # Match span names to phases
                 if "knowledge" in span_name or "preparation" in span_name or "preparing" in span_name:
@@ -80,6 +98,11 @@ class TraceAnalyzer:
                     phases["search"] += duration
                 elif "writ" in span_name or "report" in span_name:
                     phases["writing"] += duration
+
+        if trace_start_candidates and trace_end_candidates:
+            total_seconds = (
+                max(trace_end_candidates) - min(trace_start_candidates)
+            ).total_seconds()
 
         return TimingResult(
             total_seconds=total_seconds,
@@ -101,14 +124,17 @@ class TraceAnalyzer:
             "file_search_agent": 0,
             "writer_agent": 0,
             "total": 0,
+            "tool_calls_total": 0,
             "failures": 0,
         }
 
         # Analyze all spans
         for trace in self.data.get("traces", []):
             for span in trace.get("spans", []):
-                span_name = span.get("name", "").lower()
+                span_name = self._safe_lower(span.get("name"))
                 metadata = span.get("metadata", {})
+                if not isinstance(metadata, dict):
+                    metadata = {}
 
                 # Detect agent type from span name or metadata
                 agent_type = self._identify_agent_type(span_name, metadata)
@@ -116,6 +142,9 @@ class TraceAnalyzer:
                 if agent_type:
                     agent_calls[agent_type] += 1
                     agent_calls["total"] += 1
+
+                if self._is_tool_span(span_name, metadata):
+                    agent_calls["tool_calls_total"] += 1
 
                 # Check for failures
                 if self._is_failed_span(span, metadata):
@@ -147,7 +176,7 @@ class TraceAnalyzer:
             Agent type key or None if not an agent call
         """
         # Check metadata first (more reliable)
-        agent_name = metadata.get("agent_name", "").lower()
+        agent_name = self._safe_lower(metadata.get("agent_name"))
         if agent_name:
             if "knowledge" in agent_name or "preparation" in agent_name:
                 return "knowledge_preparation_agent"
@@ -181,6 +210,30 @@ class TraceAnalyzer:
             return True
 
         return False
+
+    def _is_tool_span(self, span_name: str, metadata: dict) -> bool:
+        """Detect tool calls from exported trace metadata.
+
+        The OpenAI platform tool-call count maps to spans with span_type=function.
+        """
+        span_type = self._safe_lower(metadata.get("span_type"))
+        return span_type == "function"
+
+    def _safe_lower(self, value) -> str:
+        """Convert trace values to lowercase strings without raising."""
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.lower()
+        return str(value).lower()
+
+    def _parse_dt(self, value) -> datetime | None:
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except (ValueError, TypeError):
+            return None
 
     def get_summary(self) -> dict:
         """

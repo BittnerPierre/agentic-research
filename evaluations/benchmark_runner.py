@@ -19,10 +19,13 @@ from pathlib import Path
 
 from agentic_research.agents.schemas import ResearchInfo
 from agentic_research.config import get_config
+from agents import Agent, Runner
 from agents.mcp import MCPServerSse, MCPServerStdio
 
 from .benchmark_trace_processor import BenchmarkTraceProcessor
+from .prompts import llm_as_judge_prompt_v1
 from .rag_triad_evaluator import evaluate_rag_triad, extract_raw_notes_from_report
+from .schemas import EvaluationResult
 from .setup_detector import detect_active_setup, get_setup_summary
 from .trace_analyzer import TraceAnalyzer
 
@@ -100,12 +103,12 @@ class BenchmarkRunner:
             print(f"   - Agent calls: {run_result['agent_calls']['total']}")
 
         # 5. Detect outliers
-        print(f"\n🔍 Analyzing runs...")
+        print("\n🔍 Analyzing runs...")
         outliers = self._detect_outliers(runs)
         if outliers:
             print(f"⚠️  Outliers detected: {outliers}")
         else:
-            print(f"✅ No outliers detected")
+            print("✅ No outliers detected")
 
         # 6. Compute averages
         average = self._compute_average(runs)
@@ -157,6 +160,7 @@ class BenchmarkRunner:
         # Create temp directories
         temp_dir = tempfile.mkdtemp(prefix="bench_")
         output_dir = str(run_dir)
+        temp_dir, output_dir = self._normalize_runtime_paths(temp_dir, output_dir)
 
         # Create research info
         research_info = ResearchInfo(
@@ -174,8 +178,12 @@ class BenchmarkRunner:
         from agentic_research.deep_research_manager import DeepResearchManager
 
         # Build MCP servers
-        fs_server_params = self._build_fs_server_params(temp_dir, output_dir)
-        fs_server = MCPServerStdio(name="FS_MCP_SERVER", params=fs_server_params)
+        fs_server_params = self._build_fs_server_params(temp_dir, output_dir, config)
+        fs_server = MCPServerStdio(
+            name="FS_MCP_SERVER",
+            params=fs_server_params,
+            client_session_timeout_seconds=config.mcp.client_timeout_seconds,
+        )
 
         dataprep_url = os.getenv(
             "MCP_DATAPREP_URL",
@@ -214,8 +222,8 @@ class BenchmarkRunner:
                 manager = DeepResearchManager()
 
                 # Install trace processor
-                from agents import install_trace_processor
-                install_trace_processor(trace_processor)
+                from agents import add_trace_processor
+                add_trace_processor(trace_processor)
 
                 await manager.run(
                     fs_server=fs_server,
@@ -272,10 +280,6 @@ class BenchmarkRunner:
 
     async def _evaluate_quality(self, report_markdown: str) -> any:
         """Evaluate report quality using LLM-as-a-judge."""
-        from agents import Agent, Runner
-        from .prompts import llm_as_judge_prompt_v1
-        from .schemas import EvaluationResult
-
         judge_agent = Agent(
             name="quality_judge",
             instructions=llm_as_judge_prompt_v1,
@@ -377,32 +381,71 @@ class BenchmarkRunner:
         except Exception:
             return "unknown"
 
-    def _build_fs_server_params(self, temp_dir: str, output_dir: str) -> dict:
+    def _build_fs_server_params(self, temp_dir: str, output_dir: str, config) -> dict:
         """Build filesystem MCP server params."""
         import shlex
 
         fs_command = os.getenv("MCP_FS_COMMAND")
         fs_args = os.getenv("MCP_FS_ARGS")
+        # Keep only benchmark runtime roots to avoid exposing project source tree.
+        allowed_dirs: list[str] = []
+        for candidate in [temp_dir, output_dir]:
+            real_candidate = os.path.realpath(candidate)
+            if real_candidate not in allowed_dirs:
+                allowed_dirs.append(real_candidate)
 
         if fs_command:
             args = shlex.split(fs_args) if fs_args else []
-            args.extend([temp_dir, output_dir])
+            args.extend(allowed_dirs)
         else:
             fs_command = "npx"
-            args = ["-y", "@modelcontextprotocol/server-filesystem", temp_dir, output_dir]
+            args = ["-y", "@modelcontextprotocol/server-filesystem", *allowed_dirs]
 
         return {"command": fs_command, "args": args}
+
+    def _normalize_runtime_paths(self, temp_dir: str, output_dir: str) -> tuple[str, str]:
+        """
+        Normalize runtime directories to canonical real paths.
+        Avoid /var vs /private/var mismatches with filesystem MCP allowed roots.
+        """
+        return os.path.realpath(temp_dir), os.path.realpath(output_dir)
 
     def _build_vector_mcp_server(self, config):
         """Build vector MCP server for Chroma."""
         from agents.mcp import MCPServerStdio
 
+        allowlist = set(config.vector_mcp.tool_allowlist)
+
+        def chroma_tool_filter(_context, tool):
+            return tool.name in allowlist
+
+        chroma_env = dict(os.environ)
+        chroma_env.update(
+            {
+                "ANONYMIZED_TELEMETRY": "False",
+                "HTTPX_LOG_LEVEL": "ERROR",
+                "HTTPCORE_LOG_LEVEL": "ERROR",
+                "FASTMCP_LOG_LEVEL": "ERROR",
+            }
+        )
+        # Some existing Chroma collections store OPENAI_API_KEY as api_key_env_var.
+        # If only CHROMA_OPENAI_API_KEY is set, mirror it for compatibility.
+        if (
+            chroma_env.get("CHROMA_OPENAI_API_KEY")
+            and not chroma_env.get("OPENAI_API_KEY")
+        ):
+            chroma_env["OPENAI_API_KEY"] = chroma_env["CHROMA_OPENAI_API_KEY"]
+
         return MCPServerStdio(
-            name="VECTOR_MCP_SERVER",
+            name="CHROMA_MCP_SERVER",
             params={
                 "command": config.vector_mcp.command,
                 "args": config.vector_mcp.args,
+                "env": chroma_env,
             },
+            tool_filter=chroma_tool_filter,
+            cache_tools_list=True,
+            client_session_timeout_seconds=config.vector_mcp.client_timeout_seconds,
         )
 
 

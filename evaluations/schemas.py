@@ -80,6 +80,7 @@ class AgentCallsResult(BaseModel):
     file_search_agent: int = Field(default=0)
     writer_agent: int = Field(default=0)
     total: int = Field(default=0, description="Total number of agent calls")
+    tool_calls_total: int = Field(default=0, description="Total number of tool/function calls")
     failures: int = Field(default=0, description="Number of failed calls")
 
 

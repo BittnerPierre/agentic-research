@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
+from pathlib import Path
 
 from rich.console import Console
 
@@ -199,10 +201,56 @@ class DeepResearchManager:
             )
             self.agent_calls["file_search_agent"] += 1
             self.agent_calls["total"] += 1
-            return str(result.final_output_as(FileSearchResult).file_name)
+            raw_file_name = str(result.final_output_as(FileSearchResult).file_name)
+            normalized_path = self._normalize_search_result_path(raw_file_name)
+            if normalized_path is None:
+                self.agent_calls["failures"] += 1
+            return normalized_path
         except Exception:
             self.agent_calls["failures"] += 1
             return None
+
+    def _normalize_search_result_path(self, raw_file_name: str) -> str | None:
+        """
+        Resolve the file_search output to a file inside temp_dir only.
+        This prevents leaking/reading paths outside benchmark sandbox roots.
+        """
+        value = raw_file_name.strip().strip("`").strip('"').strip("'").strip("<>").strip()
+        if not value:
+            return None
+
+        temp_root = os.path.realpath(self.research_info.temp_dir)
+        candidate = Path(value)
+
+        def _is_within_temp(path: str) -> bool:
+            try:
+                return os.path.commonpath([path, temp_root]) == temp_root
+            except ValueError:
+                return False
+
+        # Absolute path: allow only if it is inside temp_dir and exists.
+        if candidate.is_absolute():
+            resolved = os.path.realpath(str(candidate))
+            if _is_within_temp(resolved) and os.path.isfile(resolved):
+                return resolved
+            return None
+
+        # Relative path: keep basename only, then resolve under temp_dir.
+        # This blocks parent traversal or nested paths outside temp_dir.
+        safe_name = candidate.name
+        if not safe_name:
+            return None
+
+        possible_names = [safe_name]
+        if "." not in safe_name:
+            possible_names.append(f"{safe_name}.txt")
+
+        for name in possible_names:
+            resolved = os.path.realpath(os.path.join(temp_root, name))
+            if _is_within_temp(resolved) and os.path.isfile(resolved):
+                return resolved
+
+        return None
 
     async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
         self.printer.update_item("writing", "Thinking about report...")

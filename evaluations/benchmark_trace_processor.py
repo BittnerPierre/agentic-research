@@ -41,59 +41,116 @@ class BenchmarkTraceProcessor(TracingProcessor):
 
     def on_trace_start(self, trace: Trace) -> None:
         """Capture trace start event."""
-        self.traces[trace.trace_id] = {
-            "trace_id": trace.trace_id,
-            "name": trace.name,
-            "started_at": trace.started_at.isoformat() if trace.started_at else None,
+        exported = self._safe_export(trace) or {}
+        trace_id = getattr(trace, "trace_id", None) or exported.get("id")
+        if not trace_id:
+            return
+        trace_name = (
+            getattr(trace, "name", None)
+            or exported.get("name")
+            or exported.get("workflow_name")
+        )
+        trace_metadata = getattr(trace, "metadata", None)
+        if trace_metadata is None:
+            trace_metadata = exported.get("metadata", {})
+
+        self.traces[trace_id] = {
+            "trace_id": trace_id,
+            "name": trace_name,
+            "started_at": self._as_iso_timestamp(
+                getattr(trace, "started_at", None) or exported.get("started_at")
+            ),
             "ended_at": None,
-            "metadata": trace.metadata,
+            "metadata": trace_metadata,
             "spans": [],
         }
 
     def on_trace_end(self, trace: Trace) -> None:
         """Capture trace end event."""
-        if trace.trace_id in self.traces:
-            self.traces[trace.trace_id]["ended_at"] = (
-                trace.ended_at.isoformat() if trace.ended_at else None
+        exported = self._safe_export(trace) or {}
+        trace_id = getattr(trace, "trace_id", None) or exported.get("id")
+        if trace_id in self.traces:
+            self.traces[trace_id]["ended_at"] = self._as_iso_timestamp(
+                getattr(trace, "ended_at", None) or exported.get("ended_at")
             )
+            if self.traces[trace_id]["started_at"] is None:
+                self.traces[trace_id]["started_at"] = self._as_iso_timestamp(exported.get("started_at"))
 
     def on_span_start(self, span: Span[Any]) -> None:
         """Capture span start event."""
+        exported = self._safe_export(span) or {}
+        span_id = getattr(span, "span_id", None) or exported.get("id")
+        trace_id = getattr(span, "trace_id", None) or exported.get("trace_id")
+        if not span_id or not trace_id:
+            return
+
+        span_data_export = exported.get("span_data", {})
+        span_name = (
+            getattr(span, "name", None)
+            or exported.get("name")
+            or (span_data_export.get("name") if isinstance(span_data_export, dict) else None)
+        )
+        span_metadata: dict[str, Any] = {}
+        if isinstance(exported.get("metadata"), dict):
+            span_metadata.update(exported.get("metadata", {}))
+        if isinstance(span_data_export, dict):
+            # Preserve span_data type/name for downstream analyzers.
+            if span_data_export.get("type"):
+                span_metadata["span_type"] = span_data_export.get("type")
+            if span_data_export.get("name"):
+                span_metadata["span_name"] = span_data_export.get("name")
+
         span_data = {
-            "span_id": span.span_id,
-            "trace_id": span.trace_id,
-            "parent_id": span.parent_id,
-            "name": getattr(span, "name", None),
-            "started_at": span.started_at.isoformat() if span.started_at else None,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "parent_id": getattr(span, "parent_id", None) or exported.get("parent_id"),
+            "name": span_name,
+            "started_at": self._as_iso_timestamp(
+                getattr(span, "started_at", None) or exported.get("started_at")
+            ),
             "ended_at": None,
-            "metadata": {},
+            "metadata": span_metadata,
         }
 
-        # Try to extract agent name from span
-        exported = self._safe_export(span)
-        if exported and isinstance(exported, dict):
-            span_data["metadata"] = exported.get("metadata", {})
-            span_data["name"] = exported.get("name", span_data["name"])
+        # Track error field from exported payload if present.
+        if exported.get("error") is not None:
+            span_data["metadata"]["error"] = exported.get("error")
 
-        self.spans[span.span_id] = span_data
+        self.spans[span_id] = span_data
 
         # Add span to its trace
-        if span.trace_id in self.traces:
-            self.traces[span.trace_id]["spans"].append(span.span_id)
+        if trace_id in self.traces:
+            self.traces[trace_id]["spans"].append(span_id)
 
     def on_span_end(self, span: Span[Any]) -> None:
         """Capture span end event."""
-        if span.span_id in self.spans:
-            self.spans[span.span_id]["ended_at"] = (
-                span.ended_at.isoformat() if span.ended_at else None
+        exported = self._safe_export(span) or {}
+        span_id = getattr(span, "span_id", None) or exported.get("id")
+        if span_id in self.spans:
+            self.spans[span_id]["ended_at"] = self._as_iso_timestamp(
+                getattr(span, "ended_at", None) or exported.get("ended_at")
             )
 
             # Update metadata with final state
-            exported = self._safe_export(span)
             if exported and isinstance(exported, dict):
-                self.spans[span.span_id]["metadata"].update(
+                self.spans[span_id]["metadata"].update(
                     exported.get("metadata", {})
                 )
+                if exported.get("error") is not None:
+                    self.spans[span_id]["metadata"]["error"] = exported.get("error")
+
+    def _as_iso_timestamp(self, value: Any) -> str | None:
+        """Normalize timestamp values from agents SDK to ISO string."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        if hasattr(value, "isoformat"):
+            try:
+                return value.isoformat()
+            except Exception:
+                return str(value)
+        return str(value)
 
     def _safe_export(self, obj) -> dict | None:
         """Safely export trace/span data."""

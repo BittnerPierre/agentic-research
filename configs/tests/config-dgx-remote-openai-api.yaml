@@ -1,5 +1,5 @@
-# Configuration pour agentic-research (DGX Spark remote)
-config_name: "dgx-remote"
+# Benchmark config: OpenAI cloud models + DGX remote infra (DataPrep + Chroma + embeddings)
+config_name: "dgx-remote-openai-api"
 
 vector_store:
   name: "agentic-research-dgx"
@@ -14,7 +14,6 @@ vector_search:
   chroma_host: "gx10-957b"
   chroma_port: 8000
   chroma_ssl: false
-  # Uses Chroma OpenAIEmbeddingFunction, but the api_base points to llama.cpp embeddings (not OpenAI).
   chroma_embedding_provider: "openai"
   chroma_embedding_api_base: "http://gx10-957b:8003/v1"
   chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
@@ -25,6 +24,7 @@ vector_search:
 vector_mcp:
   command: "uvx"
   args:
+    - "--quiet"
     - "--python"
     - "3.12"
     - "chroma-mcp"
@@ -41,55 +41,34 @@ vector_mcp:
     - "chroma_get_documents"
   client_timeout_seconds: 60.0
 
-# Configuration des données d'entrée
 data:
   urls_file: "urls.txt"
   knowledge_db_path: "data/knowledge_db.json"
   local_storage_dir: "data/"
 
-# Configuration de debug
 debug:
   enabled: false
   output_dir: "debug_output"
   save_reports: true
   show_content_preview: true
 
-# Configuration du logging
 logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-# Configuration MCP (Model Context Protocol)
 mcp:
   server_host: "gx10-957b"
   server_port: 8001
   client_timeout_seconds: 60.0
   http_timeout_seconds: 5.0
 
-# Configuration Models
 models:
-  research_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
-    base_url: "http://gx10-957b:8002"
-    api_key: "dummy"
-  planning_model:
-    name: "openai/Ministral-3-14B-Reasoning-2512-Q8_0.gguf"
-    base_url: "http://gx10-957b:8004"
-    api_key: "dummy"
-  search_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
-    base_url: "http://gx10-957b:8002"
-    api_key: "dummy"
-  writer_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
-    base_url: "http://gx10-957b:8002"
-    api_key: "dummy"
-  knowledge_preparation_model:
-    name: "openai/gpt-oss-20b-mxfp4.gguf"
-    base_url: "http://gx10-957b:8002"
-    api_key: "dummy"
+  research_model: "openai/gpt-4.1-mini"
+  planning_model: "openai/gpt-4.1-mini"
+  search_model: "openai/gpt-4.1-mini"
+  writer_model: "openai/gpt-4.1-mini"
+  knowledge_preparation_model: "openai/gpt-4.1-mini"
 
-# Configuration du manager
 manager:
   default_manager: "deep_manager"
 
