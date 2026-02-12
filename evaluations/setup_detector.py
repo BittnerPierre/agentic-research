@@ -14,6 +14,8 @@ def detect_active_setup(models_env_path: str = "models.env") -> dict:
     """
     Détecte le setup actif via le symlink models.env et parse les métadonnées.
 
+    Peut aussi être spécifié via la variable d'environnement BENCHMARK_SETUP_NAME.
+
     Args:
         models_env_path: Chemin vers le fichier models.env (défaut: "models.env")
 
@@ -37,18 +39,29 @@ def detect_active_setup(models_env_path: str = "models.env") -> dict:
         FileNotFoundError: Si models.env n'existe pas
         ValueError: Si le format du fichier .env est invalide
     """
-    # Vérifier que le fichier existe
-    if not os.path.exists(models_env_path):
-        raise FileNotFoundError(
-            f"models.env not found at {models_env_path}. "
-            "Please create a symlink: ln -sf models.<setup>.env models.env"
-        )
+    # Vérifier si le setup est fourni via variable d'environnement
+    setup_name_env = os.environ.get("BENCHMARK_SETUP_NAME")
+    if setup_name_env:
+        setup_name = setup_name_env
+        real_path = f"models.{setup_name}.env"
+        if not os.path.exists(real_path):
+            raise FileNotFoundError(
+                f"Model config file not found: {real_path}. "
+                f"BENCHMARK_SETUP_NAME={setup_name_env} is set but file does not exist."
+            )
+    else:
+        # Vérifier que le fichier existe
+        if not os.path.exists(models_env_path):
+            raise FileNotFoundError(
+                f"models.env not found at {models_env_path}. "
+                "Please create a symlink: ln -sf models.<setup>.env models.env"
+            )
 
-    # Résoudre le symlink pour obtenir le fichier réel
-    real_path = os.path.realpath(models_env_path)
+        # Résoudre le symlink pour obtenir le fichier réel
+        real_path = os.path.realpath(models_env_path)
 
-    # Extraire le nom du setup
-    setup_name = extract_setup_name(real_path)
+        # Extraire le nom du setup
+        setup_name = extract_setup_name(real_path)
 
     # Parser le fichier .env
     env_data = parse_env_file(real_path)

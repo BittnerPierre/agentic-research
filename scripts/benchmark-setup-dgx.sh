@@ -45,7 +45,9 @@ echo "🚀 Running benchmark (2 runs)..."
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_DIR="benchmarks/run_${TIMESTAMP}"
 
-docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm agentic-research \
+docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm \
+  -e BENCHMARK_SETUP_NAME="$SETUP_NAME" \
+  agentic-research \
   benchmark-models \
   --config /app/configs/config-docker-dgx.yaml \
   --syllabus /app/test_files/query_advanced_1.md \

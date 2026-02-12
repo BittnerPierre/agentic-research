@@ -19,6 +19,11 @@ services:
       - llm-reasoning
     volumes:
       - ./test_files:/app/test_files
+      - ./models.openai.env:/app/models.openai.env:ro
+      - ./models.ministral.env:/app/models.ministral.env:ro
+      - ./models.mistralai.env:/app/models.mistralai.env:ro
+      - ./models.glm.env:/app/models.glm.env:ro
+      - ./models.qwen.env:/app/models.qwen.env:ro
       - ./models.env:/app/models.env:ro
       - ./benchmarks:/app/benchmarks
 
