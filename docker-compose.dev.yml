@@ -1,0 +1,11 @@
+# Docker Compose override for development
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dgx.yml -f docker-compose.dev.yml ...
+#
+# This mounts source code as volumes so changes are reflected immediately
+# without rebuilding the image.
+
+services:
+  agentic-research:
+    volumes:
+      - ./evaluations:/app/evaluations
+      - ./src:/app/src

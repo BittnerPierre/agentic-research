@@ -200,8 +200,8 @@ class BenchmarkRunner:
                     manager = DeepResearchManager()
 
                     # Install trace processor
-                    from agents import install_trace_processor
-                    install_trace_processor(trace_processor)
+                    from agents import add_trace_processor
+                    add_trace_processor(trace_processor)
 
                     await manager.run(
                         fs_server=fs_server,
