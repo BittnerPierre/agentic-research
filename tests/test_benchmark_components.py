@@ -559,6 +559,34 @@ class TestBenchmarkRunnerIntegration:
             )
 
         monkeypatch.setattr(benchmark_runner, "evaluate_rag_triad", _fake_eval_rag_triad)
+        async def _fake_spec_compliance(*_args, **_kwargs):
+            return _Dumpable(
+                {
+                    "score_100": 90.0,
+                    "checks": {},
+                    "violations": [],
+                    "allowed_sources": [],
+                    "used_sources": [],
+                    "unauthorized_sources": [],
+                    "reasoning": "ok",
+                }
+            )
+
+        monkeypatch.setattr(benchmark_runner, "evaluate_spec_compliance", _fake_spec_compliance)
+        monkeypatch.setattr(
+            benchmark_runner,
+            "compute_score_breakdown",
+            lambda **_kwargs: _Dumpable(
+                {
+                    "spec_compliance_100": 90.0,
+                    "content_quality_100": 85.0,
+                    "rag_compliance_100": 80.0,
+                    "efficiency_100": 75.0,
+                    "overall_100": 84.0,
+                    "analysis": "Good",
+                }
+            ),
+        )
         monkeypatch.setattr(benchmark_runner, "extract_raw_notes_from_report", lambda *_args: "notes")
         monkeypatch.delenv("MCP_DATAPREP_URL", raising=False)
 
@@ -602,6 +630,7 @@ class TestBenchmarkRunnerIntegration:
         assert len(add_trace_calls) == 1
         assert result["quality_result"]["judgment"] == "PASS"
         assert result["rag_triad"]["average"] == 0.8
+        assert result["scores"]["overall_100"] == 84.0
         assert Path(result["report_file"]).exists()
 
     @pytest.mark.asyncio
@@ -689,6 +718,34 @@ class TestBenchmarkRunnerIntegration:
             )
 
         monkeypatch.setattr(benchmark_runner, "evaluate_rag_triad", _fake_eval_rag_triad)
+        async def _fake_spec_compliance(*_args, **_kwargs):
+            return _Dumpable(
+                {
+                    "score_100": 80.0,
+                    "checks": {},
+                    "violations": [],
+                    "allowed_sources": [],
+                    "used_sources": [],
+                    "unauthorized_sources": [],
+                    "reasoning": "ok",
+                }
+            )
+
+        monkeypatch.setattr(benchmark_runner, "evaluate_spec_compliance", _fake_spec_compliance)
+        monkeypatch.setattr(
+            benchmark_runner,
+            "compute_score_breakdown",
+            lambda **_kwargs: _Dumpable(
+                {
+                    "spec_compliance_100": 80.0,
+                    "content_quality_100": 82.0,
+                    "rag_compliance_100": 70.0,
+                    "efficiency_100": 90.0,
+                    "overall_100": 79.6,
+                    "analysis": "Mixed",
+                }
+            ),
+        )
         monkeypatch.setattr(benchmark_runner, "extract_raw_notes_from_report", lambda *_args: "notes")
         monkeypatch.setenv("MCP_DATAPREP_URL", "http://override:9001/sse")
 
@@ -740,6 +797,7 @@ class TestBenchmarkRunnerIntegration:
         assert created_servers[1].params["url"] == "http://override:9001/sse"
         assert "VECTOR_MCP_SERVER" in entered
         assert result["rag_triad"]["average"] == 0.7
+        assert result["scores"]["overall_100"] == pytest.approx(79.6)
 
     @pytest.mark.integration
     def test_remote_services_healthcheck(self):
@@ -885,6 +943,14 @@ class TestBenchmarkRunnerHelpers:
                         "answer_relevance": 0.7,
                         "average": 0.8,
                     },
+                    "scores": {
+                        "spec_compliance_100": 90.0,
+                        "content_quality_100": 88.0,
+                        "rag_compliance_100": 80.0,
+                        "efficiency_100": 85.0,
+                        "overall_100": 86.0,
+                        "analysis": "Good",
+                    },
                 },
                 {
                     "timing": {
@@ -910,6 +976,14 @@ class TestBenchmarkRunnerHelpers:
                         "answer_relevance": 0.8,
                         "average": 0.7,
                     },
+                    "scores": {
+                        "spec_compliance_100": 70.0,
+                        "content_quality_100": 72.0,
+                        "rag_compliance_100": 70.0,
+                        "efficiency_100": 75.0,
+                        "overall_100": 71.6,
+                        "analysis": "Mixed",
+                    },
                 },
             ]
         )
@@ -918,6 +992,7 @@ class TestBenchmarkRunnerHelpers:
         assert avg["timing"]["phases"]["search"] == pytest.approx(4.5)
         assert avg["agent_calls"]["total"] == pytest.approx(6.0)
         assert avg["rag_triad"]["average"] == pytest.approx(0.75)
+        assert avg["scores"]["overall_100"] == pytest.approx(78.8)
 
     def test_runner_uses_supported_trace_processor_api(self):
         import evaluations.benchmark_runner as benchmark_runner

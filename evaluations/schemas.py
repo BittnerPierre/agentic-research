@@ -122,3 +122,26 @@ class BenchmarkResult(BaseModel):
     config_file: str = "configs/config-docker-dgx.yaml"
     config_name: str | None = None
     trace_id: str | None = None
+
+
+class SpecComplianceResult(BaseModel):
+    """Compliance result against syllabus constraints."""
+
+    score_100: float = Field(ge=0.0, le=100.0)
+    checks: dict[str, bool] = Field(default_factory=dict)
+    violations: list[str] = Field(default_factory=list)
+    allowed_sources: list[str] = Field(default_factory=list)
+    used_sources: list[str] = Field(default_factory=list)
+    unauthorized_sources: list[str] = Field(default_factory=list)
+    reasoning: str = ""
+
+
+class ScoreBreakdown(BaseModel):
+    """Normalized benchmark scores for ranking."""
+
+    spec_compliance_100: float = Field(ge=0.0, le=100.0)
+    content_quality_100: float = Field(ge=0.0, le=100.0)
+    rag_compliance_100: float = Field(ge=0.0, le=100.0)
+    efficiency_100: float = Field(ge=0.0, le=100.0)
+    overall_100: float = Field(ge=0.0, le=100.0)
+    analysis: str = ""

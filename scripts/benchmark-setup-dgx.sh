@@ -41,7 +41,7 @@ echo "⏳ Waiting for services to be ready..."
 sleep 10
 
 # 3. Run benchmark
-echo "🚀 Running benchmark (2 runs)..."
+echo "🚀 Running benchmark (1 run)..."
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_DIR="benchmarks/run_${TIMESTAMP}"
 
@@ -51,7 +51,7 @@ docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models
   benchmark-models \
   --config /app/configs/config-docker-dgx.yaml \
   --syllabus /app/test_files/query_advanced_1.md \
-  --runs 2 \
+  --runs 1 \
   --output "/app/$OUTPUT_DIR" \
   --vector-store-name "agentic-research-dgx"
 
