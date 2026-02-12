@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --only main --no-ansi --no-root
 COPY src ./src
+COPY evaluations ./evaluations
 COPY configs ./configs
 COPY urls.txt ./
 RUN poetry install --no-ansi --only-root
