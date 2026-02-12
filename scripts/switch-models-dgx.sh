@@ -16,7 +16,7 @@ if [ -z "$SETUP_NAME" ]; then
   exit 1
 fi
 
-MODELS_ENV="models.${SETUP_NAME}.env"
+MODELS_ENV="models/models.${SETUP_NAME}.env"
 
 if [ ! -f "$MODELS_ENV" ]; then
   echo "Error: $MODELS_ENV not found"

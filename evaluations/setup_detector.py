@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 
-def detect_active_setup(models_env_path: str = "models.env") -> dict:
+def detect_active_setup(models_env_path: str = "models/models.env") -> dict:
     """
     Détecte le setup actif via le symlink models.env et parse les métadonnées.
 
@@ -43,7 +43,7 @@ def detect_active_setup(models_env_path: str = "models.env") -> dict:
     setup_name_env = os.environ.get("BENCHMARK_SETUP_NAME")
     if setup_name_env:
         setup_name = setup_name_env
-        real_path = f"models.{setup_name}.env"
+        real_path = f"models/models.{setup_name}.env"
         if not os.path.exists(real_path):
             raise FileNotFoundError(
                 f"Model config file not found: {real_path}. "
