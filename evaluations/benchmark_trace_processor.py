@@ -136,3 +136,23 @@ class BenchmarkTraceProcessor(TracingProcessor):
     def get_trace_file(self) -> str:
         """Get the output file path."""
         return str(self.output_file)
+
+    def force_flush(self, timeout_millis: int = 30000) -> bool:
+        """
+        Force flush any buffered traces to storage.
+
+        Args:
+            timeout_millis: Timeout in milliseconds (unused, for interface compatibility)
+
+        Returns:
+            True if flush succeeded
+        """
+        try:
+            self.save()
+            return True
+        except Exception:
+            return False
+
+    def shutdown(self) -> None:
+        """Shutdown the processor and save final traces."""
+        self.save()
