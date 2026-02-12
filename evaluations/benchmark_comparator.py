@@ -126,7 +126,9 @@ class BenchmarkComparator:
             # Grades
             quality = bench["runs"][0]["quality_result"]
             grades = quality["grades"]
-            grades_str = f"{grades['format']}/{grades['grounding']}/{grades['agenda']}/{grades['usability']}"
+            grades_str = (
+                f"{grades['format']}/{grades['grounding']}/{grades['agenda']}/{grades['usability']}"
+            )
 
             # Judgment
             judgment = quality["judgment"]
@@ -235,7 +237,13 @@ class BenchmarkComparator:
         def quality_score(bench):
             grades = bench["runs"][0]["quality_result"]["grades"]
             return sum(
-                1 for g in [grades["format"], grades["grounding"], grades["agenda"], grades["usability"]]
+                1
+                for g in [
+                    grades["format"],
+                    grades["grounding"],
+                    grades["agenda"],
+                    grades["usability"],
+                ]
                 if g in ("A", "B")
             )
 
@@ -265,7 +273,13 @@ class BenchmarkComparator:
         def quality_score(bench):
             grades = bench["runs"][0]["quality_result"]["grades"]
             return sum(
-                1 for g in [grades["format"], grades["grounding"], grades["agenda"], grades["usability"]]
+                1
+                for g in [
+                    grades["format"],
+                    grades["grounding"],
+                    grades["agenda"],
+                    grades["usability"],
+                ]
                 if g in ("A", "B")
             )
 
@@ -341,9 +355,9 @@ def main():
     markdown = comparator.compare()
 
     # Print to console
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(markdown)
-    print("="*60)
+    print("=" * 60)
 
 
 if __name__ == "__main__":

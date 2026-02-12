@@ -236,9 +236,7 @@ async def evaluate_rag_triad(
     answer_relevance = await evaluate_answer_relevance(report_markdown, query)
 
     # Calculate average
-    average = (
-        groundedness.score + context_relevance.score + answer_relevance.score
-    ) / 3.0
+    average = (groundedness.score + context_relevance.score + answer_relevance.score) / 3.0
 
     return RAGTriadResult(
         groundedness=groundedness.score,

@@ -229,6 +229,7 @@ class BenchmarkRunner:
 
                     # Install trace processor
                     from agents import add_trace_processor
+
                     add_trace_processor(trace_processor)
 
                     await manager.run(
@@ -243,6 +244,7 @@ class BenchmarkRunner:
 
                 # Install trace processor
                 from agents import add_trace_processor
+
                 add_trace_processor(trace_processor)
 
                 await manager.run(
@@ -363,16 +365,14 @@ class BenchmarkRunner:
 
         # Average phase timings
         for phase in runs[0]["timing"]["phases"].keys():
-            avg_timing["phases"][phase] = (
-                sum(r["timing"]["phases"][phase] for r in runs) / len(runs)
+            avg_timing["phases"][phase] = sum(r["timing"]["phases"][phase] for r in runs) / len(
+                runs
             )
 
         # Average agent calls
         avg_agent_calls = {}
         for key in runs[0]["agent_calls"].keys():
-            avg_agent_calls[key] = (
-                sum(r["agent_calls"][key] for r in runs) / len(runs)
-            )
+            avg_agent_calls[key] = sum(r["agent_calls"][key] for r in runs) / len(runs)
 
         # Average RAG Triad
         avg_rag_triad = {
@@ -420,9 +420,7 @@ class BenchmarkRunner:
     def _get_commit_hash(self) -> str:
         """Get current git commit hash."""
         try:
-            return subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"]
-            ).decode().strip()
+            return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
         except Exception:
             return "unknown"
 
@@ -475,10 +473,7 @@ class BenchmarkRunner:
         )
         # Some existing Chroma collections store OPENAI_API_KEY as api_key_env_var.
         # If only CHROMA_OPENAI_API_KEY is set, mirror it for compatibility.
-        if (
-            chroma_env.get("CHROMA_OPENAI_API_KEY")
-            and not chroma_env.get("OPENAI_API_KEY")
-        ):
+        if chroma_env.get("CHROMA_OPENAI_API_KEY") and not chroma_env.get("OPENAI_API_KEY"):
             chroma_env["OPENAI_API_KEY"] = chroma_env["CHROMA_OPENAI_API_KEY"]
 
         return MCPServerStdio(
@@ -534,12 +529,14 @@ async def main():
         vector_store_name=args.vector_store_name,
     )
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🎉 BENCHMARK COMPLETED")
-    print("="*60)
+    print("=" * 60)
     print(f"Setup: {result['setup_metadata']['setup_name']}")
     print(f"Average timing: {result['average']['timing']['total_seconds']:.1f}s")
-    avg_quality = runner._quality_tier_from_score(result["average"]["scores"]["content_quality_100"])
+    avg_quality = runner._quality_tier_from_score(
+        result["average"]["scores"]["content_quality_100"]
+    )
     print(f"Average quality: {avg_quality}")
     print(f"Average RAG Triad: {result['average']['rag_triad']['average']:.2f}")
     print(f"Average overall score: {result['average']['scores']['overall_100']:.1f}/100")

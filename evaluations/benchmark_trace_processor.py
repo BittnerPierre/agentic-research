@@ -37,7 +37,7 @@ class BenchmarkTraceProcessor(TracingProcessor):
 
         # In-memory storage during execution
         self.traces: dict[str, dict] = {}  # trace_id -> trace_data
-        self.spans: dict[str, dict] = {}   # span_id -> span_data
+        self.spans: dict[str, dict] = {}  # span_id -> span_data
 
     def on_trace_start(self, trace: Trace) -> None:
         """Capture trace start event."""
@@ -46,9 +46,7 @@ class BenchmarkTraceProcessor(TracingProcessor):
         if not trace_id:
             return
         trace_name = (
-            getattr(trace, "name", None)
-            or exported.get("name")
-            or exported.get("workflow_name")
+            getattr(trace, "name", None) or exported.get("name") or exported.get("workflow_name")
         )
         trace_metadata = getattr(trace, "metadata", None)
         if trace_metadata is None:
@@ -74,7 +72,9 @@ class BenchmarkTraceProcessor(TracingProcessor):
                 getattr(trace, "ended_at", None) or exported.get("ended_at")
             )
             if self.traces[trace_id]["started_at"] is None:
-                self.traces[trace_id]["started_at"] = self._as_iso_timestamp(exported.get("started_at"))
+                self.traces[trace_id]["started_at"] = self._as_iso_timestamp(
+                    exported.get("started_at")
+                )
 
     def on_span_start(self, span: Span[Any]) -> None:
         """Capture span start event."""
@@ -133,9 +133,7 @@ class BenchmarkTraceProcessor(TracingProcessor):
 
             # Update metadata with final state
             if exported and isinstance(exported, dict):
-                self.spans[span_id]["metadata"].update(
-                    exported.get("metadata", {})
-                )
+                self.spans[span_id]["metadata"].update(exported.get("metadata", {}))
                 if exported.get("error") is not None:
                     self.spans[span_id]["metadata"]["error"] = exported.get("error")
 
@@ -179,8 +177,7 @@ class BenchmarkTraceProcessor(TracingProcessor):
             # Resolve span references
             trace_copy = trace_data.copy()
             trace_copy["spans"] = [
-                self.spans[span_id] for span_id in trace_data["spans"]
-                if span_id in self.spans
+                self.spans[span_id] for span_id in trace_data["spans"] if span_id in self.spans
             ]
             output["traces"].append(trace_copy)
 

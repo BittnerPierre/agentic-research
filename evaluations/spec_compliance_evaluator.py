@@ -58,7 +58,9 @@ def _extract_constraints(syllabus: str) -> SyllabusConstraints:
     constraints.require_faq = any(token in text for token in ["faq", "questions / réponses", "q&a"])
     constraints.require_intro = "introduction" in text
     constraints.require_conclusion = "conclusion" in text
-    constraints.require_lexique = any(token in text for token in ["lexique", "glossaire", "glossary"])
+    constraints.require_lexique = any(
+        token in text for token in ["lexique", "glossaire", "glossary"]
+    )
     constraints.restrict_sources = (
         any(token in text for token in ["uniquement", "strictement", "exclusivement", "only"])
         and "source" in text
@@ -75,7 +77,9 @@ def _extract_used_sources(report_markdown: str, raw_notes: str) -> set[str]:
 def _check_faq(report_markdown: str) -> bool:
     text = report_markdown.lower()
     q_count = len(re.findall(r"(^|\n)\s*(q(?:uestion)?\s*[:\-])", text))
-    a_count = len(re.findall(r"(^|\n)\s*(a(?:nswer|nswer|nswer)?\s*[:\-]|r[eé]ponse\s*[:\-])", text))
+    a_count = len(
+        re.findall(r"(^|\n)\s*(a(?:nswer|nswer|nswer)?\s*[:\-]|r[eé]ponse\s*[:\-])", text)
+    )
     return q_count >= 2 and a_count >= 2
 
 
@@ -102,7 +106,9 @@ def _deterministic_spec_score(
     checks["length_words"] = constraints.max_words is None or word_count <= constraints.max_words
     checks["length_chars"] = constraints.max_chars is None or char_count <= constraints.max_chars
     checks["faq_format"] = (not constraints.require_faq) or _check_faq(report_markdown)
-    checks["has_intro"] = (not constraints.require_intro) or _has_heading(report_markdown, "introduction")
+    checks["has_intro"] = (not constraints.require_intro) or _has_heading(
+        report_markdown, "introduction"
+    )
     checks["has_conclusion"] = (not constraints.require_conclusion) or _has_heading(
         report_markdown, "conclusion"
     )
@@ -115,16 +121,16 @@ def _deterministic_spec_score(
 
     used_sources = _extract_used_sources(report_markdown, raw_notes)
     allowed_sources = constraints.allowed_sources or set()
-    unauthorized_sources = sorted(used_sources - allowed_sources) if constraints.restrict_sources else []
+    unauthorized_sources = (
+        sorted(used_sources - allowed_sources) if constraints.restrict_sources else []
+    )
     checks["allowed_sources_only"] = not constraints.restrict_sources or not unauthorized_sources
 
     for check_name, passed in checks.items():
         if not passed:
             violations.append(f"Failed check: {check_name}")
     if unauthorized_sources:
-        violations.append(
-            "Unauthorized sources used: " + ", ".join(unauthorized_sources[:5])
-        )
+        violations.append("Unauthorized sources used: " + ", ".join(unauthorized_sources[:5]))
 
     passed_checks = sum(1 for passed in checks.values() if passed)
     deterministic_score = 100.0 * passed_checks / max(1, len(checks))

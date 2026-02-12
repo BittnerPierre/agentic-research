@@ -90,7 +90,11 @@ class TraceAnalyzer:
                     span_name = self._safe_lower(metadata.get("agent_name"))
 
                 # Match span names to phases
-                if "knowledge" in span_name or "preparation" in span_name or "preparing" in span_name:
+                if (
+                    "knowledge" in span_name
+                    or "preparation" in span_name
+                    or "preparing" in span_name
+                ):
                     phases["knowledge_preparation"] += duration
                 elif "plan" in span_name or "planning" in span_name:
                     phases["planning"] += duration

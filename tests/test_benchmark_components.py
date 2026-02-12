@@ -57,8 +57,7 @@ class TestSetupDetector:
         models_dir.mkdir()
         test_file = models_dir / "models.test.env"
         test_file.write_text(
-            "LLM_INSTRUCT_MODEL_PATH=/path/to/model-Q4_K_M.gguf\n"
-            "LLM_INSTRUCT_CTX_SIZE=32768\n"
+            "LLM_INSTRUCT_MODEL_PATH=/path/to/model-Q4_K_M.gguf\n" "LLM_INSTRUCT_CTX_SIZE=32768\n"
         )
 
         # Set env var and working directory
@@ -542,12 +541,15 @@ class TestBenchmarkRunnerIntegration:
 
         fake_manager_module = ModuleType("agentic_research.deep_research_manager")
         fake_manager_module.DeepResearchManager = _FakeManager
-        monkeypatch.setitem(sys.modules, "agentic_research.deep_research_manager", fake_manager_module)
+        monkeypatch.setitem(
+            sys.modules, "agentic_research.deep_research_manager", fake_manager_module
+        )
 
         monkeypatch.setattr(benchmark_runner, "MCPServerStdio", _FakeServer)
         monkeypatch.setattr(benchmark_runner, "MCPServerSse", _FakeServer)
         monkeypatch.setattr(benchmark_runner, "TraceAnalyzer", _FakeTraceAnalyzer)
         monkeypatch.setattr("agents.add_trace_processor", lambda p: add_trace_calls.append(p))
+
         async def _fake_eval_rag_triad(*_args, **_kwargs):
             return _Dumpable(
                 {
@@ -559,6 +561,7 @@ class TestBenchmarkRunnerIntegration:
             )
 
         monkeypatch.setattr(benchmark_runner, "evaluate_rag_triad", _fake_eval_rag_triad)
+
         async def _fake_spec_compliance(*_args, **_kwargs):
             return _Dumpable(
                 {
@@ -587,7 +590,9 @@ class TestBenchmarkRunnerIntegration:
                 }
             ),
         )
-        monkeypatch.setattr(benchmark_runner, "extract_raw_notes_from_report", lambda *_args: "notes")
+        monkeypatch.setattr(
+            benchmark_runner, "extract_raw_notes_from_report", lambda *_args: "notes"
+        )
         monkeypatch.delenv("MCP_DATAPREP_URL", raising=False)
 
         async def _fake_eval_quality(self, _report_markdown):
@@ -598,7 +603,9 @@ class TestBenchmarkRunnerIntegration:
                 }
             )
 
-        monkeypatch.setattr(benchmark_runner.BenchmarkRunner, "_evaluate_quality", _fake_eval_quality)
+        monkeypatch.setattr(
+            benchmark_runner.BenchmarkRunner, "_evaluate_quality", _fake_eval_quality
+        )
 
         config = SimpleNamespace(
             vector_store=SimpleNamespace(name="vs"),
@@ -701,12 +708,15 @@ class TestBenchmarkRunnerIntegration:
 
         fake_manager_module = ModuleType("agentic_research.deep_research_manager")
         fake_manager_module.DeepResearchManager = _FakeManager
-        monkeypatch.setitem(sys.modules, "agentic_research.deep_research_manager", fake_manager_module)
+        monkeypatch.setitem(
+            sys.modules, "agentic_research.deep_research_manager", fake_manager_module
+        )
 
         monkeypatch.setattr(benchmark_runner, "MCPServerStdio", _FakeServer)
         monkeypatch.setattr(benchmark_runner, "MCPServerSse", _FakeServer)
         monkeypatch.setattr(benchmark_runner, "TraceAnalyzer", _FakeTraceAnalyzer)
         monkeypatch.setattr("agents.add_trace_processor", lambda *_args, **_kwargs: None)
+
         async def _fake_eval_rag_triad(*_args, **_kwargs):
             return _Dumpable(
                 {
@@ -718,6 +728,7 @@ class TestBenchmarkRunnerIntegration:
             )
 
         monkeypatch.setattr(benchmark_runner, "evaluate_rag_triad", _fake_eval_rag_triad)
+
         async def _fake_spec_compliance(*_args, **_kwargs):
             return _Dumpable(
                 {
@@ -746,7 +757,9 @@ class TestBenchmarkRunnerIntegration:
                 }
             ),
         )
-        monkeypatch.setattr(benchmark_runner, "extract_raw_notes_from_report", lambda *_args: "notes")
+        monkeypatch.setattr(
+            benchmark_runner, "extract_raw_notes_from_report", lambda *_args: "notes"
+        )
         monkeypatch.setenv("MCP_DATAPREP_URL", "http://override:9001/sse")
 
         async def _fake_eval_quality(self, _report_markdown):
@@ -757,7 +770,9 @@ class TestBenchmarkRunnerIntegration:
                 }
             )
 
-        monkeypatch.setattr(benchmark_runner.BenchmarkRunner, "_evaluate_quality", _fake_eval_quality)
+        monkeypatch.setattr(
+            benchmark_runner.BenchmarkRunner, "_evaluate_quality", _fake_eval_quality
+        )
 
         config = SimpleNamespace(
             vector_store=SimpleNamespace(name="vs"),
@@ -768,7 +783,9 @@ class TestBenchmarkRunnerIntegration:
                 client_timeout_seconds=60.0,
             ),
             vector_search=SimpleNamespace(provider="chroma"),
-            vector_mcp=SimpleNamespace(command="uvx", args=["chroma-mcp"], client_timeout_seconds=60.0),
+            vector_mcp=SimpleNamespace(
+                command="uvx", args=["chroma-mcp"], client_timeout_seconds=60.0
+            ),
         )
         monkeypatch.setattr(benchmark_runner, "get_config", lambda _path: config)
 

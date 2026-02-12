@@ -48,6 +48,8 @@ debug_output/
 traces/
 output/
 logs/
+benchmarks/*
+!benchmarks/.gitkeep
 data/*
 !data/.gitkeep
 models/
