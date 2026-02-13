@@ -29,7 +29,10 @@ def dynamic_instructions(
     return (
         f"{dynamic_prompt}"
         f"The absolute path to **temporary filesystem** is `{context.context.temp_dir}`."
-        " You MUST use it to write and read temporary data.\n\n"
+        " You MUST use it to write and read temporary data.\n"
+        "When calling write_file, always set `path` to "
+        f"`{context.context.temp_dir}/<normalized_filename>.txt` and never write outside this "
+        "directory.\n\n"
         # f"The absolute path to **output filesystem** is `{context.context.output_dir}`."
         #   " You MUST use it to write and read output final content.\n\n"
     )

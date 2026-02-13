@@ -517,7 +517,7 @@ async def main():
         result["average"]["scores"]["content_quality_100"]
     )
     print(f"Average quality: {avg_quality}")
-    print(f"Average RAG Triad: {result['average']['rag_triad']['average']:.2f}")
+    print(f"Average RAG Triad: {result['average']['rag_triad']['average'] * 100:.1f}/100")
     print(f"Average overall score: {result['average']['scores']['overall_100']:.1f}/100")
     print(f"Average spec compliance: {result['average']['scores']['spec_compliance_100']:.1f}/100")
     print(f"Average content quality: {result['average']['scores']['content_quality_100']:.1f}/100")

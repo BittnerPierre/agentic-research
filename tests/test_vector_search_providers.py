@@ -99,6 +99,7 @@ def test_file_search_agent_chroma_instructions_do_not_reference_raw_chroma_tool(
 
     instructions = dynamic_instructions(_Wrapper(), None)
     assert "chroma_query_documents" not in instructions
+    assert "/tmp/bench/<normalized_filename>.txt" in instructions
 
     _restore_config(config, snapshot)
 
