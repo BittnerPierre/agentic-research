@@ -35,11 +35,31 @@ def test_compute_score_breakdown_combines_components():
         spec_result=spec,
         quality_result=quality,
         rag_triad_average=0.9,
+        rag_context_relevance=0.9,
         timing={"total_seconds": 40.0},
         agent_calls={"total": 5, "tool_calls_total": 8, "failures": 0},
     )
     assert 0 <= breakdown.overall_100 <= 100
     assert breakdown.rag_compliance_100 == 90.0
+
+
+def test_compute_score_breakdown_caps_when_context_relevance_is_weak():
+    spec = SpecComplianceResult(score_100=98.0)
+    quality = EvaluationResult(
+        judgment="PASS",
+        grades=Grades(format="A", grounding="A", agenda="A", usability="A"),
+        reasoning="ok",
+    )
+    breakdown = compute_score_breakdown(
+        spec_result=spec,
+        quality_result=quality,
+        rag_triad_average=0.85,
+        rag_context_relevance=0.5,
+        timing={"total_seconds": 35.0},
+        agent_calls={"total": 6, "tool_calls_total": 6, "failures": 0},
+    )
+    assert breakdown.content_quality_100 <= 85.0
+    assert breakdown.overall_100 <= 79.0
 
 
 @pytest.mark.asyncio

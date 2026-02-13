@@ -266,6 +266,7 @@ class BenchmarkRunner:
             spec_result=spec_compliance,
             quality_result=quality_result,
             rag_triad_average=rag_triad_data["average"],
+            rag_context_relevance=rag_triad_data.get("context_relevance"),
             timing=timing.model_dump(),
             agent_calls=agent_calls.model_dump(),
         )
