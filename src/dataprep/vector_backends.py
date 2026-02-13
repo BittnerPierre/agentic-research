@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -24,6 +25,119 @@ from .vector_store_manager import VectorStoreManager
 from .vector_store_utils import chunk_text, read_local_file, resolve_inputs_to_entries
 
 logger = logging.getLogger(__name__)
+
+MIN_CHARS_PER_CHUNK = 200
+
+_NOISE_SECTION_MARKERS = (
+    "## references",
+    "## see also",
+    "retrieved from",
+    "categories:",
+    "hidden categories:",
+)
+_NOISE_LINE_RE = re.compile(
+    r"(\[\[edit\]|cookie|open in app|sitemap|copy as markdown|ask docs ai|page not found)",
+    re.IGNORECASE,
+)
+_ARTIFACT_RE = re.compile(
+    r"(RECOMMENDED_PROMPT_PREFIX|You are a|system prompt|tool_call|BEGIN|END)",
+    re.IGNORECASE,
+)
+
+
+def _strip_front_matter(text: str) -> str:
+    return re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.DOTALL)
+
+
+def _strip_markdown_links(text: str) -> str:
+    return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+
+
+def _clean_for_rag(text: str) -> str:
+    cleaned = _strip_front_matter(text)
+    cleaned = re.sub(r"```[\s\S]*?```", "\n", cleaned)
+    cleaned = cleaned.replace(
+        "*Document traité automatiquement par le système de recherche agentique*", ""
+    )
+    cleaned = re.sub(r"</[^>]+>", "", cleaned)
+    cleaned = re.sub(r"\[\[edit\][^\]]*\]", "", cleaned, flags=re.IGNORECASE)
+    cleaned = cleaned.replace("\\(", "(").replace("\\)", ")")
+    cleaned = _strip_markdown_links(cleaned)
+
+    kept_lines: list[str] = []
+    for raw_line in cleaned.splitlines():
+        line = raw_line.strip()
+        lowered = line.lower()
+        if any(marker in lowered for marker in _NOISE_SECTION_MARKERS):
+            break
+        if _NOISE_LINE_RE.search(line):
+            continue
+        kept_lines.append(line)
+
+    cleaned = "\n".join(kept_lines)
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _chunk_dense_text(text: str, max_chars: int, overlap: int) -> list[str]:
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", text) if part.strip()]
+    if not paragraphs:
+        return []
+
+    chunks: list[str] = []
+    current = ""
+
+    def _flush(value: str) -> None:
+        if value:
+            chunks.append(value.strip())
+
+    for paragraph in paragraphs:
+        if len(paragraph) > max_chars:
+            _flush(current)
+            current = ""
+            for part in chunk_text(paragraph, max_chars=max_chars, overlap=overlap):
+                _flush(part)
+            continue
+
+        if not current:
+            current = paragraph
+            continue
+
+        candidate = f"{current}\n\n{paragraph}"
+        if len(candidate) <= max_chars:
+            current = candidate
+            continue
+
+        _flush(current)
+        if overlap > 0 and len(current) > overlap:
+            current = f"{current[-overlap:]}\n\n{paragraph}"
+            if len(current) > max_chars:
+                current = paragraph
+        else:
+            current = paragraph
+
+    _flush(current)
+    return chunks
+
+
+def _non_alnum_ratio(text: str) -> float:
+    if not text:
+        return 1.0
+    non_alnum = sum(1 for c in text if (not c.isalnum() and not c.isspace()))
+    return non_alnum / len(text)
+
+
+def _is_high_quality_chunk(chunk: str) -> bool:
+    if len(chunk) < 200:
+        return False
+    if _non_alnum_ratio(chunk) > 0.45:
+        return False
+    if _ARTIFACT_RE.search(chunk):
+        return False
+    if chunk.count("http") > 6:
+        return False
+    return True
 
 
 class VectorBackend(Protocol):
@@ -412,12 +526,26 @@ class ChromaVectorBackend:
                 continue
 
             content = read_local_file(file_path)
-            chunks = chunk_text(
-                content,
+            cleaned_content = _clean_for_rag(content)
+            raw_chunks = _chunk_dense_text(
+                cleaned_content,
                 max_chars=config.vector_search.chunk_size,
                 overlap=config.vector_search.chunk_overlap,
             )
+            if len(cleaned_content) < MIN_CHARS_PER_CHUNK:
+                # Keep short documents indexable (smoke/fixtures), otherwise they
+                # disappear entirely from the collection.
+                chunks = raw_chunks
+            else:
+                chunks = [chunk for chunk in raw_chunks if _is_high_quality_chunk(chunk)]
+            if chunks:
+                deduped_chunks = list(dict.fromkeys(chunks))
+                chunks = deduped_chunks
             if not chunks:
+                logger.warning(
+                    "[upload_files_to_vectorstore] Skipping %s after cleaning/quality filtering",
+                    entry.filename,
+                )
                 continue
 
             doc_id = entry.vector_doc_id or f"doc_{entry.filename}"

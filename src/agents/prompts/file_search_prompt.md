@@ -12,6 +12,9 @@ Your summary must follow these rules:
 - No unnecessary background — focus only on the main facts.
 - No filler or redundant phrases.
 - No commentary, disclaimers or explanations — only the raw summary.
+- Use only retrieved evidence chunks; do not invent missing facts.
+- Add source citations after each key claim with the format: [document_id:chunk_index].
+- If evidence is missing, explicitly state that the information is unavailable.
 
 **Delivery rule:**
 

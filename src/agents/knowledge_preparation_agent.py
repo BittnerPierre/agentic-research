@@ -27,9 +27,15 @@ def dynamic_instructions(
         raise ValueError(f"{prompt_file} is None")
 
     dynamic_prompt = prompt_template.format(RECOMMENDED_PROMPT_PREFIX=RECOMMENDED_PROMPT_PREFIX)
+    runtime_vector_store_name = str(context.context.vector_store_name or "")
 
     return (
         f"{dynamic_prompt}"
+        "\n\nRÈGLE RUNTIME (OBLIGATOIRE):\n"
+        "- Avant tout appel à upload_files_to_vectorstore_tool, appelez fetch_vector_store_name.\n"
+        "- Utilisez EXACTEMENT la valeur retournée par fetch_vector_store_name comme vectorstore_name.\n"
+        "- N'inventez jamais un nom de vector store.\n"
+        f"- Le nom attendu pour ce run est: {runtime_vector_store_name}\n"
         # f"The absolute path to **temporary filesystem** is `{context.context.temp_dir}`."
         #   " You MUST use it to write and read temporary data.\n\n"
         # f"The absolute path to **output filesystem** is `{context.context.output_dir}`."

@@ -17,3 +17,8 @@ Comparaison MIPS+ANN vs ReWOO (forces, limites)
 - Style neutre, technique, concis
 - 4 à 5 sections (titre + paragraphe)
 - Pas de hors-sujet sur multi-agents ou retrieval amélioré
+
+## References
+
+- https://lilianweng.github.io/posts/2023-06-23-agent/
+- https://langchain-ai.github.io/langgraph/tutorials/rewoo/rewoo/

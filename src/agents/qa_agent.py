@@ -3,28 +3,22 @@
 from __future__ import annotations
 
 from agents import Agent, RunContextWrapper
-from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
 from ..config import get_config
 from .schemas import ResearchInfo
 from .utils import adjust_model_settings_for_base_url, extract_model_name, resolve_model
+from .vector_search_tool import vector_search
 
 
 def qa_instructions(context: RunContextWrapper[ResearchInfo], agent: Agent[ResearchInfo]) -> str:
-    collection = context.context.vector_store_name
     return (
-        "You are a QA agent. Use the MCP tool `chroma_query_documents` to search "
-        f"collection `{collection}` for the user question. "
-        "Do NOT use filters (no `where` clause); call the tool with only "
-        "`collection_name`, `query_texts`, and `n_results`. "
-        "Then answer in 2-4 sentences using only retrieved information."
+        "You are a QA agent. Use the `vector_search` tool to retrieve evidence for the user "
+        "question. Use only retrieved information in your answer and keep it to 2-4 sentences."
     )
 
 
-def create_qa_agent(mcp_servers: list[MCPServer] | None = None):
-    mcp_servers = mcp_servers or []
-
+def create_qa_agent():
     config = get_config()
     model_spec = config.models.search_model
     model = resolve_model(model_spec)
@@ -36,8 +30,8 @@ def create_qa_agent(mcp_servers: list[MCPServer] | None = None):
     return Agent(
         name="qa_agent",
         instructions=qa_instructions,
+        tools=[vector_search],
         model=model,
         model_settings=model_settings,
-        mcp_servers=mcp_servers,
         output_type=str,
     )

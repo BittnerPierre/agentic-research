@@ -198,39 +198,10 @@ async def main() -> None:
             f"client session timeout: {config.mcp.client_timeout_seconds}s)"
         )
         vector_mcp_server = None
-        if config.vector_search.provider == "chroma":
-            allowlist = set(config.vector_mcp.tool_allowlist)
-
-            def chroma_tool_filter(_context, tool):
-                return tool.name in allowlist
-
-            chroma_env = dict(os.environ)
-            chroma_env.update(
-                {
-                    "ANONYMIZED_TELEMETRY": "False",
-                    "HTTPX_LOG_LEVEL": "ERROR",
-                    "HTTPCORE_LOG_LEVEL": "ERROR",
-                    "FASTMCP_LOG_LEVEL": "ERROR",
-                }
-            )
-
-            vector_mcp_server = MCPServerStdio(
-                name="CHROMA_MCP_SERVER",
-                params={
-                    "command": config.vector_mcp.command,
-                    "args": config.vector_mcp.args,
-                    "env": chroma_env,
-                },
-                tool_filter=chroma_tool_filter,
-                cache_tools_list=True,
-                client_session_timeout_seconds=config.vector_mcp.client_timeout_seconds,
-            )
 
         async with AsyncExitStack() as stack:
             await stack.enter_async_context(fs_server)
             await stack.enter_async_context(dataprep_server)
-            if vector_mcp_server is not None:
-                await stack.enter_async_context(vector_mcp_server)
 
             logger.info("MCP servers connected successfully")
             backend = get_vector_backend(config)

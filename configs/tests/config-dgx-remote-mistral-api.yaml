@@ -1,0 +1,78 @@
+# Benchmark config: Mistral cloud models + DGX remote infra (DataPrep + Chroma + embeddings)
+config_name: "dgx-remote-mistral-api"
+
+vector_store:
+  name: "agentic-research-dgx"
+  description: "Vector store for DGX Spark remote stack"
+  expires_after_days: 30
+
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "gx10-957b"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://gx10-957b:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 5
+  score_threshold: null
+
+vector_mcp:
+  command: "uvx"
+  args:
+    - "--quiet"
+    - "--python"
+    - "3.12"
+    - "chroma-mcp"
+    - "--client-type"
+    - "http"
+    - "--host"
+    - "gx10-957b"
+    - "--port"
+    - "8000"
+    - "--ssl"
+    - "false"
+  tool_allowlist:
+    - "chroma_query_documents"
+    - "chroma_get_documents"
+  client_timeout_seconds: 60.0
+
+data:
+  urls_file: "urls.txt"
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "gx10-957b"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+models:
+  research_model: "litellm/mistral/mistral-small-latest"
+  planning_model: "litellm/mistral/magistral-small-2509"
+  search_model: "litellm/mistral/mistral-small-latest"
+  writer_model: "litellm/mistral/mistral-small-latest"
+  knowledge_preparation_model: "litellm/mistral/mistral-small-latest"
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"

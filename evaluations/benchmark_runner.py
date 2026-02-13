@@ -215,45 +215,23 @@ class BenchmarkRunner:
             client_session_timeout_seconds=config.mcp.client_timeout_seconds,
         )
 
-        # Vector MCP server (for Chroma)
-        vector_mcp_server = None
-        if config.vector_search.provider == "chroma":
-            vector_mcp_server = self._build_vector_mcp_server(config)
-
         # Run workflow with trace processor
         print("  🚀 Running workflow...")
         async with fs_server, dataprep_server:
-            if vector_mcp_server:
-                async with vector_mcp_server:
-                    manager = DeepResearchManager()
+            manager = DeepResearchManager()
 
-                    # Install trace processor
-                    from agents import add_trace_processor
+            # Install trace processor
+            from agents import add_trace_processor
 
-                    add_trace_processor(trace_processor)
+            add_trace_processor(trace_processor)
 
-                    await manager.run(
-                        fs_server=fs_server,
-                        dataprep_server=dataprep_server,
-                        vector_mcp_server=vector_mcp_server,
-                        query=syllabus,
-                        research_info=research_info,
-                    )
-            else:
-                manager = DeepResearchManager()
-
-                # Install trace processor
-                from agents import add_trace_processor
-
-                add_trace_processor(trace_processor)
-
-                await manager.run(
-                    fs_server=fs_server,
-                    dataprep_server=dataprep_server,
-                    vector_mcp_server=None,
-                    query=syllabus,
-                    research_info=research_info,
-                )
+            await manager.run(
+                fs_server=fs_server,
+                dataprep_server=dataprep_server,
+                vector_mcp_server=None,
+                query=syllabus,
+                research_info=research_info,
+            )
 
         # Save trace
         trace_processor.save()
@@ -288,6 +266,7 @@ class BenchmarkRunner:
             spec_result=spec_compliance,
             quality_result=quality_result,
             rag_triad_average=rag_triad_data["average"],
+            rag_context_relevance=rag_triad_data.get("context_relevance"),
             timing=timing.model_dump(),
             agent_calls=agent_calls.model_dump(),
         )
@@ -538,7 +517,7 @@ async def main():
         result["average"]["scores"]["content_quality_100"]
     )
     print(f"Average quality: {avg_quality}")
-    print(f"Average RAG Triad: {result['average']['rag_triad']['average']:.2f}")
+    print(f"Average RAG Triad: {result['average']['rag_triad']['average'] * 100:.1f}/100")
     print(f"Average overall score: {result['average']['scores']['overall_100']:.1f}/100")
     print(f"Average spec compliance: {result['average']['scores']['spec_compliance_100']:.1f}/100")
     print(f"Average content quality: {result['average']['scores']['content_quality_100']:.1f}/100")

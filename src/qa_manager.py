@@ -26,18 +26,6 @@ class QAManager:
         query: str,
         research_info: ResearchInfo,
     ) -> None:
-        if vector_mcp_server is None:
-            raise ValueError("vector_mcp_server is required for qa_manager")
-
-        original_call_tool = vector_mcp_server.call_tool
-
-        async def _logged_call_tool(name: str, arguments: dict):
-            if name in {"chroma_query_documents", "chroma_get_documents"}:
-                logger.info(f"QA MCP call: {name} args={arguments}")
-            return await original_call_tool(name, arguments)
-
-        vector_mcp_server.call_tool = _logged_call_tool  # type: ignore[assignment]
-
         logger.info("QA manager starting")
         logger.info(f"QA query: {query}")
         logger.info(f"QA vector store: {research_info.vector_store_name}")
@@ -56,7 +44,7 @@ class QAManager:
         )
         logger.info(f"QA dataprep upload result: {upload_result}")
 
-        qa_agent = create_qa_agent([vector_mcp_server])
+        qa_agent = create_qa_agent()
         result = await Runner.run(
             qa_agent,
             query,

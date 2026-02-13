@@ -8,7 +8,7 @@ from src.agents.qa_agent import qa_instructions
 from src.agents.schemas import ResearchInfo
 
 
-def test_qa_instructions_forbid_where_filter():
+def test_qa_instructions_use_vector_search_tool():
     context = SimpleNamespace(
         context=ResearchInfo(
             vector_store_name="agentic-research-local",
@@ -21,6 +21,5 @@ def test_qa_instructions_forbid_where_filter():
 
     instructions = qa_instructions(context, agent=None)
 
-    assert "chroma_query_documents" in instructions
-    assert "Do NOT use filters" in instructions
-    assert "where" in instructions
+    assert "vector_search" in instructions
+    assert "retrieved information" in instructions
