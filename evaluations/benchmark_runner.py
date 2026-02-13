@@ -215,45 +215,23 @@ class BenchmarkRunner:
             client_session_timeout_seconds=config.mcp.client_timeout_seconds,
         )
 
-        # Vector MCP server (for Chroma)
-        vector_mcp_server = None
-        if config.vector_search.provider == "chroma":
-            vector_mcp_server = self._build_vector_mcp_server(config)
-
         # Run workflow with trace processor
         print("  🚀 Running workflow...")
         async with fs_server, dataprep_server:
-            if vector_mcp_server:
-                async with vector_mcp_server:
-                    manager = DeepResearchManager()
+            manager = DeepResearchManager()
 
-                    # Install trace processor
-                    from agents import add_trace_processor
+            # Install trace processor
+            from agents import add_trace_processor
 
-                    add_trace_processor(trace_processor)
+            add_trace_processor(trace_processor)
 
-                    await manager.run(
-                        fs_server=fs_server,
-                        dataprep_server=dataprep_server,
-                        vector_mcp_server=vector_mcp_server,
-                        query=syllabus,
-                        research_info=research_info,
-                    )
-            else:
-                manager = DeepResearchManager()
-
-                # Install trace processor
-                from agents import add_trace_processor
-
-                add_trace_processor(trace_processor)
-
-                await manager.run(
-                    fs_server=fs_server,
-                    dataprep_server=dataprep_server,
-                    vector_mcp_server=None,
-                    query=syllabus,
-                    research_info=research_info,
-                )
+            await manager.run(
+                fs_server=fs_server,
+                dataprep_server=dataprep_server,
+                vector_mcp_server=None,
+                query=syllabus,
+                research_info=research_info,
+            )
 
         # Save trace
         trace_processor.save()
