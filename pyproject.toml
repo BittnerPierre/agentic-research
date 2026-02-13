@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Experiments with Agentic Research"
 authors = ["BittnerPierre <pierre@bittner.fr>"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{include = "src"}, {include = "evaluations"}]
 
 [tool.poetry.scripts]
 agentic-research = "src.main:cli_main"
@@ -19,6 +19,8 @@ evaluate_writer = "evaluations.write_agent_eval:eval_main"
 eval-workflow = "evaluations.full_workflow_evaluator:cli_main"
 baseline-eval = "evaluations.baseline_runner:cli_main"
 test_trajectory = "evaluations.write_agent_eval:test_main"
+benchmark-models = "evaluations.benchmark_runner:cli_main"
+compare-benchmarks = "evaluations.benchmark_comparator:main"
 
 
 [tool.poetry.dependencies]

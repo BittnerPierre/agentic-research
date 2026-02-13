@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
+from pathlib import Path
 
 from rich.console import Console
 
@@ -29,6 +31,15 @@ class DeepResearchManager:
         self.console = Console()
         self.printer = Printer(self.console)
         self._config = get_config()
+        self.timings = {}  # Store timing information for benchmarking
+        self.agent_calls = {  # Track agent calls for benchmarking
+            "knowledge_preparation_agent": 0,
+            "file_planner_agent": 0,
+            "file_search_agent": 0,
+            "writer_agent": 0,
+            "total": 0,
+            "failures": 0,
+        }
         # Désactiver le tracing automatique pour cet appel
         # self._run_config = RunConfig(
         #     workflow_name="deep_research",
@@ -49,6 +60,9 @@ class DeepResearchManager:
         self.dataprep_server = dataprep_server
         self.vector_mcp_server = vector_mcp_server
         self.research_info = research_info
+
+        # Start timing
+        workflow_start = time.time()
 
         trace_id = gen_trace_id()
         with trace(
@@ -81,20 +95,37 @@ class DeepResearchManager:
             )
             self.writer_agent = create_writer_agent([self.fs_server], do_save_report=False)
 
+            # Phase 1: Knowledge Preparation
+            prep_start = time.time()
             agenda = await self._prepare_knowledge(query)
+            self.timings["knowledge_preparation"] = time.time() - prep_start
             print("\n\n=====AGENDA=====\n\n")
             print(agenda)
 
+            # Phase 2: Planning
+            plan_start = time.time()
             search_plan = await self._plan_file_searches(agenda)
+            self.timings["planning"] = time.time() - plan_start
             print("\n\n=====SEARCH PLAN=====\n\n")
             print(search_plan)
+
+            # Phase 3: Search
+            search_start = time.time()
             search_results = await self._perform_file_searches(search_plan)
+            self.timings["search"] = time.time() - search_start
+
+            # Phase 4: Writing
+            write_start = time.time()
             report = await self._write_report(query, search_results)
+            self.timings["writing"] = time.time() - write_start
 
             final_report = f"Report summary\n\n{report.short_summary}"
             self.printer.update_item("final_report", final_report, is_done=True)
 
             self.printer.end()
+
+        # Total timing
+        self.timings["total"] = time.time() - workflow_start
 
         print("\n\n=====SAVING REPORT=====\n\n")
         _new_report = await save_final_report_function(
@@ -118,6 +149,8 @@ class DeepResearchManager:
             query,
             context=self.research_info,
         )
+        self.agent_calls["knowledge_preparation_agent"] += 1
+        self.agent_calls["total"] += 1
         self.printer.update_item(
             "preparing", "Préparation de la connaissance terminée", is_done=True
         )
@@ -131,6 +164,8 @@ class DeepResearchManager:
             f"{query}",
             context=self.research_info,
         )
+        self.agent_calls["file_planner_agent"] += 1
+        self.agent_calls["total"] += 1
         self.printer.update_item(
             "planning",
             f"Effectuera {len(result.final_output.searches)} recherches dans les fichiers",
@@ -164,9 +199,58 @@ class DeepResearchManager:
                 input_text,
                 context=self.research_info,
             )
-            return str(result.final_output_as(FileSearchResult).file_name)
+            self.agent_calls["file_search_agent"] += 1
+            self.agent_calls["total"] += 1
+            raw_file_name = str(result.final_output_as(FileSearchResult).file_name)
+            normalized_path = self._normalize_search_result_path(raw_file_name)
+            if normalized_path is None:
+                self.agent_calls["failures"] += 1
+            return normalized_path
         except Exception:
+            self.agent_calls["failures"] += 1
             return None
+
+    def _normalize_search_result_path(self, raw_file_name: str) -> str | None:
+        """
+        Resolve the file_search output to a file inside temp_dir only.
+        This prevents leaking/reading paths outside benchmark sandbox roots.
+        """
+        value = raw_file_name.strip().strip("`").strip('"').strip("'").strip("<>").strip()
+        if not value:
+            return None
+
+        temp_root = os.path.realpath(self.research_info.temp_dir)
+        candidate = Path(value)
+
+        def _is_within_temp(path: str) -> bool:
+            try:
+                return os.path.commonpath([path, temp_root]) == temp_root
+            except ValueError:
+                return False
+
+        # Absolute path: allow only if it is inside temp_dir and exists.
+        if candidate.is_absolute():
+            resolved = os.path.realpath(str(candidate))
+            if _is_within_temp(resolved) and os.path.isfile(resolved):
+                return resolved
+            return None
+
+        # Relative path: keep basename only, then resolve under temp_dir.
+        # This blocks parent traversal or nested paths outside temp_dir.
+        safe_name = candidate.name
+        if not safe_name:
+            return None
+
+        possible_names = [safe_name]
+        if "." not in safe_name:
+            possible_names.append(f"{safe_name}.txt")
+
+        for name in possible_names:
+            resolved = os.path.realpath(os.path.join(temp_root, name))
+            if _is_within_temp(resolved) and os.path.isfile(resolved):
+                return resolved
+
+        return None
 
     async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
         self.printer.update_item("writing", "Thinking about report...")
@@ -206,5 +290,7 @@ class DeepResearchManager:
                 last_update = time.time()
 
         self.printer.mark_item_done("writing")
+        self.agent_calls["writer_agent"] += 1
+        self.agent_calls["total"] += 1
         output = result.final_output
         return coerce_report_data(output, query)

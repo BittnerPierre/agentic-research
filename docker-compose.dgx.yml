@@ -19,6 +19,8 @@ services:
       - llm-reasoning
     volumes:
       - ./test_files:/app/test_files
+      - ./models:/app/models:ro
+      - ./benchmarks:/app/benchmarks
 
   chromadb:
     image: chromadb/chroma:1.4.1

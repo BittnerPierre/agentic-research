@@ -42,6 +42,7 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --only main --no-ansi --no-root
 COPY agentic_research ./agentic_research
 COPY src ./src
+COPY evaluations ./evaluations
 COPY scripts ./scripts
 COPY configs ./configs
 COPY urls.txt ./
