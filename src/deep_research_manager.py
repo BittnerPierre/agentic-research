@@ -154,19 +154,51 @@ class DeepResearchManager:
     async def _plan_file_searches(self, query: str) -> FileSearchPlan:
         self.printer.update_item("planning", "Planification des recherches dans les fichiers...")
 
-        result = await Runner.run(
-            self.file_planner_agent,
-            f"{query}",
-            context=self.research_info,
+        base_input = f"{query}"
+        strict_json_retry_hint = (
+            "\n\nIMPORTANT RETRY INSTRUCTION:\n"
+            "Return ONLY a valid JSON object matching this exact schema:\n"
+            '{"searches":[{"query":"<string>","reason":"<string>"}]}\n'
+            "No markdown, no code fence, no additional text."
         )
-        self.agent_calls["file_planner_agent"] += 1
-        self.agent_calls["total"] += 1
-        self.printer.update_item(
-            "planning",
-            f"Effectuera {len(result.final_output.searches)} recherches dans les fichiers",
-            is_done=True,
-        )
-        return result.final_output_as(FileSearchPlan)
+        max_attempts = 2
+        last_error: Exception | None = None
+
+        for attempt in range(1, max_attempts + 1):
+            planner_input = base_input if attempt == 1 else base_input + strict_json_retry_hint
+            try:
+                result = await Runner.run(
+                    self.file_planner_agent,
+                    planner_input,
+                    context=self.research_info,
+                )
+                plan = result.final_output_as(FileSearchPlan)
+                if not plan.searches:
+                    raise ValueError("FileSearchPlan is empty")
+
+                self.printer.update_item(
+                    "planning",
+                    f"Effectuera {len(plan.searches)} recherches dans les fichiers",
+                    is_done=True,
+                )
+                return plan
+            except Exception as exc:
+                last_error = exc
+                if attempt < max_attempts:
+                    self.printer.update_item(
+                        "planning",
+                        f"Plan invalide (tentative {attempt}/{max_attempts}), nouvelle tentative...",
+                    )
+                else:
+                    raise
+            finally:
+                self.agent_calls["file_planner_agent"] += 1
+                self.agent_calls["total"] += 1
+
+        # Defensive fallback; loop returns on success or raises on final failure.
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Unexpected planner failure without exception")
 
     async def _perform_file_searches(self, search_plan: FileSearchPlan) -> list[str]:
         with custom_span("Recherche dans les fichiers"):

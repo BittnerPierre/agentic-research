@@ -5,6 +5,7 @@ set -euo pipefail
 SETUPS=("ministral" "mistralai" "glm" "qwen" "openai")
 RUNS=3
 INTERACTIVE=false
+SYLLABUS="/app/test_files/query_advanced_1.md"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -16,13 +17,17 @@ while [[ $# -gt 0 ]]; do
       INTERACTIVE=true
       shift
       ;;
+    --syllabus)
+      SYLLABUS="${2:-}"
+      shift 2
+      ;;
     --auto)
       # Backward-compatible no-op: default is already non-interactive.
       shift
       ;;
     *)
       echo "Unknown argument: $1"
-      echo "Usage: $0 [--runs N] [--interactive]"
+      echo "Usage: $0 [--runs N] [--interactive] [--syllabus PATH]"
       exit 1
       ;;
   esac
@@ -37,6 +42,7 @@ echo "========================================"
 echo "Output directory: $OUTPUT_DIR"
 echo "Setups to benchmark: ${SETUPS[*]}"
 echo "Runs per setup: $RUNS"
+echo "Syllabus: $SYLLABUS"
 if [ "$INTERACTIVE" = true ]; then
   echo "Mode: interactive"
 else
@@ -60,7 +66,10 @@ for SETUP in "${SETUPS[@]}"; do
   fi
 
   # Run benchmark for this setup
-  ./scripts/benchmark-dgx.sh "$SETUP" --runs "$RUNS" --output-dir "$OUTPUT_DIR" || {
+  ./scripts/benchmark-dgx.sh "$SETUP" \
+    --runs "$RUNS" \
+    --output-dir "$OUTPUT_DIR" \
+    --syllabus "$SYLLABUS" || {
     echo "❌ Benchmark failed for $SETUP"
     continue
   }

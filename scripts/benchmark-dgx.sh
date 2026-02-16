@@ -7,6 +7,7 @@ shift || true
 
 RUNS=1
 OUTPUT_DIR=""
+SYLLABUS="/app/test_files/query_advanced_1.md"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -18,16 +19,20 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_DIR="${2:-}"
       shift 2
       ;;
+    --syllabus)
+      SYLLABUS="${2:-}"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1"
-      echo "Usage: $0 <setup_name> [--runs N] [--output-dir DIR]"
+      echo "Usage: $0 <setup_name> [--runs N] [--output-dir DIR] [--syllabus PATH]"
       exit 1
       ;;
   esac
 done
 
 if [ -z "$SETUP_NAME" ]; then
-  echo "Usage: $0 <setup_name> [--runs N] [--output-dir DIR]"
+  echo "Usage: $0 <setup_name> [--runs N] [--output-dir DIR] [--syllabus PATH]"
   echo ""
   echo "Available setups:"
   echo "  - ministral"
@@ -35,6 +40,11 @@ if [ -z "$SETUP_NAME" ]; then
   echo "  - glm"
   echo "  - qwen"
   echo "  - openai"
+  exit 1
+fi
+
+if [ -z "$SYLLABUS" ]; then
+  echo "Error: --syllabus must not be empty"
   exit 1
 fi
 
@@ -103,7 +113,7 @@ docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models
   agentic-research \
   benchmark-models \
   --config /app/configs/config-docker-dgx.yaml \
-  --syllabus /app/test_files/query_advanced_1.md \
+  --syllabus "$SYLLABUS" \
   --runs "$RUNS" \
   --output "/app/$OUTPUT_DIR" \
   --vector-store-name "agentic-research-dgx"

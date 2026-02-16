@@ -12,11 +12,15 @@ from src.dataprep.vector_search import VectorSearchHit, VectorSearchResult
 
 
 def _snapshot_config(config):
-    return config.vector_search.model_copy(deep=True)
+    return {
+        "vector_search": config.vector_search.model_copy(deep=True),
+        "agents": config.agents.model_copy(deep=True),
+    }
 
 
 def _restore_config(config, snapshot):
-    config.vector_search = snapshot
+    config.vector_search = snapshot["vector_search"]
+    config.agents = snapshot["agents"]
 
 
 class _Wrapper:
@@ -29,7 +33,9 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
     config = get_config()
     snapshot = _snapshot_config(config)
     config.vector_search.top_k = 5
-    config.vector_search.query_expansion_mode = "none"
+    config.agents.file_search_rewrite_mode = "none"
+    config.agents.file_search_top_k = None
+    config.agents.file_search_score_threshold = None
 
     calls = []
 
@@ -54,6 +60,18 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
     assert calls == [("query with spaces", 80, None)]
     assert result["query"] == "query with spaces"
     assert result["effective_queries"] == ["query with spaces"]
+    assert result["observability"] == {
+        "rewrite_requested": False,
+        "rewrite_applied": False,
+        "rewrite_mode": "none",
+        "rewrite_input_query": "query with spaces",
+        "effective_queries_count": 1,
+        "rewrite_backend": "none_or_fallback",
+        "rewrite_domain_hint": "general research",
+        "rewrite_domain_hint_source": "heuristic",
+        "top_k": 5,
+        "score_threshold": None,
+    }
     assert len(result["results"]) == 1
     assert config.vector_search.index_name == "custom-vs"
 
@@ -116,7 +134,8 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
     monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
 
-    result = await vector_search_impl(_Wrapper(), "q", top_k=10)
+    config.agents.file_search_top_k = 10
+    result = await vector_search_impl(_Wrapper(), "q")
 
     returned = result["results"]
     assert len(returned) == 4
@@ -131,8 +150,8 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
 async def test_vector_search_tool_paraphrase_lite_expands_queries(monkeypatch):
     config = get_config()
     snapshot = _snapshot_config(config)
-    config.vector_search.query_expansion_mode = "paraphrase_lite"
-    config.vector_search.query_expansion_max_variants = 2
+    config.agents.file_search_rewrite_mode = "paraphrase_lite"
+    config.agents.file_search_rewrite_max_variants = 2
 
     calls = []
 
@@ -151,14 +170,31 @@ async def test_vector_search_tool_paraphrase_lite_expands_queries(monkeypatch):
 
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
     monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+    monkeypatch.setattr(
+        "src.agents.vector_search_tool._build_llm_rewrite_queries",
+        lambda query, mode, max_variants, config, domain_hint=None: [
+            "MIPS Maximum Inner Product Search external memory",
+            "MIPS external memory implementation tradeoffs",
+        ],
+    )
 
     query = "MIPS (Maximum Inner Product Search) external memory"
-    result = await vector_search_impl(_Wrapper(), query, top_k=5)
+    result = await vector_search_impl(
+        _Wrapper(),
+        query,
+    )
 
     # Primary query first, then deterministic paraphrase variants.
     assert calls[0] == "MIPS (Maximum Inner Product Search) external memory"
     assert len(calls) >= 2
     assert result["effective_queries"][0] == "MIPS (Maximum Inner Product Search) external memory"
+    assert result["observability"]["rewrite_requested"] is True
+    assert result["observability"]["rewrite_applied"] is True
+    assert result["observability"]["rewrite_mode"] == "paraphrase_lite"
+    assert result["observability"]["effective_queries_count"] == len(result["effective_queries"])
+    assert result["observability"]["rewrite_backend"] == "llm_openai_compatible"
+    assert result["observability"]["rewrite_domain_hint"] == "general research"
+    assert result["observability"]["rewrite_domain_hint_source"] == "heuristic"
 
     _restore_config(config, snapshot)
 
@@ -167,8 +203,8 @@ async def test_vector_search_tool_paraphrase_lite_expands_queries(monkeypatch):
 async def test_vector_search_tool_hyde_lite_adds_hypothetical_query(monkeypatch):
     config = get_config()
     snapshot = _snapshot_config(config)
-    config.vector_search.query_expansion_mode = "hyde_lite"
-    config.vector_search.query_expansion_max_variants = 1
+    config.agents.file_search_rewrite_mode = "hyde_lite"
+    config.agents.file_search_rewrite_max_variants = 1
 
     calls = []
 
@@ -187,11 +223,163 @@ async def test_vector_search_tool_hyde_lite_adds_hypothetical_query(monkeypatch)
 
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
     monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+    monkeypatch.setattr(
+        "src.agents.vector_search_tool._build_llm_rewrite_queries",
+        lambda query, mode, max_variants, config, domain_hint=None: [
+            "A hypothetical answer about MIPS memory retrieval in autonomous agents"
+        ],
+    )
 
-    result = await vector_search_impl(_Wrapper(), "MIPS memory retrieval", top_k=5)
+    result = await vector_search_impl(
+        _Wrapper(),
+        "MIPS memory retrieval",
+    )
 
     assert calls[0] == "MIPS memory retrieval"
     assert len(calls) == 2
-    assert result["effective_queries"][1].startswith("Hypothetical answer:")
+    assert not result["effective_queries"][1].startswith("Hypothetical answer:")
+    assert result["observability"]["rewrite_requested"] is True
+    assert result["observability"]["rewrite_applied"] is True
+    assert result["observability"]["rewrite_mode"] == "hyde_lite"
+    assert result["observability"]["rewrite_input_query"] == "MIPS memory retrieval"
+    assert result["observability"]["rewrite_backend"] == "llm_openai_compatible"
+    assert result["observability"]["rewrite_domain_hint"] == "general research"
+    assert result["observability"]["rewrite_domain_hint_source"] == "heuristic"
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_hyde_lite_normalizes_question_like_rewrites(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.agents.file_search_rewrite_mode = "hyde_lite"
+    config.agents.file_search_rewrite_max_variants = 2
+
+    calls = []
+
+    def _fake_search(query, config, top_k, score_threshold):
+        calls.append(query)
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("D" * 280),
+                    metadata={"document_id": f"doc-q-{len(calls)}", "chunk_index": len(calls)},
+                    score=0.7,
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+    monkeypatch.setattr(
+        "src.agents.vector_search_tool._build_llm_rewrite_queries",
+        lambda query, mode, max_variants, config, domain_hint=None: [
+            "What are the benefits of Chain-of-Thought prompting in AI models?",
+            "How does Chain-of-Thought prompting improve reasoning in AI systems?",
+        ],
+    )
+
+    result = await vector_search_impl(_Wrapper(), "Chain-of-Thought prompting in AI")
+
+    assert len(result["effective_queries"]) == 2
+    assert not result["effective_queries"][1].startswith("Hypothetical answer:")
+    assert "?" not in result["effective_queries"][1]
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_uses_agent_threshold_from_config(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.agents.file_search_rewrite_mode = "none"
+    config.agents.file_search_top_k = 3
+    config.agents.file_search_score_threshold = 0.77
+
+    calls = []
+
+    def _fake_search(query, config, top_k, score_threshold):
+        calls.append((query, top_k, score_threshold))
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("C" * 260),
+                    metadata={"document_id": "doc-t", "chunk_index": 0},
+                    score=0.9,
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    result = await vector_search_impl(_Wrapper(), "threshold test")
+
+    assert calls == [("threshold test", 80, 0.77)]
+    assert result["observability"]["top_k"] == 3
+    assert result["observability"]["score_threshold"] == 0.77
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_detects_financial_domain_hint(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.agents.file_search_rewrite_mode = "none"
+
+    def _fake_search(query, config, top_k, score_threshold):
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("E" * 260),
+                    metadata={"document_id": "doc-fin", "chunk_index": 0},
+                    score=0.9,
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    result = await vector_search_impl(_Wrapper(), "10-K annual report revenue guidance and EBITDA")
+
+    assert result["observability"]["rewrite_domain_hint"] == "financial research"
+    assert result["observability"]["rewrite_domain_hint_source"] == "heuristic"
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_uses_agent_domain_hint_override(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.agents.file_search_rewrite_mode = "none"
+
+    def _fake_search(query, config, top_k, score_threshold):
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("F" * 260),
+                    metadata={"document_id": "doc-override", "chunk_index": 0},
+                    score=0.9,
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    result = await vector_search_impl(
+        _Wrapper(), "generic prompt engineering topic", domain_hint="financial research"
+    )
+
+    assert result["observability"]["rewrite_domain_hint"] == "financial research"
+    assert result["observability"]["rewrite_domain_hint_source"] == "agent_override"
 
     _restore_config(config, snapshot)

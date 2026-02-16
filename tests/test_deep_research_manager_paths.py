@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from src.agents.schemas import ResearchInfo
+import pytest
+
+from src.agents.schemas import FileSearchItem, FileSearchPlan, ResearchInfo
 from src.deep_research_manager import DeepResearchManager
 
 
@@ -52,3 +54,38 @@ def test_normalize_search_result_path_adds_txt_extension_when_missing(tmp_path: 
     resolved = manager._normalize_search_result_path("rewoo_vs_mips")
 
     assert resolved == str(summary_file.resolve())
+
+
+@pytest.mark.asyncio
+async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_path: Path):
+    manager = _build_manager(tmp_path)
+    manager.file_planner_agent = object()
+
+    calls = {"count": 0}
+
+    class _FakeResult:
+        def __init__(self, plan: FileSearchPlan):
+            self._plan = plan
+
+        def final_output_as(self, _schema):
+            return self._plan
+
+    async def _fake_run(agent, input_text, context):
+        del agent, context
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise ValueError("Invalid JSON when parsing")
+        assert "IMPORTANT RETRY INSTRUCTION" in input_text
+        return _FakeResult(
+            FileSearchPlan(
+                searches=[FileSearchItem(query="mips vs rewoo", reason="Need comparison details")]
+            )
+        )
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+
+    plan = await manager._plan_file_searches("agenda")
+
+    assert len(plan.searches) == 1
+    assert calls["count"] == 2
+    assert manager.agent_calls["file_planner_agent"] == 2

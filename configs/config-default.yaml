@@ -19,6 +19,15 @@ data:
   # Dossier de stockage local des fichiers .md
   local_storage_dir: "data/"
 
+dataprep:
+  llm:
+    enabled: true
+    model: "gpt-4.1-mini"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+
 # Configuration de debug
 debug:
   # Active le mode debug (garde les fichiers temporaires, logs verbeux)
@@ -60,3 +69,7 @@ agents:
   max_search_plan: "5-7"
   output_dir: "output/"
   writer_output_format: "json"
+  file_search_rewrite_mode: "none" # none | paraphrase_lite | hyde_lite
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null
