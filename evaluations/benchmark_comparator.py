@@ -158,7 +158,9 @@ class BenchmarkComparator:
 
             # Grades
             grades = self._avg_grades(bench)
-            grades_str = f"{grades['format']}/{grades['grounding']}/{grades['agenda']}/{grades['usability']}"
+            grades_str = (
+                f"{grades['format']}/{grades['grounding']}/{grades['agenda']}/{grades['usability']}"
+            )
             quality_score = f"{self._quality_score(bench):.1f}"
 
             # Judgment
@@ -435,10 +437,7 @@ class BenchmarkComparator:
         runs = bench.get("runs", [])
         out: dict[str, str] = {}
         for dim in dimensions:
-            values = [
-                run.get("quality_result", {}).get("grades", {}).get(dim, "E")
-                for run in runs
-            ]
+            values = [run.get("quality_result", {}).get("grades", {}).get(dim, "E") for run in runs]
             if not values:
                 out[dim] = "E(0)"
                 continue
