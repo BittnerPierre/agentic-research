@@ -52,7 +52,7 @@ benchmarks/*
 !benchmarks/.gitkeep
 data/*
 !data/.gitkeep
-models/
+models/.gitkeep
 *.log
 
 # Evaluation artifacts (keep baselines, ignore temporary results)
