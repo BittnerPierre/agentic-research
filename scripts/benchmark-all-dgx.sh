@@ -60,7 +60,7 @@ for SETUP in "${SETUPS[@]}"; do
   fi
 
   # Run benchmark for this setup
-  ./scripts/benchmark-setup-dgx.sh "$SETUP" --runs "$RUNS" --output-dir "$OUTPUT_DIR" || {
+  ./scripts/benchmark-dgx.sh "$SETUP" --runs "$RUNS" --output-dir "$OUTPUT_DIR" || {
     echo "❌ Benchmark failed for $SETUP"
     continue
   }
