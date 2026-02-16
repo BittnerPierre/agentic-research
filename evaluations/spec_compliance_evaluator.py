@@ -34,7 +34,9 @@ class SyllabusConstraints:
     require_intro: bool = False
     require_conclusion: bool = False
     require_lexique: bool = False
+    require_citations: bool = False
     restrict_sources: bool = False
+    restrict_sources_declared: bool = False
     allowed_sources: set[str] | None = None
 
 
@@ -61,10 +63,14 @@ def _extract_constraints(syllabus: str) -> SyllabusConstraints:
     constraints.require_lexique = any(
         token in text for token in ["lexique", "glossaire", "glossary"]
     )
-    constraints.restrict_sources = (
-        any(token in text for token in ["uniquement", "strictement", "exclusivement", "only"])
-        and "source" in text
-        and bool(constraints.allowed_sources)
+    constraints.require_citations = any(
+        token in text for token in ["cite", "citation", "référence", "references", "source"]
+    )
+    constraints.restrict_sources_declared = any(
+        token in text for token in ["uniquement", "strictement", "exclusivement", "only"]
+    ) and any(token in text for token in ["source", "référence", "references"])
+    constraints.restrict_sources = constraints.restrict_sources_declared and bool(
+        constraints.allowed_sources
     )
 
     return constraints
@@ -81,6 +87,11 @@ def _check_faq(report_markdown: str) -> bool:
         re.findall(r"(^|\n)\s*(a(?:nswer|nswer|nswer)?\s*[:\-]|r[eé]ponse\s*[:\-])", text)
     )
     return q_count >= 2 and a_count >= 2
+
+
+def _has_chunk_citations(report_markdown: str) -> bool:
+    # Expected format from file_search prompt: [document_id:chunk_index]
+    return bool(re.search(r"\[[^\]\n:]+:[^\]\n]+\]", report_markdown))
 
 
 def _count_markdown_sections(report_markdown: str) -> int:
@@ -115,6 +126,9 @@ def _deterministic_spec_score(
     checks["has_lexique"] = (not constraints.require_lexique) or any(
         _has_heading(report_markdown, key) for key in ("lexique", "glossaire", "glossary")
     )
+    checks["has_citations"] = (not constraints.require_citations) or _has_chunk_citations(
+        report_markdown
+    )
     checks["chapters_count"] = (constraints.min_chapters is None) or (
         _count_markdown_sections(report_markdown) >= constraints.min_chapters
     )
@@ -123,6 +137,9 @@ def _deterministic_spec_score(
     allowed_sources = constraints.allowed_sources or set()
     unauthorized_sources = (
         sorted(used_sources - allowed_sources) if constraints.restrict_sources else []
+    )
+    checks["source_list_present"] = (not constraints.restrict_sources_declared) or bool(
+        allowed_sources
     )
     checks["allowed_sources_only"] = not constraints.restrict_sources or not unauthorized_sources
 

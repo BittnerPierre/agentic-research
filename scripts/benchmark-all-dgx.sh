@@ -2,9 +2,31 @@
 # Benchmark all model setups on DGX
 set -euo pipefail
 
-AUTO_MODE=${1:-}
-
 SETUPS=("ministral" "mistralai" "glm" "qwen" "openai")
+RUNS=3
+INTERACTIVE=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --runs)
+      RUNS="${2:-}"
+      shift 2
+      ;;
+    --interactive)
+      INTERACTIVE=true
+      shift
+      ;;
+    --auto)
+      # Backward-compatible no-op: default is already non-interactive.
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      echo "Usage: $0 [--runs N] [--interactive]"
+      exit 1
+      ;;
+  esac
+done
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_DIR="benchmarks/run_${TIMESTAMP}"
@@ -14,6 +36,12 @@ echo "Benchmarking All Setups"
 echo "========================================"
 echo "Output directory: $OUTPUT_DIR"
 echo "Setups to benchmark: ${SETUPS[*]}"
+echo "Runs per setup: $RUNS"
+if [ "$INTERACTIVE" = true ]; then
+  echo "Mode: interactive"
+else
+  echo "Mode: automatic (no prompt)"
+fi
 echo ""
 
 for SETUP in "${SETUPS[@]}"; do
@@ -22,7 +50,7 @@ for SETUP in "${SETUPS[@]}"; do
   echo "Setup: $SETUP"
   echo "========================================"
 
-  if [ "$AUTO_MODE" != "--auto" ]; then
+  if [ "$INTERACTIVE" = true ]; then
     read -p "Benchmark $SETUP? (y/n) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -32,7 +60,7 @@ for SETUP in "${SETUPS[@]}"; do
   fi
 
   # Run benchmark for this setup
-  ./scripts/benchmark-setup-dgx.sh "$SETUP" || {
+  ./scripts/benchmark-dgx.sh "$SETUP" --runs "$RUNS" --output-dir "$OUTPUT_DIR" || {
     echo "❌ Benchmark failed for $SETUP"
     continue
   }

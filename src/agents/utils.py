@@ -82,7 +82,7 @@ async def fetch_vector_store_name(wrapper: RunContextWrapper[ResearchInfo]) -> s
     Fetch the name of the vector store.
     Call this function to get the vector store name to upload file.
     """
-    return f"The name of vector store is '{wrapper.context.vector_store_name}'."
+    return str(wrapper.context.vector_store_name or "")
 
 
 @function_tool

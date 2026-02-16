@@ -44,6 +44,7 @@ def build_analysis(
     quality: float,
     rag: float,
     efficiency: float,
+    rag_context_relevance: float | None,
     unauthorized_sources: list[str],
 ) -> str:
     strengths = []
@@ -63,6 +64,8 @@ def build_analysis(
         strengths.append("RAG relevance/grounding is strong")
     else:
         weaknesses.append("RAG relevance/grounding is limited")
+    if rag_context_relevance is not None and rag_context_relevance < 0.6:
+        weaknesses.append("Retrieved context relevance is weak")
 
     if efficiency >= 80:
         strengths.append("Execution efficiency is good")
@@ -81,6 +84,7 @@ def compute_score_breakdown(
     spec_result: SpecComplianceResult,
     quality_result: EvaluationResult,
     rag_triad_average: float,
+    rag_context_relevance: float | None,
     timing: dict,
     agent_calls: dict,
 ) -> ScoreBreakdown:
@@ -89,6 +93,15 @@ def compute_score_breakdown(
     rag = round(max(0.0, min(100.0, rag_triad_average * 100.0)), 2)
     efficiency = efficiency_score_100(timing, agent_calls)
     overall = round((0.40 * spec) + (0.30 * quality) + (0.20 * rag) + (0.10 * efficiency), 2)
+
+    # Guardrail: if retrieval context is weak, block misleadingly high global scores.
+    if rag_context_relevance is not None:
+        if rag_context_relevance < 0.4:
+            quality = min(quality, 75.0)
+            overall = min(overall, 69.0)
+        elif rag_context_relevance < 0.6:
+            quality = min(quality, 85.0)
+            overall = min(overall, 79.0)
 
     return ScoreBreakdown(
         spec_compliance_100=spec,
@@ -101,6 +114,7 @@ def compute_score_breakdown(
             quality,
             rag,
             efficiency,
+            rag_context_relevance,
             spec_result.unauthorized_sources,
         ),
     )

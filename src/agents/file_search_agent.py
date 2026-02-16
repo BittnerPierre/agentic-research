@@ -25,21 +25,14 @@ def dynamic_instructions(
         raise ValueError(f"{prompt_file} is None")
 
     dynamic_prompt = prompt_template.format(RECOMMENDED_PROMPT_PREFIX=RECOMMENDED_PROMPT_PREFIX)
-    config = get_config()
-    chroma_hint = ""
-    if config.vector_search.provider == "chroma":
-        store_name = context.context.vector_store_name or config.vector_search.index_name
-        chroma_hint = (
-            "Use the MCP tool `chroma_query_documents` to search the collection "
-            f"`{store_name}` for the query text. These tools are provided by the "
-            "Chroma MCP server configured under `vector_mcp`.\n"
-        )
 
     return (
         f"{dynamic_prompt}"
-        f"{chroma_hint}"
         f"The absolute path to **temporary filesystem** is `{context.context.temp_dir}`."
-        " You MUST use it to write and read temporary data.\n\n"
+        " You MUST use it to write and read temporary data.\n"
+        "When calling write_file, always set `path` to "
+        f"`{context.context.temp_dir}/<normalized_filename>.txt` and never write outside this "
+        "directory.\n\n"
         # f"The absolute path to **output filesystem** is `{context.context.output_dir}`."
         #   " You MUST use it to write and read output final content.\n\n"
     )
@@ -63,9 +56,9 @@ def create_file_search_agent(
     elif config.vector_search.provider == "local":
         tools = [vector_search]
     elif config.vector_search.provider == "chroma":
-        # Chroma tools are exposed via MCP (see vector_mcp config), so we keep
-        # the local tools list empty and rely on MCP tool discovery.
-        tools = []
+        # Route Chroma retrieval through dataprep.vector_search for consistent
+        # payload shape and hygiene (no raw MCP chroma payload in the prompt loop).
+        tools = [vector_search]
     else:
         raise ValueError(f"Unknown vector_search.provider: {config.vector_search.provider}")
 

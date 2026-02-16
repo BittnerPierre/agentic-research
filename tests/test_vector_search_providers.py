@@ -78,7 +78,28 @@ def test_file_search_agent_tool_selection():
 
     config.vector_search.provider = "chroma"
     agent = create_file_search_agent()
-    assert agent.tools == []
+    assert agent.tools[0].name == "vector_search"
+
+    _restore_config(config, snapshot)
+
+
+def test_file_search_agent_chroma_instructions_do_not_reference_raw_chroma_tool():
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.vector_search.provider = "chroma"
+
+    from src.agents.file_search_agent import dynamic_instructions
+
+    class _Ctx:
+        vector_store_name = "agentic-research-dgx"
+        temp_dir = "/tmp/bench"
+
+    class _Wrapper:
+        context = _Ctx()
+
+    instructions = dynamic_instructions(_Wrapper(), None)
+    assert "chroma_query_documents" not in instructions
+    assert "/tmp/bench/<normalized_filename>.txt" in instructions
 
     _restore_config(config, snapshot)
 

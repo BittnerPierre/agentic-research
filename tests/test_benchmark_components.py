@@ -641,8 +641,10 @@ class TestBenchmarkRunnerIntegration:
         assert Path(result["report_file"]).exists()
 
     @pytest.mark.asyncio
-    async def test_run_single_evaluation_uses_vector_mcp_for_chroma(self, monkeypatch, tmp_path):
-        """Integration-style test that chroma provider enables vector MCP server."""
+    async def test_run_single_evaluation_does_not_use_vector_mcp_for_chroma(
+        self, monkeypatch, tmp_path
+    ):
+        """Integration-style test that chroma provider stays on dataprep/vector_search path."""
         import evaluations.benchmark_runner as benchmark_runner
 
         created_servers = []
@@ -789,19 +791,6 @@ class TestBenchmarkRunnerIntegration:
         )
         monkeypatch.setattr(benchmark_runner, "get_config", lambda _path: config)
 
-        def _fake_build_vector_mcp_server(self, _config):
-            return _FakeServer(
-                name="VECTOR_MCP_SERVER",
-                params={"command": "uvx", "args": ["chroma-mcp"]},
-                client_session_timeout_seconds=60.0,
-            )
-
-        monkeypatch.setattr(
-            benchmark_runner.BenchmarkRunner,
-            "_build_vector_mcp_server",
-            _fake_build_vector_mcp_server,
-        )
-
         runner = benchmark_runner.BenchmarkRunner(output_dir=str(tmp_path / "bench"))
         result = await runner._run_single_evaluation(
             config_file="unused.yaml",
@@ -810,9 +799,9 @@ class TestBenchmarkRunnerIntegration:
             vector_store_name="custom-vs",
         )
 
-        assert len(created_servers) == 3
+        assert len(created_servers) == 2
         assert created_servers[1].params["url"] == "http://override:9001/sse"
-        assert "VECTOR_MCP_SERVER" in entered
+        assert "VECTOR_MCP_SERVER" not in entered
         assert result["rag_triad"]["average"] == 0.7
         assert result["scores"]["overall_100"] == pytest.approx(79.6)
 
@@ -1018,14 +1007,11 @@ class TestBenchmarkRunnerHelpers:
         assert "install_trace_processor" not in source
         assert "add_trace_processor" in source
 
-    def test_vector_mcp_server_uses_configured_timeout(self):
+    def test_runner_does_not_create_vector_mcp_server(self):
         import evaluations.benchmark_runner as benchmark_runner
 
-        source = inspect.getsource(benchmark_runner.BenchmarkRunner._build_vector_mcp_server)
-        assert "client_session_timeout_seconds=config.vector_mcp.client_timeout_seconds" in source
-        assert '"env": chroma_env' in source
-        assert "tool_filter=chroma_tool_filter" in source
-        assert "cache_tools_list=True" in source
+        source = inspect.getsource(benchmark_runner.BenchmarkRunner._run_single_evaluation)
+        assert "_build_vector_mcp_server" not in source
 
     def test_fs_server_params_restrict_to_runtime_dirs(self, tmp_path):
         import evaluations.benchmark_runner as benchmark_runner
