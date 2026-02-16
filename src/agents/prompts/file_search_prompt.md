@@ -41,3 +41,8 @@ Example:
 Search term: "Multi Agent Orchestration" → Filename: `multi_agent_orchestration.txt`
 
 Write in the same language as the search term.
+
+## RETRIEVAL QUERY RULE
+
+- When you call `vector_search`, use the provided search term as-is for the `query` argument.
+- Do not rewrite, simplify, or replace the query with a vaguer version.

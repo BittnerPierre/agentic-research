@@ -29,6 +29,7 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
     config = get_config()
     snapshot = _snapshot_config(config)
     config.vector_search.top_k = 5
+    config.vector_search.query_expansion_mode = "none"
 
     calls = []
 
@@ -52,6 +53,7 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
 
     assert calls == [("query with spaces", 80, None)]
     assert result["query"] == "query with spaces"
+    assert result["effective_queries"] == ["query with spaces"]
     assert len(result["results"]) == 1
     assert config.vector_search.index_name == "custom-vs"
 
@@ -121,5 +123,75 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
     assert len(returned[0]["document"]) == 1500
     doc_c_chunks = [item for item in returned if item["metadata"].get("document_id") == "doc-c"]
     assert len(doc_c_chunks) == 3
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_paraphrase_lite_expands_queries(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.vector_search.query_expansion_mode = "paraphrase_lite"
+    config.vector_search.query_expansion_max_variants = 2
+
+    calls = []
+
+    def _fake_search(query, config, top_k, score_threshold):
+        calls.append(query)
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("A" * 260),
+                    metadata={"document_id": f"doc-{len(calls)}", "chunk_index": 0},
+                    score=0.9 - (len(calls) * 0.01),
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    query = "MIPS (Maximum Inner Product Search) external memory"
+    result = await vector_search_impl(_Wrapper(), query, top_k=5)
+
+    # Primary query first, then deterministic paraphrase variants.
+    assert calls[0] == "MIPS (Maximum Inner Product Search) external memory"
+    assert len(calls) >= 2
+    assert result["effective_queries"][0] == "MIPS (Maximum Inner Product Search) external memory"
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_hyde_lite_adds_hypothetical_query(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.vector_search.query_expansion_mode = "hyde_lite"
+    config.vector_search.query_expansion_max_variants = 1
+
+    calls = []
+
+    def _fake_search(query, config, top_k, score_threshold):
+        calls.append(query)
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("B" * 280),
+                    metadata={"document_id": "doc-h", "chunk_index": len(calls)},
+                    score=0.8,
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    result = await vector_search_impl(_Wrapper(), "MIPS memory retrieval", top_k=5)
+
+    assert calls[0] == "MIPS memory retrieval"
+    assert len(calls) == 2
+    assert result["effective_queries"][1].startswith("Hypothetical answer:")
 
     _restore_config(config, snapshot)

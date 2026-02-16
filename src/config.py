@@ -50,6 +50,8 @@ class VectorSearchConfig(BaseModel):
     chroma_embedding_api_key_env: str = Field(default="CHROMA_OPENAI_API_KEY")
     top_k: int = Field(default=5)
     score_threshold: float | None = Field(default=None)
+    query_expansion_mode: Literal["none", "paraphrase_lite", "hyde_lite"] = Field(default="none")
+    query_expansion_max_variants: int = Field(default=2)
 
 
 class VectorMCPConfig(BaseModel):
