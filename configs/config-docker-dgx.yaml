@@ -38,7 +38,7 @@ dataprep:
     api_key_env: "OPENAI_API_KEY"
     temperature: 0.1
     max_tokens: 256
-    timeout_seconds: 10.0
+    timeout_seconds: 30.0
 
 # Configuration de debug
 debug:
@@ -87,9 +87,9 @@ manager:
   default_manager: "deep_manager"
 
 agents:
-  max_search_plan: "2-3"
+  max_search_plan: "3-7"
   output_dir: "output/"
-  writer_output_format: "json"
+  writer_output_format: "markdown"
   file_search_rewrite_mode: "hyde_lite" # none | paraphrase_lite | hyde_lite
   file_search_rewrite_max_variants: 2
   file_search_top_k: null
