@@ -9,6 +9,7 @@ import argparse
 import json
 from collections import Counter
 from pathlib import Path
+from statistics import mean, pstdev
 
 GRADE_TO_SCORE = {
     "A": 100.0,
@@ -130,6 +131,14 @@ class BenchmarkComparator:
         lines.extend(self._generate_quality_table(benchmarks))
         lines.append("")
 
+        # Stability metrics
+        lines.extend(self._generate_stability_table(benchmarks))
+        lines.append("")
+
+        # Detailed per-run diagnostics
+        lines.extend(self._generate_run_details_table(benchmarks))
+        lines.append("")
+
         # Per-setup notes
         lines.extend(self._generate_setup_notes(benchmarks))
         lines.append("")
@@ -196,8 +205,10 @@ class BenchmarkComparator:
             "## Legend",
             "",
             "- `F/G/A/U` = `Format / Grounding / Agenda / Usability`.",
+            "- `A+` = grade stable across all runs, `A` = mostly stable, `A-` = unstable.",
             "- `P/B/F` = `PASS / BORDERLINE / FAIL` counts across runs.",
             "- `Quality (0-100)` is the averaged content-quality score across runs.",
+            "- Aggregation rule: mean for `<5` runs; trimmed mean (drop min/max) for `>=5` runs.",
             "- `Judgment` is an aggregated verdict: `EXCELLENT`, `STRONG`, `PASS`, `ACCEPTABLE`, `FAIL`.",
             "- `ACCEPTABLE` means usable but with notable weaknesses in at least one run.",
         ]
@@ -252,16 +263,17 @@ class BenchmarkComparator:
         lines = [
             "## Quality Grades",
             "",
-            "| Setup | Runs | Grade Profile (F/G/A/U) | Quality (0-100) | Judgments (P/B/F) |",
-            "|-------|------|-------------------------|------------------|-------------------|",
+            "| Setup | Runs | Avg Grades (F/G/A/U) | Quality (0-100) | Quality Std | Judgments (P/B/F) | Verdict |",
+            "|-------|------|----------------------|------------------|-------------|-------------------|---------|",
         ]
 
         for bench in sorted(benchmarks, key=lambda b: b["setup_metadata"]["setup_name"]):
             setup_name = bench["setup_metadata"]["setup_name"]
             run_count = self._bench_num_runs(bench)
-            profile = self._grade_profile(bench)
+            profile = self._avg_grades(bench)
             judgments = self._judgment_counts(bench)
             quality_score = self._quality_score(bench)
+            quality_std = self._quality_std(bench)
 
             profile_str = (
                 f"{profile['format']}/{profile['grounding']}/"
@@ -271,9 +283,49 @@ class BenchmarkComparator:
 
             lines.append(
                 f"| {setup_name} | {run_count} | {profile_str} | "
-                f"{quality_score:.1f} | {judgments_str} |"
+                f"{quality_score:.1f} | {quality_std:.1f} | {judgments_str} | {self._verdict(bench)} |"
             )
 
+        return lines
+
+    def _generate_stability_table(self, benchmarks: list[dict]) -> list[str]:
+        lines = [
+            "## Stability Metrics",
+            "",
+            "| Setup | Time Std (s) | Quality Std | RAG Std | Aggregation |",
+            "|-------|--------------|-------------|---------|-------------|",
+        ]
+        for bench in sorted(benchmarks, key=lambda b: b["setup_metadata"]["setup_name"]):
+            setup_name = bench["setup_metadata"]["setup_name"]
+            lines.append(
+                f"| {setup_name} | {self._time_std(bench):.1f} | {self._quality_std(bench):.1f} | "
+                f"{self._rag_std(bench):.3f} | {self._aggregation_label(bench)} |"
+            )
+        return lines
+
+    def _generate_run_details_table(self, benchmarks: list[dict]) -> list[str]:
+        lines = [
+            "## Run Details",
+            "",
+            "| Setup | Run | Time (s) | Quality | Judgment | Grades (F/G/A/U) | RAG Avg |",
+            "|-------|-----|----------|---------|----------|------------------|---------|",
+        ]
+        for bench in sorted(benchmarks, key=lambda b: b["setup_metadata"]["setup_name"]):
+            setup_name = bench["setup_metadata"]["setup_name"]
+            for idx, run in enumerate(bench.get("runs", []), start=1):
+                timing = float(run.get("timing", {}).get("total_seconds", 0.0))
+                quality = self._run_quality_score(run)
+                judgment = run.get("quality_result", {}).get("judgment", "BORDERLINE")
+                grades = run.get("quality_result", {}).get("grades", {})
+                grades_str = (
+                    f"{grades.get('format', 'E')}/{grades.get('grounding', 'E')}/"
+                    f"{grades.get('agenda', 'E')}/{grades.get('usability', 'E')}"
+                )
+                rag_avg = float(run.get("rag_triad", {}).get("average", 0.0))
+                lines.append(
+                    f"| {setup_name} | {idx} | {timing:.1f} | {quality:.1f} | "
+                    f"{judgment} | {grades_str} | {rag_avg:.3f} |"
+                )
         return lines
 
     def _generate_setup_notes(self, benchmarks: list[dict]) -> list[str]:
@@ -432,21 +484,15 @@ class BenchmarkComparator:
         return int(bench.get("num_runs", len(runs)))
 
     def _quality_score(self, bench: dict) -> float:
+        values = [self._run_quality_score(run) for run in bench.get("runs", [])]
+        if values:
+            return self._aggregate_values(values)
         avg_scores = bench.get("average", {}).get("scores", {})
-        if "content_quality_100" in avg_scores:
-            return float(avg_scores["content_quality_100"])
+        return float(avg_scores.get("content_quality_100", 0.0))
 
-        runs = bench.get("runs", [])
-        if not runs:
-            return 0.0
-
-        dimensions = ("format", "grounding", "agenda", "usability")
-        values = []
-        for run in runs:
-            grades = run.get("quality_result", {}).get("grades", {})
-            for dim in dimensions:
-                values.append(GRADE_TO_SCORE.get(grades.get(dim, "E"), 30.0))
-        return sum(values) / len(values) if values else 0.0
+    def _quality_std(self, bench: dict) -> float:
+        values = [self._run_quality_score(run) for run in bench.get("runs", [])]
+        return self._std_values(values)
 
     def _judgment_counts(self, bench: dict) -> dict[str, int]:
         counter = Counter(
@@ -458,14 +504,6 @@ class BenchmarkComparator:
             "BORDERLINE": counter.get("BORDERLINE", 0),
             "FAIL": counter.get("FAIL", 0),
         }
-
-    def _primary_judgment(self, bench: dict) -> str:
-        counts = self._judgment_counts(bench)
-        if counts["FAIL"] > 0:
-            return "FAIL"
-        if counts["PASS"] > 0:
-            return "PASS"
-        return "BORDERLINE"
 
     def _verdict(self, bench: dict) -> str:
         counts = self._judgment_counts(bench)
@@ -487,6 +525,13 @@ class BenchmarkComparator:
         return self._verdict(bench) != "FAIL"
 
     def _overall_score(self, bench: dict) -> float:
+        values = [
+            float(run.get("scores", {}).get("overall_100"))
+            for run in bench.get("runs", [])
+            if run.get("scores", {}).get("overall_100") is not None
+        ]
+        if values:
+            return self._aggregate_values(values)
         avg_scores = bench.get("average", {}).get("scores", {})
         if "overall_100" in avg_scores:
             return float(avg_scores["overall_100"])
@@ -500,26 +545,10 @@ class BenchmarkComparator:
         runs = bench.get("runs", [])
         out: dict[str, str] = {}
         for dim in dimensions:
-            numeric = []
-            for run in runs:
-                grade = run.get("quality_result", {}).get("grades", {}).get(dim, "E")
-                numeric.append(GRADE_TO_SCORE.get(grade, 30.0))
-            avg_score = sum(numeric) / len(numeric) if numeric else 30.0
-            out[dim] = self._score_to_grade(avg_score)
-        return out
-
-    def _grade_profile(self, bench: dict) -> dict[str, str]:
-        dimensions = ("format", "grounding", "agenda", "usability")
-        runs = bench.get("runs", [])
-        out: dict[str, str] = {}
-        for dim in dimensions:
-            values = [run.get("quality_result", {}).get("grades", {}).get(dim, "E") for run in runs]
-            if not values:
-                out[dim] = "E(0)"
-                continue
-            counter = Counter(values)
-            top_grade, top_count = sorted(counter.items(), key=lambda item: (-item[1], item[0]))[0]
-            out[dim] = f"{top_grade}({top_count}/{len(values)})"
+            numeric = [self._run_dimension_score(run, dim) for run in runs]
+            avg_score = self._aggregate_values(numeric) if numeric else 30.0
+            base_grade = self._score_to_grade(avg_score)
+            out[dim] = self._grade_with_stability(base_grade, runs, dim)
         return out
 
     def _score_to_grade(self, score: float) -> str:
@@ -527,6 +556,71 @@ class BenchmarkComparator:
             if score >= threshold:
                 return grade
         return "E"
+
+    def _grade_with_stability(self, base_grade: str, runs: list[dict], dim: str) -> str:
+        run_count = len(runs)
+        if run_count <= 1:
+            return base_grade
+        same_as_base = 0
+        for run in runs:
+            run_grade = run.get("quality_result", {}).get("grades", {}).get(dim, "E")
+            if run_grade == base_grade:
+                same_as_base += 1
+        ratio = same_as_base / run_count
+        if ratio == 1.0:
+            return f"{base_grade}+"
+        if ratio >= (2 / 3):
+            return base_grade
+        return f"{base_grade}-"
+
+    def _run_dimension_score(self, run: dict, dim: str) -> float:
+        grade = run.get("quality_result", {}).get("grades", {}).get(dim, "E")
+        return GRADE_TO_SCORE.get(grade, 30.0)
+
+    def _run_quality_score(self, run: dict) -> float:
+        score = run.get("scores", {}).get("content_quality_100")
+        if score is not None:
+            return float(score)
+        grades = run.get("quality_result", {}).get("grades", {})
+        return (
+            GRADE_TO_SCORE.get(grades.get("grounding", "E"), 30.0) * 0.40
+            + GRADE_TO_SCORE.get(grades.get("agenda", "E"), 30.0) * 0.25
+            + GRADE_TO_SCORE.get(grades.get("format", "E"), 30.0) * 0.20
+            + GRADE_TO_SCORE.get(grades.get("usability", "E"), 30.0) * 0.15
+        )
+
+    def _aggregate_values(self, values: list[float]) -> float:
+        if not values:
+            return 0.0
+        if len(values) >= 5:
+            sorted_vals = sorted(values)
+            trimmed = sorted_vals[1:-1]
+            return float(mean(trimmed)) if trimmed else float(mean(sorted_vals))
+        return float(mean(values))
+
+    def _std_values(self, values: list[float]) -> float:
+        if len(values) <= 1:
+            return 0.0
+        return float(pstdev(values))
+
+    def _aggregation_label(self, bench: dict) -> str:
+        return "trimmed mean (drop min/max)" if self._bench_num_runs(bench) >= 5 else "mean"
+
+    def _time_std(self, bench: dict) -> float:
+        values = [
+            float(run.get("timing", {}).get("total_seconds", 0.0))
+            for run in bench.get("runs", [])
+            if run.get("timing", {}).get("total_seconds") is not None
+        ]
+        return self._std_values(values)
+
+    def _rag_std(self, bench: dict) -> float:
+        values = [
+            float(run.get("rag_triad", {}).get("average", 0.0))
+            for run in bench.get("runs", [])
+            if run.get("rag_triad", {}).get("average") is not None
+        ]
+        return self._std_values(values)
 
     def _failure_summary(self, bench: dict) -> str | None:
         if self._verdict(bench) != "FAIL":
