@@ -114,6 +114,10 @@ class BenchmarkComparator:
         lines.extend(self._generate_summary_table(benchmarks))
         lines.append("")
 
+        # Legend
+        lines.extend(self._generate_legend())
+        lines.append("")
+
         # Detailed Timing Table
         lines.extend(self._generate_timing_table(benchmarks))
         lines.append("")
@@ -128,6 +132,10 @@ class BenchmarkComparator:
 
         # Per-setup notes
         lines.extend(self._generate_setup_notes(benchmarks))
+        lines.append("")
+
+        # Podium
+        lines.extend(self._generate_podium(benchmarks))
         lines.append("")
 
         # Best Performers
@@ -163,8 +171,8 @@ class BenchmarkComparator:
             )
             quality_score = f"{self._quality_score(bench):.1f}"
 
-            # Judgment
-            judgment = self._primary_judgment(bench)
+            # Verdict
+            judgment = self._verdict(bench)
 
             # RAG Triad
             rag = avg["rag_triad"]
@@ -182,6 +190,17 @@ class BenchmarkComparator:
             )
 
         return lines
+
+    def _generate_legend(self) -> list[str]:
+        return [
+            "## Legend",
+            "",
+            "- `F/G/A/U` = `Format / Grounding / Agenda / Usability`.",
+            "- `P/B/F` = `PASS / BORDERLINE / FAIL` counts across runs.",
+            "- `Quality (0-100)` is the averaged content-quality score across runs.",
+            "- `Judgment` is an aggregated verdict: `EXCELLENT`, `STRONG`, `PASS`, `ACCEPTABLE`, `FAIL`.",
+            "- `ACCEPTABLE` means usable but with notable weaknesses in at least one run.",
+        ]
 
     def _generate_timing_table(self, benchmarks: list[dict]) -> list[str]:
         """Generate detailed timing breakdown table."""
@@ -264,7 +283,7 @@ class BenchmarkComparator:
         for bench in sorted(benchmarks, key=lambda b: b["setup_metadata"]["setup_name"]):
             setup_name = bench["setup_metadata"]["setup_name"]
             run_count = self._bench_num_runs(bench)
-            judgment = self._primary_judgment(bench)
+            judgment = self._verdict(bench)
             quality_score = self._quality_score(bench)
             rag_avg = bench["average"]["rag_triad"]["average"]
             total_seconds = bench["average"]["timing"]["total_seconds"]
@@ -281,33 +300,64 @@ class BenchmarkComparator:
 
         return lines
 
+    def _generate_podium(self, benchmarks: list[dict]) -> list[str]:
+        lines = ["## Podium (Top 3)", ""]
+        eligible = [b for b in benchmarks if self._is_recommendable(b)]
+        ranked = sorted(
+            eligible,
+            key=lambda b: (
+                self._overall_score(b),
+                self._quality_score(b),
+                b["average"]["rag_triad"]["average"],
+            ),
+            reverse=True,
+        )[:3]
+
+        if not ranked:
+            lines.append("- No recommendable setup available (all setups are FAIL).")
+            return lines
+
+        for idx, bench in enumerate(ranked, start=1):
+            setup = bench["setup_metadata"]["setup_name"]
+            lines.append(
+                f"{idx}. {setup} - overall={self._overall_score(bench):.1f}, "
+                f"quality={self._quality_score(bench):.1f}, "
+                f"RAG={bench['average']['rag_triad']['average']:.3f}, "
+                f"time={bench['average']['timing']['total_seconds']:.1f}s, "
+                f"verdict={self._verdict(bench)}"
+            )
+
+        return lines
+
     def _generate_best_performers(self, benchmarks: list[dict]) -> list[str]:
         """Identify and list best performers by category."""
         lines = ["## Best Performers", ""]
+        eligible = [b for b in benchmarks if self._is_recommendable(b)]
+        candidate_pool = eligible if eligible else benchmarks
 
         # Fastest
-        fastest = min(benchmarks, key=lambda b: b["average"]["timing"]["total_seconds"])
+        fastest = min(candidate_pool, key=lambda b: b["average"]["timing"]["total_seconds"])
         lines.append(
             f"- **Fastest**: {fastest['setup_metadata']['setup_name']} "
             f"({fastest['average']['timing']['total_seconds']:.1f}s)"
         )
 
         # Best RAG Triad
-        best_rag = max(benchmarks, key=lambda b: b["average"]["rag_triad"]["average"])
+        best_rag = max(candidate_pool, key=lambda b: b["average"]["rag_triad"]["average"])
         lines.append(
             f"- **Best RAG Triad**: {best_rag['setup_metadata']['setup_name']} "
             f"(avg: {best_rag['average']['rag_triad']['average']:.3f})"
         )
 
         # Best quality (numeric score from multi-run average)
-        best_quality = max(benchmarks, key=self._quality_score)
+        best_quality = max(candidate_pool, key=self._quality_score)
         lines.append(
             f"- **Best Quality**: {best_quality['setup_metadata']['setup_name']} "
             f"(Score: {self._quality_score(best_quality):.1f})"
         )
 
         # Most efficient (fewest calls)
-        most_efficient = min(benchmarks, key=lambda b: b["average"]["agent_calls"]["total"])
+        most_efficient = min(candidate_pool, key=lambda b: b["average"]["agent_calls"]["total"])
         lines.append(
             f"- **Most Efficient**: {most_efficient['setup_metadata']['setup_name']} "
             f"({int(most_efficient['average']['agent_calls']['total'])} agent calls)"
@@ -318,11 +368,9 @@ class BenchmarkComparator:
     def _generate_recommendations(self, benchmarks: list[dict]) -> list[str]:
         """Generate recommendations based on results."""
         lines = ["## Recommendations", ""]
-        eligible = [bench for bench in benchmarks if self._primary_judgment(bench) == "PASS"]
+        eligible = [bench for bench in benchmarks if self._is_recommendable(bench)]
         if not eligible:
-            lines.append(
-                "No PASS setup available for recommendation. Review Per-Setup Notes and rerun."
-            )
+            lines.append("No recommendable setup available. Review Per-Setup Notes and rerun.")
             return lines
 
         # Find fastest
@@ -335,19 +383,19 @@ class BenchmarkComparator:
         lines.append(
             f"1. **For speed-critical applications**: "
             f"Use **{fastest['setup_metadata']['setup_name']}** "
-            f"({fastest['average']['timing']['total_seconds']:.1f}s average, PASS)"
+            f"({fastest['average']['timing']['total_seconds']:.1f}s average, {self._verdict(fastest)})"
         )
 
         lines.append(
             f"2. **For highest quality reports**: "
             f"Use **{best_quality['setup_metadata']['setup_name']}** "
-            f"(Quality score: {self._quality_score(best_quality):.1f}, PASS)"
+            f"(Quality score: {self._quality_score(best_quality):.1f}, {self._verdict(best_quality)})"
         )
 
         lines.append(
             f"3. **For best RAG performance**: "
             f"Use **{best_rag['setup_metadata']['setup_name']}** "
-            f"(RAG Triad: {best_rag['average']['rag_triad']['average']:.3f}, PASS)"
+            f"(RAG Triad: {best_rag['average']['rag_triad']['average']:.3f}, {self._verdict(best_rag)})"
         )
 
         # Overall recommendation
@@ -368,9 +416,9 @@ class BenchmarkComparator:
         median_time = sorted(all_times)[len(all_times) // 2]
 
         # Check quality
-        judgment = self._primary_judgment(bench)
+        judgment = self._verdict(bench)
 
-        if judgment != "PASS":
+        if judgment in {"FAIL"}:
             return "⚠️ Quality"
         elif avg_time > median_time * 1.3:
             return "⚠️ Slow"
@@ -419,6 +467,34 @@ class BenchmarkComparator:
             return "PASS"
         return "BORDERLINE"
 
+    def _verdict(self, bench: dict) -> str:
+        counts = self._judgment_counts(bench)
+        runs = max(self._bench_num_runs(bench), 1)
+        fail_ratio = counts["FAIL"] / runs
+        quality = self._quality_score(bench)
+
+        if fail_ratio >= 0.5 or quality < 65.0:
+            return "FAIL"
+        if counts["FAIL"] > 0:
+            return "ACCEPTABLE"
+        if quality >= 95.0 and counts["PASS"] == runs:
+            return "EXCELLENT"
+        if quality >= 85.0:
+            return "STRONG"
+        return "PASS"
+
+    def _is_recommendable(self, bench: dict) -> bool:
+        return self._verdict(bench) != "FAIL"
+
+    def _overall_score(self, bench: dict) -> float:
+        avg_scores = bench.get("average", {}).get("scores", {})
+        if "overall_100" in avg_scores:
+            return float(avg_scores["overall_100"])
+        # Fallback for older artifacts missing normalized scores.
+        rag = float(bench.get("average", {}).get("rag_triad", {}).get("average", 0.0)) * 100.0
+        quality = self._quality_score(bench)
+        return round((0.7 * quality) + (0.3 * rag), 2)
+
     def _avg_grades(self, bench: dict) -> dict[str, str]:
         dimensions = ("format", "grounding", "agenda", "usability")
         runs = bench.get("runs", [])
@@ -453,7 +529,7 @@ class BenchmarkComparator:
         return "E"
 
     def _failure_summary(self, bench: dict) -> str | None:
-        if self._primary_judgment(bench) != "FAIL":
+        if self._verdict(bench) != "FAIL":
             return None
 
         missing_agenda = Counter()
