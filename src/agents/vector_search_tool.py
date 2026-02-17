@@ -410,6 +410,28 @@ async def vector_search_impl(
         if len(filtered_results) >= final_top_k:
             break
 
+    if logger.isEnabledFor(logging.INFO):
+        kept_scores = [result["score"] for result in filtered_results]
+        kept_max = max(kept_scores) if kept_scores else None
+        kept_min = min(kept_scores) if kept_scores else None
+        logger.info(
+            "vector_search diagnostics | query=%s | effective_queries=%s | rewrite_mode=%s "
+            "| top_k=%s | score_threshold=%s | hits_total=%s | hits_kept=%s | unique_docs=%s "
+            "| kept_score_range=%s..%s | domain_hint=%s (%s)",
+            normalized_query,
+            retrieval_queries,
+            effective_rewrite_mode,
+            final_top_k,
+            score_threshold,
+            len(all_hits),
+            len(filtered_results),
+            len(per_doc_count),
+            kept_max,
+            kept_min,
+            resolved_hint,
+            hint_source,
+        )
+
     return {
         "query": normalized_query,
         "effective_queries": retrieval_queries,

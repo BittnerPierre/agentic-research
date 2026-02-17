@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import logging
 
 import pytest
 
@@ -381,5 +382,35 @@ async def test_vector_search_tool_uses_agent_domain_hint_override(monkeypatch):
 
     assert result["observability"]["rewrite_domain_hint"] == "financial research"
     assert result["observability"]["rewrite_domain_hint_source"] == "agent_override"
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_tool_logs_observability_diagnostics(monkeypatch, caplog):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.agents.file_search_rewrite_mode = "none"
+
+    def _fake_search(query, config, top_k, score_threshold):
+        return VectorSearchResult(
+            query=query,
+            results=[
+                VectorSearchHit(
+                    document=("G" * 260),
+                    metadata={"document_id": "doc-log", "chunk_index": 0},
+                    score=0.91,
+                )
+            ],
+        )
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    caplog.set_level(logging.INFO, logger="src.agents.vector_search_tool")
+    await vector_search_impl(_Wrapper(), "observability query")
+
+    assert "vector_search diagnostics" in caplog.text
+    assert "effective_queries" in caplog.text
 
     _restore_config(config, snapshot)

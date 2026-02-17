@@ -46,6 +46,43 @@ Configuration entry points
 - Chroma connection:
   - config files: vector_search.chroma_host, chroma_port, chroma_ssl
 
+Retrieval behavior (file_search parity)
+---------------------------------------
+For chroma/local, file search is routed through the internal vector search tool
+to approximate OpenAI file_search behavior:
+
+- Planner query fidelity: the provided planner query is used as-is as the
+  primary retrieval query (no default simplification).
+- Optional query expansion (KISS):
+  - config: agents.file_search_rewrite_mode (none | paraphrase_lite | hyde_lite)
+  - config: agents.file_search_rewrite_max_variants
+  - HYDE mode is constrained to a single variant for predictable latency.
+- Retrieval candidates are merged, deduplicated, and capped per document.
+
+Observability and tracing
+-------------------------
+The vector search tool emits diagnostic logs with:
+
+- effective query list (primary + expansion variants)
+- rewrite mode applied
+- top_k, score_threshold
+- hit counts and kept score range
+- inferred or provided domain_hint
+
+These logs are written via the standard logger (logs/run_*.log). The tool also
+returns an observability payload (effective_queries, rewrite mode, etc.) that is
+visible in trace outputs when tracing is enabled (see traces/).
+
+Config quick reference
+----------------------
+- vector_search.provider: local | openai | chroma
+- vector_search.chunk_size, vector_search.chunk_overlap
+  - Units are characters (not tokens).
+- agents.file_search_rewrite_mode: none | paraphrase_lite | hyde_lite
+- agents.file_search_rewrite_max_variants: integer (HyDE forced to 1)
+- agents.file_search_top_k (optional override)
+- agents.file_search_score_threshold (optional override)
+
 
 Current Implementation (as-is)
 ------------------------------
