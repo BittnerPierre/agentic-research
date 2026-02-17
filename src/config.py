@@ -166,7 +166,9 @@ class AgentsConfig(BaseModel):
     max_search_plan: str = Field(default="8-12")
     output_dir: str = Field(default="output/")
     writer_output_format: Literal["json", "markdown"] = Field(default="json")
-    file_search_rewrite_mode: Literal["none", "paraphrase_lite", "hyde_lite"] = Field(default="none")
+    file_search_rewrite_mode: Literal["none", "paraphrase_lite", "hyde_lite"] = Field(
+        default="none"
+    )
     file_search_rewrite_max_variants: int = Field(default=1)
     file_search_top_k: int | None = Field(default=None)
     file_search_score_threshold: float | None = Field(default=None)

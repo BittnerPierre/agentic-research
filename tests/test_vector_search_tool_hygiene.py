@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 import logging
+from types import SimpleNamespace
 
 import pytest
 
@@ -407,7 +407,7 @@ async def test_vector_search_tool_logs_observability_diagnostics(monkeypatch, ca
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
     monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
 
-    caplog.set_level(logging.INFO, logger="src.agents.vector_search_tool")
+    caplog.set_level(logging.DEBUG, logger="src.agents.vector_search_tool")
     await vector_search_impl(_Wrapper(), "observability query")
 
     assert "vector_search diagnostics" in caplog.text

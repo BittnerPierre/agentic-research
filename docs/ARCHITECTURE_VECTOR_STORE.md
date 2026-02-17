@@ -58,6 +58,9 @@ to approximate OpenAI file_search behavior:
   - config: agents.file_search_rewrite_max_variants
   - HYDE mode is constrained to a single variant for predictable latency.
 - Retrieval candidates are merged, deduplicated, and capped per document.
+- This rewrite/expansion feature is experimental.
+- Latency/cost warning: paraphrase_lite or hyde_lite can trigger one LLM call
+  per file_search query.
 
 Observability and tracing
 -------------------------

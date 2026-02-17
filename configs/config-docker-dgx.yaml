@@ -90,7 +90,7 @@ agents:
   max_search_plan: "3-7"
   output_dir: "output/"
   writer_output_format: "markdown"
-  file_search_rewrite_mode: "hyde_lite" # none | paraphrase_lite | hyde_lite
+  file_search_rewrite_mode: "none" # none | paraphrase_lite | hyde_lite (experimental, can add latency)
   file_search_rewrite_max_variants: 2
   file_search_top_k: null
   file_search_score_threshold: null

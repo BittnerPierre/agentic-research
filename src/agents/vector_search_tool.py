@@ -188,7 +188,11 @@ def _build_llm_rewrite_queries(
         timeout=float(config.dataprep.llm.timeout_seconds),
     )
 
-    style = "paraphrases that preserve intent" if mode == "paraphrase_lite" else "hypothetical answer queries"
+    style = (
+        "paraphrases that preserve intent"
+        if mode == "paraphrase_lite"
+        else "hypothetical answer queries"
+    )
     resolved_hint, _ = _resolve_domain_hint(query, domain_hint)
     if mode == "hyde_lite":
         task_line = (
@@ -410,11 +414,11 @@ async def vector_search_impl(
         if len(filtered_results) >= final_top_k:
             break
 
-    if logger.isEnabledFor(logging.INFO):
+    if logger.isEnabledFor(logging.DEBUG):
         kept_scores = [result["score"] for result in filtered_results]
         kept_max = max(kept_scores) if kept_scores else None
         kept_min = min(kept_scores) if kept_scores else None
-        logger.info(
+        logger.debug(
             "vector_search diagnostics | query=%s | effective_queries=%s | rewrite_mode=%s "
             "| top_k=%s | score_threshold=%s | hits_total=%s | hits_kept=%s | unique_docs=%s "
             "| kept_score_range=%s..%s | domain_hint=%s (%s)",
