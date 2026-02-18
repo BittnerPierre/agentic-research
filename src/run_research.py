@@ -141,9 +141,7 @@ async def run_research_async(
             await stack.enter_async_context(dataprep_server)
 
             backend = get_vector_backend(config)
-            vector_store_id = backend.resolve_store_id(
-                config.vector_store.name, config
-            )
+            vector_store_id = backend.resolve_store_id(config.vector_store.name, config)
             config.vector_store.vector_store_id = vector_store_id
             research_info = ResearchInfo(
                 vector_store_name=config.vector_store.name,
