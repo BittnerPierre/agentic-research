@@ -41,3 +41,10 @@ Example:
 Search term: "Multi Agent Orchestration" → Filename: `multi_agent_orchestration.txt`
 
 Write in the same language as the search term.
+
+## RETRIEVAL QUERY RULE
+
+- When you call `vector_search`, use the provided search term as-is for the `query` argument.
+- Call `vector_search` with `query`.
+- You may also pass `domain_hint` only when the domain is clearly and explicitly identified in the syllabus or conversation context.
+- Do not rewrite, simplify, or replace the query with a vaguer version.

@@ -1,6 +1,7 @@
 """Fonctions MCP pour la gestion de la base de connaissances et upload vers vector store."""
 
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,28 @@ from .vector_store_utils import validate_url
 from .web_loader_improved import load_documents_from_urls
 
 logger = logging.getLogger(__name__)
+
+
+def _dataprep_llm_client_and_model(config) -> tuple[OpenAI, str]:
+    llm_cfg = config.dataprep.llm
+    model_spec = llm_cfg.model
+
+    if isinstance(model_spec, str):
+        model_name = model_spec
+        base_url = None
+        api_key = None
+    else:
+        model_name = model_spec.name
+        base_url = model_spec.base_url
+        api_key = model_spec.api_key
+
+    resolved_api_key = api_key or os.getenv(llm_cfg.api_key_env) or "dummy"
+    client = OpenAI(
+        base_url=base_url,
+        api_key=resolved_api_key,
+        timeout=float(llm_cfg.timeout_seconds),
+    )
+    return client, model_name
 
 
 def download_and_store_url(url: str, config) -> str:
@@ -147,7 +170,10 @@ def get_knowledge_entries(config) -> list[dict[str, Any]]:
 
 def _extract_keywords_with_llm(doc, config) -> list[str]:
     """Extraction de mots-clés intelligente avec LLM."""
-    client = OpenAI()
+    if not getattr(config.dataprep.llm, "enabled", True):
+        logger.warning("dataprep.llm.enabled=false; using basic keyword extraction fallback.")
+        return _extract_keywords_basic(doc)
+    client, model_name = _dataprep_llm_client_and_model(config)
 
     # Limiter le contenu pour l'analyse
     content_preview = (
@@ -167,10 +193,10 @@ Concentre-toi sur les concepts techniques, les noms propres, et les thèmes prin
 
     try:
         response = client.chat.completions.create(
-            model=config.openai.model,
+            model=model_name,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=100,
+            temperature=float(config.dataprep.llm.temperature),
+            max_tokens=min(200, int(config.dataprep.llm.max_tokens)),
         )
 
         keywords_text = response.choices[0].message.content.strip()
@@ -181,13 +207,17 @@ Concentre-toi sur les concepts techniques, les noms propres, et les thèmes prin
 
     except Exception as e:
         logger.error(f"Failed to extract keywords with LLM: {e}")
+        logger.warning("Using basic keyword extraction fallback after LLM failure.")
         # Fallback sur extraction basique
         return _extract_keywords_basic(doc)
 
 
 def _extract_summary_with_llm(doc, config) -> str:
     """Génération d'un résumé avec LLM."""
-    client = OpenAI()
+    if not getattr(config.dataprep.llm, "enabled", True):
+        logger.warning("dataprep.llm.enabled=false; using basic summary fallback.")
+        return _extract_basic_summary(doc)
+    client, model_name = _dataprep_llm_client_and_model(config)
 
     # Limiter le contenu pour l'analyse
     content_preview = (
@@ -206,10 +236,10 @@ Ton résumé doit être factuel, objectif et couvrir les informations principale
 
     try:
         response = client.chat.completions.create(
-            model=config.openai.model,
+            model=model_name,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=300,
+            temperature=float(config.dataprep.llm.temperature),
+            max_tokens=max(300, int(config.dataprep.llm.max_tokens)),
         )
 
         summary = response.choices[0].message.content.strip()
@@ -218,6 +248,7 @@ Ton résumé doit être factuel, objectif et couvrir les informations principale
 
     except Exception as e:
         logger.error(f"Failed to generate summary with LLM: {e}")
+        logger.warning("Using basic summary fallback after LLM failure.")
         # Fallback sur résumé basique
         return _extract_basic_summary(doc)
 

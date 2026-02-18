@@ -71,6 +71,23 @@ class DataConfig(BaseModel):
     local_storage_dir: str = Field(default="data/")
 
 
+class DataprepLLMConfig(BaseModel):
+    """Configuration for dataprep LLM calls (OpenAI-compatible chat completions)."""
+
+    enabled: bool = Field(default=True)
+    model: "str | ModelEndpointConfig" = Field(default="gpt-4.1-mini")
+    api_key_env: str = Field(default="OPENAI_API_KEY")
+    temperature: float = Field(default=0.1)
+    max_tokens: int = Field(default=256)
+    timeout_seconds: float = Field(default=30.0)
+
+
+class DataprepConfig(BaseModel):
+    """Configuration for dataprep behavior."""
+
+    llm: DataprepLLMConfig = Field(default_factory=DataprepLLMConfig)
+
+
 class DebugConfig(BaseModel):
     """Configuration for debug mode."""
 
@@ -149,6 +166,12 @@ class AgentsConfig(BaseModel):
     max_search_plan: str = Field(default="8-12")
     output_dir: str = Field(default="output/")
     writer_output_format: Literal["json", "markdown"] = Field(default="json")
+    file_search_rewrite_mode: Literal["none", "paraphrase_lite", "hyde_lite"] = Field(
+        default="none"
+    )
+    file_search_rewrite_max_variants: int = Field(default=1)
+    file_search_top_k: int | None = Field(default=None)
+    file_search_score_threshold: float | None = Field(default=None)
 
 
 class Config(BaseModel):
@@ -159,6 +182,7 @@ class Config(BaseModel):
     vector_search: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
     vector_mcp: VectorMCPConfig = Field(default_factory=VectorMCPConfig)
     data: DataConfig = Field(default_factory=DataConfig)
+    dataprep: DataprepConfig = Field(default_factory=DataprepConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     mcp: MCPConfig = Field(default_factory=MCPConfig)
