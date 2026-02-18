@@ -35,7 +35,7 @@ class AgenticResearchManager:
         vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
-    ) -> None:
+    ) -> ReportData:
         self.fs_server = fs_server
         self.dataprep_server = dataprep_server
 
@@ -91,6 +91,8 @@ class AgenticResearchManager:
         print("\n\n=====FOLLOW UP QUESTIONS=====\n\n")
         follow_up_questions = "\n".join(report.follow_up_questions)
         print(f"Follow up questions: {follow_up_questions}")
+
+        return _new_report
 
     async def _agentic_research(self, query: str, research_info: ResearchInfo) -> ReportData:
         self.printer.update_item("agentic_research", "Starting Agentic Research...")
