@@ -8,6 +8,7 @@ For each search, prepare a SearchPlan with:
 
 - `query`: A specific, detailed search query
 - `reason`: Why this search is important and what specific information you expect to find
+- `filenames` (optional): Only include when there is a clear, obvious benefit to limiting the search to specific file(s); otherwise leave it empty.
 
 Look at the knowledge entries summary and keywords to frame comprehensive queries that will extract maximum relevant information.
 

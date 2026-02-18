@@ -34,7 +34,7 @@ When you use `write_file`:
 - Always convert the search topic to lowercase.
 - Replace spaces with underscores `_`.
 - Remove special characters (keep only letters, numbers, underscores).
-- Limit filename length to 50 characters maximum.
+- Limit filename length to 255 characters maximum (including .txt).
 - Always add `.txt` at the end.
 
 Example:  
@@ -46,5 +46,6 @@ Write in the same language as the search term.
 
 - When you call `vector_search`, use the provided search term as-is for the `query` argument.
 - Call `vector_search` with `query`.
+- If the input includes target filenames and you are using `vector_search`, pass them via `filenames`.
 - You may also pass `domain_hint` only when the domain is clearly and explicitly identified in the syllabus or conversation context.
 - Do not rewrite, simplify, or replace the query with a vaguer version.

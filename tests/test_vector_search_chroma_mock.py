@@ -10,16 +10,29 @@ from src.dataprep.mcp_functions import upload_files_to_vectorstore, vector_searc
 class _FakeCollection:
     def __init__(self):
         self.add_calls = []
+        self.query_calls = []
+        self.available_filenames = {"syllabus.md"}
 
     def add(self, **kwargs):
         self.add_calls.append(kwargs)
 
-    def query(self, **_kwargs):
+    def query(self, **kwargs):
+        self.query_calls.append(kwargs)
         return {
             "documents": [["chunk-a", "chunk-b"]],
             "metadatas": [[{"filename": "syllabus.md"}, {"filename": "syllabus.md"}]],
             "distances": [[0.1, 0.2]],
         }
+
+    def get(self, where=None, **_kwargs):
+        if not where or "filename" not in where:
+            return {"ids": []}
+        value = where["filename"]
+        if isinstance(value, dict) and "$in" in value:
+            exists = any(name in self.available_filenames for name in value["$in"])
+        else:
+            exists = value in self.available_filenames
+        return {"ids": ["id-1"]} if exists else {"ids": []}
 
 
 class _FakeClient:
@@ -87,5 +100,61 @@ def test_chroma_upload_and_search(monkeypatch, tmp_path):
 
     search_result = vector_search(query="query", config=config, top_k=2)
     assert search_result.results
+
+    _restore_config(config, snapshot)
+
+
+def test_chroma_search_applies_filename_filter(monkeypatch, tmp_path):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    _reset_knowledge_db()
+
+    storage_dir = tmp_path / "data"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    config.data.local_storage_dir = str(storage_dir)
+    config.data.knowledge_db_path = str(tmp_path / "knowledge_db.json")
+    config.vector_search.provider = "chroma"
+    config.vector_search.index_name = "test-collection"
+
+    client = _FakeClient()
+    monkeypatch.setattr(
+        "src.dataprep.vector_backends.chromadb.HttpClient",
+        lambda **_kwargs: client,
+    )
+
+    result = vector_search(query="query", config=config, top_k=2, filenames=["syllabus.md"])
+    assert result.results
+
+    collection = client.collections["test-collection"]
+    assert collection.query_calls
+    assert collection.query_calls[-1]["where"] == {"filename": "syllabus.md"}
+
+    _restore_config(config, snapshot)
+
+
+def test_chroma_search_skips_filter_when_filename_missing(monkeypatch, tmp_path):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    _reset_knowledge_db()
+
+    storage_dir = tmp_path / "data"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    config.data.local_storage_dir = str(storage_dir)
+    config.data.knowledge_db_path = str(tmp_path / "knowledge_db.json")
+    config.vector_search.provider = "chroma"
+    config.vector_search.index_name = "test-collection"
+
+    client = _FakeClient()
+    monkeypatch.setattr(
+        "src.dataprep.vector_backends.chromadb.HttpClient",
+        lambda **_kwargs: client,
+    )
+
+    result = vector_search(query="query", config=config, top_k=2, filenames=["missing.md"])
+    assert result.results
+
+    collection = client.collections["test-collection"]
+    assert collection.query_calls
+    assert "where" not in collection.query_calls[-1]
 
     _restore_config(config, snapshot)

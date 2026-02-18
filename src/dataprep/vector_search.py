@@ -10,6 +10,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..utils.filename import normalize_filenames
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,12 +72,27 @@ class LocalVectorSearchBackend:
         index = self._read_index()
         return any(record.get("document_id") == document_id for record in index)
 
-    def query(self, query: str, top_k: int, score_threshold: float | None) -> list[VectorSearchHit]:
+    def query(
+        self,
+        query: str,
+        top_k: int,
+        score_threshold: float | None,
+        filenames: list[str] | None = None,
+    ) -> list[VectorSearchHit]:
         query_tokens = _tokenize(query)
         if not query_tokens:
             return []
 
         index = self._read_index()
+        normalized_filenames = normalize_filenames(filenames)
+        if normalized_filenames:
+            filtered_index = [
+                record
+                for record in index
+                if record.get("metadata", {}).get("filename") in normalized_filenames
+            ]
+            if filtered_index:
+                index = filtered_index
         hits: list[VectorSearchHit] = []
         query_token_set = set(query_tokens)
 

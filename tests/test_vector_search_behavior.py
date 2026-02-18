@@ -12,10 +12,16 @@ from src.dataprep.vector_search import VectorSearchHit
 @dataclass
 class FakeBackend:
     hits: list[VectorSearchHit]
-    calls: list[tuple[str, int, float | None]]
+    calls: list[tuple[str, int, float | None, list[str] | None]]
 
-    def query(self, query: str, top_k: int, score_threshold: float | None):
-        self.calls.append((query, top_k, score_threshold))
+    def query(
+        self,
+        query: str,
+        top_k: int,
+        score_threshold: float | None,
+        filenames: list[str] | None = None,
+    ):
+        self.calls.append((query, top_k, score_threshold, filenames))
         return self.hits
 
 
@@ -53,7 +59,7 @@ def test_vector_search_respects_configured_defaults(monkeypatch):
 
     result = vector_search(query="agentic research", config=config)
 
-    assert backend.calls == [("agentic research", 2, 0.4)]
+    assert backend.calls == [("agentic research", 2, 0.4, None)]
     assert result.query == "agentic research"
     assert [item.metadata["filename"] for item in result.results] == ["a.md", "b.md"]
 
@@ -85,7 +91,7 @@ def test_vector_search_allows_overrides(monkeypatch):
 
     result = vector_search(query="vector tool", config=config, top_k=1, score_threshold=0.75)
 
-    assert backend.calls == [("vector tool", 1, 0.75)]
+    assert backend.calls == [("vector tool", 1, 0.75, None)]
     assert result.query == "vector tool"
     assert [item.metadata["filename"] for item in result.results] == ["a.md"]
 
@@ -110,7 +116,7 @@ def test_vector_search_empty_results(monkeypatch):
 
     result = vector_search(query="no matches", config=config)
 
-    assert backend.calls == [("no matches", 3, None)]
+    assert backend.calls == [("no matches", 3, None, None)]
     assert result.query == "no matches"
     assert result.results == []
 

@@ -146,12 +146,21 @@ def vector_search(
     config,
     top_k: int | None = None,
     score_threshold: float | None = None,
+    filenames: list[str] | None = None,
+    vectorstore_id: str | None = None,
 ) -> VectorSearchResult:
     """
     Recherche locale dans le vector store avec chunking tardif.
     """
     backend = get_vector_backend(config)
-    return backend.search(query=query, config=config, top_k=top_k, score_threshold=score_threshold)
+    return backend.search(
+        query=query,
+        config=config,
+        top_k=top_k,
+        score_threshold=score_threshold,
+        filenames=filenames,
+        vectorstore_id=vectorstore_id,
+    )
 
 
 def get_knowledge_entries(config) -> list[dict[str, Any]]:

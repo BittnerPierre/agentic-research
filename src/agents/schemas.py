@@ -21,9 +21,8 @@ class SearchPlan(BaseModel, Generic[T]):
 
 
 class FileSearchItem(SearchItem):
-    pass
-    # filename: Optional[str] = None
-    # "Le nom du fichier à rechercher dans la base de connaissances."
+    filenames: list[str] | None = None
+    "Liste optionnelle des fichiers à cibler pour cette recherche."
 
 
 class WebSearchItem(SearchItem):

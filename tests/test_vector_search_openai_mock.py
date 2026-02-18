@@ -44,12 +44,14 @@ def _snapshot_config(config):
     return {
         "data": config.data.model_copy(deep=True),
         "vector_search": config.vector_search.model_copy(deep=True),
+        "vector_store": config.vector_store.model_copy(deep=True),
     }
 
 
 def _restore_config(config, snapshot):
     config.data = snapshot["data"]
     config.vector_search = snapshot["vector_search"]
+    config.vector_store = snapshot["vector_store"]
 
 
 def _reset_knowledge_db():
@@ -150,5 +152,45 @@ def test_openai_upload_flow_reuses_existing_file(monkeypatch, tmp_path):
     assert result.upload_count == 0
     assert result.reuse_count == 1
     assert attached_ids == [("vs_123", "file_1")]
+
+    _restore_config(config, snapshot)
+
+
+def test_openai_search_ignores_filename_filters(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.vector_search.provider = "openai"
+    config.vector_store.vector_store_id = "vs_123"
+
+    captured = {}
+
+    class _FakeVectorStoresAPI:
+        def search(self, **kwargs):
+            captured["kwargs"] = kwargs
+            return {
+                "data": [
+                    {
+                        "content": [{"type": "text", "text": "hello world"}],
+                        "score": 0.9,
+                        "filename": "a.md",
+                        "file_id": "file_1",
+                        "attributes": {"filename": "a.md"},
+                    }
+                ]
+            }
+
+    class _FakeOpenAI:
+        def __init__(self):
+            self.vector_stores = _FakeVectorStoresAPI()
+
+    monkeypatch.setattr("src.dataprep.vector_backends.OpenAI", _FakeOpenAI)
+
+    from src.dataprep.vector_backends import OpenAIVectorBackend
+
+    backend = OpenAIVectorBackend()
+    result = backend.search(query="hello", config=config, top_k=3, filenames=["a.md"])
+
+    assert "filters" not in captured["kwargs"]
+    assert result.results
 
     _restore_config(config, snapshot)

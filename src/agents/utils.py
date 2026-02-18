@@ -259,6 +259,9 @@ WRITER_AGENT_TOOLS = [
     "read_multiple_files",
     "list_directory",
 ]
+FILE_SEARCH_AGENT_TOOLS = [
+    "write_file",
+]
 
 
 def some_filtering_logic(agent_name, server_name, tool) -> bool:
@@ -268,6 +271,8 @@ def some_filtering_logic(agent_name, server_name, tool) -> bool:
             return True
         else:
             return False
+    if agent_name == "file_search_agent":
+        return tool_name in FILE_SEARCH_AGENT_TOOLS
     else:
         return True
 

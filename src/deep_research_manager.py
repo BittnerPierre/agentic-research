@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 from pathlib import Path
 
@@ -219,6 +220,9 @@ class DeepResearchManager:
 
     async def _file_search(self, item: FileSearchItem) -> str | None:
         input_text = f"Terme de recherche: {item.query}\nRaison de la recherche: {item.reason}"
+        if item.filenames:
+            filenames = ", ".join(item.filenames)
+            input_text += f"\nFichiers cibles: {filenames}"
 
         try:
             result = await Runner.run(
@@ -272,12 +276,29 @@ class DeepResearchManager:
         if "." not in safe_name:
             possible_names.append(f"{safe_name}.txt")
 
+        normalized_name = self._normalize_search_filename(value)
+        if normalized_name:
+            possible_names.append(normalized_name)
+            if "." not in normalized_name:
+                possible_names.append(f"{normalized_name}.txt")
+
         for name in possible_names:
             resolved = os.path.realpath(os.path.join(temp_root, name))
             if _is_within_temp(resolved) and os.path.isfile(resolved):
                 return resolved
 
         return None
+
+    def _normalize_search_filename(self, raw_file_name: str) -> str:
+        lower = raw_file_name.strip().lower()
+        cleaned = re.sub(r"[^a-z0-9_\s]", "", lower)
+        cleaned = re.sub(r"\s+", "_", cleaned).strip("_")
+        if not cleaned:
+            return ""
+        max_len = 255
+        txt_ext_len = 4
+        base_max = max_len - txt_ext_len
+        return cleaned[:base_max]
 
     async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
         self.printer.update_item("writing", "Thinking about report...")
