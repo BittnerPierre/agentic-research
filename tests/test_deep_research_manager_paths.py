@@ -56,6 +56,18 @@ def test_normalize_search_result_path_adds_txt_extension_when_missing(tmp_path: 
     assert resolved == str(summary_file.resolve())
 
 
+def test_normalize_search_result_path_handles_long_filenames(tmp_path: Path):
+    manager = _build_manager(tmp_path)
+    long_name = "System vs user prompts " * 40
+    normalized = manager._normalize_search_filename(long_name)
+    summary_file = tmp_path / f"{normalized}.txt"
+    summary_file.write_text("content", encoding="utf-8")
+
+    resolved = manager._normalize_search_result_path(long_name)
+
+    assert resolved == str(summary_file.resolve())
+
+
 @pytest.mark.asyncio
 async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_path: Path):
     manager = _build_manager(tmp_path)

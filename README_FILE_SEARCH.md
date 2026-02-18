@@ -51,7 +51,7 @@ Assurez-vous d'avoir un fichier `urls.txt` avec les URLs à traiter.
 ### FilePlannerAgent
 
 - **Input** : Requête utilisateur (ex: "Agents")
-- **Output** : Liste de `FileSearchItem` avec queries et raisons
+- **Output** : Liste de `FileSearchItem` avec queries, raisons et éventuellement des noms de fichiers ciblés
 - **Outil** : Aucun (pure génération de plan)
 
 ### FileSearchAgent

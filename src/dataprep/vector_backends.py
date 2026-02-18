@@ -7,7 +7,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import ClassVar, Protocol
+from typing import Any, ClassVar, Protocol
 
 import chromadb
 from openai import OpenAI
@@ -140,6 +140,78 @@ def _is_high_quality_chunk(chunk: str) -> bool:
     return True
 
 
+def _normalize_filenames(filenames: list[str] | None) -> list[str]:
+    if not filenames:
+        return []
+    normalized: list[str] = []
+    for name in filenames:
+        cleaned = str(name).strip()
+        if cleaned:
+            normalized.append(cleaned)
+    return normalized
+
+
+def _openai_search_results_to_hits(
+    response, score_threshold: float | None
+) -> list[VectorSearchHit]:
+    data = getattr(response, "data", None)
+    if data is None and isinstance(response, dict):
+        data = response.get("data")
+    if not data:
+        return []
+
+    hits: list[VectorSearchHit] = []
+    for item in data:
+        item_dict = item
+        if not isinstance(item_dict, dict):
+            if hasattr(item, "model_dump"):
+                item_dict = item.model_dump()
+            elif hasattr(item, "__dict__"):
+                item_dict = item.__dict__
+            else:
+                item_dict = {"content": None}
+
+        score = item_dict.get("score")
+        if score_threshold is not None and score is not None and score < score_threshold:
+            continue
+
+        content_blocks = item_dict.get("content") or []
+        text_parts: list[str] = []
+        for block in content_blocks:
+            block_dict = block
+            if not isinstance(block_dict, dict):
+                if hasattr(block, "model_dump"):
+                    block_dict = block.model_dump()
+                elif hasattr(block, "__dict__"):
+                    block_dict = block.__dict__
+                else:
+                    block_dict = {}
+            if block_dict.get("type") == "text" and block_dict.get("text"):
+                text_parts.append(str(block_dict.get("text")))
+        document = "\n".join(text_parts).strip()
+
+        metadata: dict[str, Any] = {}
+        filename = item_dict.get("filename")
+        if filename:
+            metadata["filename"] = filename
+        file_id = item_dict.get("file_id")
+        if file_id:
+            metadata["document_id"] = file_id
+        attributes = item_dict.get("attributes")
+        if attributes:
+            metadata["attributes"] = attributes
+
+        hits.append(
+            VectorSearchHit(
+                document=document,
+                metadata=metadata,
+                score=score if score is not None else 0.0,
+            )
+        )
+
+    return hits
+
+
 class VectorBackend(Protocol):
     provider: str
 
@@ -155,6 +227,8 @@ class VectorBackend(Protocol):
         config,
         top_k: int | None = None,
         score_threshold: float | None = None,
+        filenames: list[str] | None = None,
+        vectorstore_id: str | None = None,
     ) -> VectorSearchResult:
         """Search over locally indexed documents."""
 
@@ -265,16 +339,22 @@ class LocalVectorBackend:
         config,
         top_k: int | None = None,
         score_threshold: float | None = None,
+        filenames: list[str] | None = None,
+        vectorstore_id: str | None = None,
     ) -> VectorSearchResult:
         from . import vector_search as vector_search_module
 
         backend = vector_search_module.get_vector_search_backend(config)
         effective_top_k = top_k if top_k is not None else config.vector_search.top_k
+        effective_top_k = min(effective_top_k, 50)
         effective_threshold = (
             score_threshold if score_threshold is not None else config.vector_search.score_threshold
         )
         hits = backend.query(
-            query=query, top_k=effective_top_k, score_threshold=effective_threshold
+            query=query,
+            top_k=effective_top_k,
+            score_threshold=effective_threshold,
+            filenames=filenames,
         )
         return VectorSearchResult(query=query, results=hits[:effective_top_k])
 
@@ -374,7 +454,8 @@ class OpenAIVectorBackend:
         def attach_single_file(file_id: str, filename: str) -> dict:
             try:
                 vector_store_file = client.vector_stores.files.create(
-                    vector_store_id=vector_store_id, file_id=file_id
+                    vector_store_id=vector_store_id,
+                    file_id=file_id,
                 )
                 logger.info(
                     f"File attached to vector store: {filename} (status: {vector_store_file.status})"
@@ -443,11 +524,33 @@ class OpenAIVectorBackend:
         config,
         top_k: int | None = None,
         score_threshold: float | None = None,
+        filenames: list[str] | None = None,
+        vectorstore_id: str | None = None,
     ) -> VectorSearchResult:
-        raise ValueError("vector_search is only available for provider=local")
+        effective_top_k = top_k if top_k is not None else config.vector_search.top_k
+        effective_threshold = (
+            score_threshold if score_threshold is not None else config.vector_search.score_threshold
+        )
+        resolved_store_id = (
+            vectorstore_id
+            or config.vector_store.vector_store_id
+            or self.resolve_store_id(config.vector_store.name, config)
+        )
+        if not resolved_store_id:
+            raise ValueError("OpenAI vector store id is required for vector_search")
+
+        client = OpenAI()
+        search_kwargs = {
+            "vector_store_id": resolved_store_id,
+            "query": query,
+            "max_num_results": effective_top_k,
+        }
+        response = client.vector_stores.search(**search_kwargs)
+        hits = _openai_search_results_to_hits(response, effective_threshold)
+        return VectorSearchResult(query=query, results=hits[:effective_top_k])
 
     def tool_name(self) -> str:
-        return "file_search"
+        return "vector_search"
 
 
 def get_vector_backend(config) -> VectorBackend:
@@ -483,6 +586,24 @@ class ChromaVectorBackend:
             logger.warning(
                 "[upload_files_to_vectorstore] Failed to check collection for document_id=%s",
                 doc_id,
+            )
+            return False
+        ids = result.get("ids") if isinstance(result, dict) else None
+        return bool(ids)
+
+    def _collection_has_any_filename(self, collection, filenames: list[str]) -> bool:
+        if not filenames:
+            return False
+        if len(filenames) == 1:
+            where = {"filename": filenames[0]}
+        else:
+            where = {"filename": {"$in": filenames}}
+        try:
+            result = collection.get(where=where, limit=1)
+        except Exception:
+            logger.warning(
+                "[vector_search] Failed to check collection for filenames=%s",
+                filenames,
             )
             return False
         ids = result.get("ids") if isinstance(result, dict) else None
@@ -592,17 +713,31 @@ class ChromaVectorBackend:
         config,
         top_k: int | None = None,
         score_threshold: float | None = None,
+        filenames: list[str] | None = None,
+        vectorstore_id: str | None = None,
     ) -> VectorSearchResult:
         effective_top_k = top_k if top_k is not None else config.vector_search.top_k
         effective_threshold = (
             score_threshold if score_threshold is not None else config.vector_search.score_threshold
         )
         collection = self._collection(config, config.vector_search.index_name)
-        result = collection.query(
-            query_texts=[query],
-            n_results=effective_top_k,
-            include=["documents", "metadatas", "distances"],
-        )
+        normalized_filenames = _normalize_filenames(filenames)
+        where = None
+        if normalized_filenames and self._collection_has_any_filename(
+            collection, normalized_filenames
+        ):
+            if len(normalized_filenames) == 1:
+                where = {"filename": normalized_filenames[0]}
+            else:
+                where = {"filename": {"$in": normalized_filenames}}
+        query_kwargs = {
+            "query_texts": [query],
+            "n_results": effective_top_k,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if where is not None:
+            query_kwargs["where"] = where
+        result = collection.query(**query_kwargs)
 
         hits: list[VectorSearchHit] = []
         documents = result.get("documents", [[]])[0]

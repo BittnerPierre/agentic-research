@@ -16,17 +16,25 @@ def _snapshot_config(config):
     return {
         "vector_search": config.vector_search.model_copy(deep=True),
         "agents": config.agents.model_copy(deep=True),
+        "vector_store": config.vector_store.model_copy(deep=True),
     }
 
 
 def _restore_config(config, snapshot):
     config.vector_search = snapshot["vector_search"]
     config.agents = snapshot["agents"]
+    config.vector_store = snapshot["vector_store"]
 
 
 class _Wrapper:
-    def __init__(self, vector_store_name: str | None = None):
-        self.context = SimpleNamespace(vector_store_name=vector_store_name)
+    def __init__(
+        self,
+        vector_store_name: str | None = None,
+        vector_store_id: str | None = None,
+    ):
+        self.context = SimpleNamespace(
+            vector_store_name=vector_store_name, vector_store_id=vector_store_id
+        )
 
 
 @pytest.mark.asyncio
@@ -40,8 +48,8 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
 
     calls = []
 
-    def _fake_search(query, config, top_k, score_threshold):
-        calls.append((query, top_k, score_threshold))
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
+        calls.append((query, top_k, score_threshold, filenames, vectorstore_id))
         return VectorSearchResult(
             query=query,
             results=[
@@ -56,9 +64,9 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
     monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
 
-    result = await vector_search_impl(_Wrapper("custom-vs"), "  query   with\n spaces  ")
+    result = await vector_search_impl(_Wrapper("custom-vs", "vs_123"), "  query   with\n spaces  ")
 
-    assert calls == [("query with spaces", 80, None)]
+    assert calls == [("query with spaces", 50, None, [], "vs_123")]
     assert result["query"] == "query with spaces"
     assert result["effective_queries"] == ["query with spaces"]
     assert result["observability"] == {
@@ -72,6 +80,7 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
         "rewrite_domain_hint_source": "heuristic",
         "top_k": 5,
         "score_threshold": None,
+        "filenames": None,
     }
     assert len(result["results"]) == 1
     assert config.vector_search.index_name == "custom-vs"
@@ -129,7 +138,7 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
         ),
     ]
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         return VectorSearchResult(query=query, results=hits)
 
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
@@ -139,10 +148,10 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
     result = await vector_search_impl(_Wrapper(), "q")
 
     returned = result["results"]
-    assert len(returned) == 4
+    assert len(returned) == 5
     assert len(returned[0]["document"]) == 1500
     doc_c_chunks = [item for item in returned if item["metadata"].get("document_id") == "doc-c"]
-    assert len(doc_c_chunks) == 3
+    assert len(doc_c_chunks) == 4
 
     _restore_config(config, snapshot)
 
@@ -156,7 +165,7 @@ async def test_vector_search_tool_paraphrase_lite_expands_queries(monkeypatch):
 
     calls = []
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         calls.append(query)
         return VectorSearchResult(
             query=query,
@@ -209,7 +218,7 @@ async def test_vector_search_tool_hyde_lite_adds_hypothetical_query(monkeypatch)
 
     calls = []
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         calls.append(query)
         return VectorSearchResult(
             query=query,
@@ -259,7 +268,7 @@ async def test_vector_search_tool_hyde_lite_normalizes_question_like_rewrites(mo
 
     calls = []
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         calls.append(query)
         return VectorSearchResult(
             query=query,
@@ -301,8 +310,8 @@ async def test_vector_search_tool_uses_agent_threshold_from_config(monkeypatch):
 
     calls = []
 
-    def _fake_search(query, config, top_k, score_threshold):
-        calls.append((query, top_k, score_threshold))
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
+        calls.append((query, top_k, score_threshold, filenames, vectorstore_id))
         return VectorSearchResult(
             query=query,
             results=[
@@ -319,7 +328,7 @@ async def test_vector_search_tool_uses_agent_threshold_from_config(monkeypatch):
 
     result = await vector_search_impl(_Wrapper(), "threshold test")
 
-    assert calls == [("threshold test", 80, 0.77)]
+    assert calls == [("threshold test", 50, 0.77, [], None)]
     assert result["observability"]["top_k"] == 3
     assert result["observability"]["score_threshold"] == 0.77
 
@@ -332,7 +341,7 @@ async def test_vector_search_tool_detects_financial_domain_hint(monkeypatch):
     snapshot = _snapshot_config(config)
     config.agents.file_search_rewrite_mode = "none"
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         return VectorSearchResult(
             query=query,
             results=[
@@ -356,12 +365,37 @@ async def test_vector_search_tool_detects_financial_domain_hint(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_vector_search_tool_caps_openai_retrieve_top_k(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.vector_search.provider = "openai"
+    config.agents.file_search_rewrite_mode = "none"
+    config.agents.file_search_top_k = None
+    config.agents.file_search_score_threshold = None
+
+    calls = []
+
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
+        calls.append(top_k)
+        return VectorSearchResult(query=query, results=[])
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    await vector_search_impl(_Wrapper(), "cap test")
+
+    assert calls == [50]
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
 async def test_vector_search_tool_uses_agent_domain_hint_override(monkeypatch):
     config = get_config()
     snapshot = _snapshot_config(config)
     config.agents.file_search_rewrite_mode = "none"
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         return VectorSearchResult(
             query=query,
             results=[
@@ -392,7 +426,7 @@ async def test_vector_search_tool_logs_observability_diagnostics(monkeypatch, ca
     snapshot = _snapshot_config(config)
     config.agents.file_search_rewrite_mode = "none"
 
-    def _fake_search(query, config, top_k, score_threshold):
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
         return VectorSearchResult(
             query=query,
             results=[

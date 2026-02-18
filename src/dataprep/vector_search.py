@@ -70,12 +70,27 @@ class LocalVectorSearchBackend:
         index = self._read_index()
         return any(record.get("document_id") == document_id for record in index)
 
-    def query(self, query: str, top_k: int, score_threshold: float | None) -> list[VectorSearchHit]:
+    def query(
+        self,
+        query: str,
+        top_k: int,
+        score_threshold: float | None,
+        filenames: list[str] | None = None,
+    ) -> list[VectorSearchHit]:
         query_tokens = _tokenize(query)
         if not query_tokens:
             return []
 
         index = self._read_index()
+        normalized_filenames = _normalize_filenames(filenames)
+        if normalized_filenames:
+            filtered_index = [
+                record
+                for record in index
+                if record.get("metadata", {}).get("filename") in normalized_filenames
+            ]
+            if filtered_index:
+                index = filtered_index
         hits: list[VectorSearchHit] = []
         query_token_set = set(query_tokens)
 
@@ -143,6 +158,17 @@ def _chunk_text(text: str, max_chars: int, overlap: int) -> Iterable[str]:
 
 def _tokenize(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def _normalize_filenames(filenames: list[str] | None) -> list[str]:
+    if not filenames:
+        return []
+    normalized: list[str] = []
+    for name in filenames:
+        cleaned = str(name).strip()
+        if cleaned:
+            normalized.append(cleaned)
+    return normalized
 
 
 def _score_chunk(query_tokens: set[str], chunk: str) -> float:

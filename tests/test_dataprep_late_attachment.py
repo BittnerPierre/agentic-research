@@ -27,21 +27,21 @@ class _FakeFilesAPI:
 
 
 class _FakeVectorStoreFilesAPI:
-    def __init__(self, attached_ids: list[tuple[str, str]]):
+    def __init__(self, attached_ids: list[tuple[str, str, dict | None]]):
         self._attached_ids = attached_ids
 
-    def create(self, vector_store_id: str, file_id: str):
-        self._attached_ids.append((vector_store_id, file_id))
+    def create(self, vector_store_id: str, file_id: str, attributes=None):
+        self._attached_ids.append((vector_store_id, file_id, attributes))
         return type("VectorStoreFile", (), {"id": f"vsf_{file_id}", "status": "completed"})
 
 
 class _FakeVectorStoresAPI:
-    def __init__(self, attached_ids: list[tuple[str, str]]):
+    def __init__(self, attached_ids: list[tuple[str, str, dict | None]]):
         self.files = _FakeVectorStoreFilesAPI(attached_ids)
 
 
 class _FakeOpenAIUpload:
-    def __init__(self, created_ids: list[str], attached_ids: list[tuple[str, str]]):
+    def __init__(self, created_ids: list[str], attached_ids: list[tuple[str, str, dict | None]]):
         self.files = _FakeFilesAPI(created_ids)
         self.vector_stores = _FakeVectorStoresAPI(attached_ids)
 
@@ -155,7 +155,7 @@ def test_late_attachment_openai_by_url(monkeypatch, tmp_path):
     download_and_store_url(url, config)
 
     created_ids: list[str] = []
-    attached_ids: list[tuple[str, str]] = []
+    attached_ids: list[tuple[str, str, dict | None]] = []
 
     monkeypatch.setattr(
         "src.dataprep.vector_backends.OpenAI",
@@ -173,7 +173,7 @@ def test_late_attachment_openai_by_url(monkeypatch, tmp_path):
     result = upload_files_to_vectorstore(inputs=[url], config=config, vectorstore_name="vs_name")
     assert result.upload_count == 1
     assert created_ids == ["file_1"]
-    assert attached_ids == [("vs_123", "file_1")]
+    assert attached_ids == [("vs_123", "file_1", None)]
 
     _restore_config(config, snapshot)
 

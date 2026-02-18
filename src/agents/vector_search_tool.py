@@ -14,7 +14,7 @@ from .schemas import ResearchInfo
 DEFAULT_RETRIEVE_CANDIDATES = 80
 MAX_CHARS_PER_CHUNK = 1500
 MIN_CHARS_PER_CHUNK = 200
-MAX_CHUNKS_PER_DOCUMENT = 3
+MAX_CHUNKS_PER_DOCUMENT = 5
 
 _PROMPT_ARTIFACT_RE = re.compile(
     r"(RECOMMENDED_PROMPT_PREFIX|You are a|system prompt|tool_call|BEGIN|END)",
@@ -71,6 +71,17 @@ _DOMAIN_HINT_KEYWORDS: dict[str, tuple[str, ...]] = {
 
 def _normalize_query(query: str) -> str:
     return " ".join(query.split()).strip()
+
+
+def _normalize_filenames(filenames: list[str] | None) -> list[str]:
+    if not filenames:
+        return []
+    normalized: list[str] = []
+    for name in filenames:
+        cleaned = str(name).strip()
+        if cleaned:
+            normalized.append(cleaned)
+    return normalized
 
 
 def _query_terms(query: str) -> list[str]:
@@ -323,11 +334,13 @@ async def vector_search(
     wrapper: RunContextWrapper[ResearchInfo],
     query: str,
     domain_hint: str | None = None,
+    filenames: list[str] | None = None,
 ) -> dict:
     return await vector_search_impl(
         wrapper=wrapper,
         query=query,
         domain_hint=domain_hint,
+        filenames=filenames,
     )
 
 
@@ -335,11 +348,15 @@ async def vector_search_impl(
     wrapper: RunContextWrapper[ResearchInfo],
     query: str,
     domain_hint: str | None = None,
+    filenames: list[str] | None = None,
 ) -> dict:
     config = get_config()
     if wrapper.context.vector_store_name:
         config.vector_search.index_name = wrapper.context.vector_store_name
+    if getattr(wrapper.context, "vector_store_id", None):
+        config.vector_store.vector_store_id = wrapper.context.vector_store_id
 
+    normalized_filenames = _normalize_filenames(filenames)
     rewrite_mode = getattr(config.agents, "file_search_rewrite_mode", "none")
     rewrite_enabled = rewrite_mode != "none"
     rewrite_max_variants = int(getattr(config.agents, "file_search_rewrite_max_variants", 2))
@@ -369,6 +386,8 @@ async def vector_search_impl(
         else config.vector_search.score_threshold
     )
     retrieve_top_k = max(final_top_k, DEFAULT_RETRIEVE_CANDIDATES)
+    if config.vector_search.provider == "openai":
+        retrieve_top_k = min(retrieve_top_k, 50)
 
     all_hits = []
     for retrieval_query in retrieval_queries:
@@ -377,6 +396,8 @@ async def vector_search_impl(
             config=config,
             top_k=retrieve_top_k,
             score_threshold=score_threshold,
+            filenames=normalized_filenames,
+            vectorstore_id=config.vector_store.vector_store_id or None,
         )
         all_hits.extend(result.results)
 
@@ -421,7 +442,7 @@ async def vector_search_impl(
         logger.debug(
             "vector_search diagnostics | query=%s | effective_queries=%s | rewrite_mode=%s "
             "| top_k=%s | score_threshold=%s | hits_total=%s | hits_kept=%s | unique_docs=%s "
-            "| kept_score_range=%s..%s | domain_hint=%s (%s)",
+            "| kept_score_range=%s..%s | domain_hint=%s (%s) | filenames=%s",
             normalized_query,
             retrieval_queries,
             effective_rewrite_mode,
@@ -434,6 +455,7 @@ async def vector_search_impl(
             kept_min,
             resolved_hint,
             hint_source,
+            normalized_filenames or None,
         )
 
     return {
@@ -452,6 +474,7 @@ async def vector_search_impl(
             "rewrite_domain_hint_source": hint_source,
             "top_k": final_top_k,
             "score_threshold": score_threshold,
+            "filenames": normalized_filenames or None,
         },
         "results": filtered_results,
     }

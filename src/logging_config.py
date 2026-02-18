@@ -115,7 +115,8 @@ def setup_run_logging(
             "urllib3.connectionpool",
             "langsmith.client",
             "fakeredis",
-            "docket.worker" "asyncio",
+            "docket.worker",
+            "asyncio",
         )
         third_party_level_value, _ = _parse_log_level(third_party_level, default=logging.ERROR)
         # Force selected noisy loggers to the target level for both console and file
