@@ -147,6 +147,15 @@ fi
 
 if [ -n "$MODELS_RAW" ]; then
   IFS=',' read -r -a SETUPS <<< "$MODELS_RAW"
+  trimmed=()
+  for item in "${SETUPS[@]}"; do
+    item="${item#"${item%%[![:space:]]*}"}"
+    item="${item%"${item##*[![:space:]]}"}"
+    if [ -n "$item" ]; then
+      trimmed+=("$item")
+    fi
+  done
+  SETUPS=("${trimmed[@]}")
 else
   SETUPS=("${DEFAULT_SETUPS[@]}")
 fi
