@@ -162,8 +162,6 @@ def _tokenize(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
 
 
-
-
 def _score_chunk(query_tokens: set[str], chunk: str) -> float:
     chunk_tokens = set(_tokenize(chunk))
     if not chunk_tokens:
