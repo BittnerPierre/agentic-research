@@ -58,7 +58,7 @@ services:
       LITELLM_LOG: ERROR
       CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     ports:
-      - "8002:8002"
+      - "8008:8008"
     volumes:
       - ./configs:/app/configs
       - ./urls.txt:/app/urls.txt
@@ -66,7 +66,7 @@ services:
       - ./data/chroma-cache:/root/.cache/chroma
       - ./output:/app/output
       - ./logs:/app/logs
-    command: ["agentic_research_server", "--host", "0.0.0.0", "--port", "8002", "--transport", "streamable-http", "--path", "/mcp"]
+    command: ["agentic_research_server", "--host", "0.0.0.0", "--port", "8008", "--transport", "streamable-http", "--path", "/mcp"]
     restart: unless-stopped
 
   evaluations:

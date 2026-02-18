@@ -80,7 +80,7 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
 | **Moteur partagé** | `src/run_research.py` | `run_research_async()` : config, MCP FS + DataPrep, backend vector, manager, retour `ReportData \| None` |
 | **CLI** | `src/main.py` | Utilise `run_research_async()` pour query / syllabus / interactif |
 | **Managers** | `src/agentic_manager.py`, `src/deep_research_manager.py` | Signature `run(...) -> ReportData` (au lieu de `-> None`) pour retourner le rapport |
-| **Compose** | `docker-compose.yml` | Service `agentic-research-mcp` (port 8002, commande `agentic_research_server`, MCP_DATAPREP_URL, etc.) |
+| **Compose** | `docker-compose.yml` | Service `agentic-research-mcp` (port 8008, commande `agentic_research_server`, MCP_DATAPREP_URL, etc.) |
 | **Script Poetry** | `pyproject.toml` | `agentic_research_server = "src.mcp.agentic_research_server:main"` |
 | **Doc** | `docs/MCP_SERVER.md` | Prérequis, démarrage local/Docker, outils, exemples client, config |
 | **Tests** | `tests/test_agentic_research_server.py` | Création serveur, `research_query` / `research_syllabus` (mock `run_research_async`), gestion erreur |
@@ -142,7 +142,7 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
 ```
 [Client MCP: ChatGPT / Claude / Le Chat / Open-WebUI / script]
         │
-        │ Streamable HTTP (port 8002, path /mcp)
+        │ Streamable HTTP (port 8008, path /mcp)
         ▼
 [Agentic Research MCP Server]  (FastMCP)
         │
@@ -182,7 +182,7 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
 **DGX Spark (`docker-compose.dgx.yml`)**
 
 - Le script `scripts/start-docker-dgx.sh` lance la stack avec `docker compose -f docker-compose.yml -f docker-compose.dgx.yml`. Les services de `docker-compose.yml` (dont `agentic-research-mcp`) sont donc présents après fusion.
-- **À prévoir** : dans `docker-compose.dgx.yml`, ajouter un override pour le service **agentic-research-mcp** afin qu’il utilise la config DGX (`configs/config-docker-dgx.yaml`), la bonne `MCP_DATAPREP_URL` (dataprep dans le même compose) et, si besoin, `depends_on: [dataprep, chromadb]`. Sans override, le service utilise la définition de `docker-compose.yml` (port 8002, commande par défaut) ; avec override, on aligne le comportement sur l’environnement DGX (LLM locaux, Chroma, etc.).
+- **À prévoir** : dans `docker-compose.dgx.yml`, ajouter un override pour le service **agentic-research-mcp** afin qu’il utilise la config DGX (`configs/config-docker-dgx.yaml`), la bonne `MCP_DATAPREP_URL` (dataprep dans le même compose) et, si besoin, `depends_on: [dataprep, chromadb]`. Sans override, le service utilise la définition de `docker-compose.yml` (port 8008, commande par défaut) ; avec override, on aligne le comportement sur l’environnement DGX (LLM locaux, Chroma, etc.).
 
 **Alpic.ai**
 
@@ -190,7 +190,7 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
 - **Détection du transport (Python)** : Alpic cherche des appels `mcp.run()` ou `mcp.http_app()` avec un paramètre explicite, par ex. `transport="streamable-http"` → streamable-http. Notre serveur utilise **FastMCP** : `server.run(transport="streamable-http", host=..., port=..., path=path)`. FastMCP s’appuie sur le SDK MCP ; il faut **vérifier** en déployant (ou en lisant le code FastMCP) que cette forme est reconnue par Alpic. Si ce n’est pas le cas, l’erreur « No MCP transport found » impose soit d’ajouter un fichier **`xmcp.config.ts`** (projets TypeScript), soit de fournir une **commande de démarrage explicite** via **`alpic.json`**.
 - **Fichier `alpic.json`** (racine du projet) : permet de surcharger les commandes détectées, par ex. :
   - `installCommand` : `poetry install` (ou `pip install -e .` selon le choix de packaging).
-  - `startCommand` : `poetry run agentic_research_server --host 0.0.0.0 --port ${PORT:-8002} --transport streamable-http --path /mcp` (Alpic peut injecter `PORT`).
+  - `startCommand` : `poetry run agentic_research_server --host 0.0.0.0 --port ${PORT:-8008} --transport streamable-http --path /mcp` (Alpic peut injecter `PORT`).
   - Optionnel : `buildCommand` si un build est nécessaire.
 - **Spécificité agentic-research** : le serveur MCP **dépend d’un service DataPrep** (vector store, base de connaissances). Sur Alpic, DataPrep n’est pas dans le même conteneur. Il faudra soit (1) déployer aussi DataPrep sur Alpic (deux déploiements / deux services) et configurer `MCP_DATAPREP_URL` vers l’URL du DataPrep Alpic, soit (2) documenter que le déploiement Alpic “agentic-research” suppose un DataPrep déjà disponible (URL en variable d’environnement). Même contrainte que pour DGX : l’ordre logique reste Local → DGX (compose avec dataprep) → Alpic (config DataPrep à définir).
 
@@ -208,7 +208,7 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
 2. **Vérification de l’existant (local)**
    - Exécuter la suite de tests (`pytest`) et corriger les éventuelles régressions (imports, chemins).
    - Vérifier en local : `poetry run agentic_research_server ...` puis test manuel avec un client MCP (ex. script Python de `MCP_SERVER.md` ou MCP Inspector).
-   - Vérifier le compose : `docker compose up -d dataprep agentic-research-mcp` puis test client vers `http://localhost:8002/mcp`.
+   - Vérifier le compose : `docker compose up -d dataprep agentic-research-mcp` puis test client vers `http://localhost:8008/mcp`.
 
 3. **Petits correctifs si besoin**
    - Corriger les imports dans `run_research.py` si des erreurs apparaissent (contexte d’exécution CLI vs MCP vs Docker).

@@ -96,7 +96,7 @@ def create_agentic_research_server() -> FastMCP:
 
 def start_server(
     host: str = "0.0.0.0",
-    port: int = 8002,
+    port: int = 8008,
     transport: str = "streamable-http",
     path: str = "/mcp",
 ) -> None:
@@ -115,7 +115,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Agentic Research MCP Server")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Bind host")
-    parser.add_argument("--port", type=int, default=8002, help="Bind port")
+    parser.add_argument("--port", type=int, default=8008, help="Bind port")
     parser.add_argument(
         "--transport",
         type=str,

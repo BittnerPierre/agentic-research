@@ -24,7 +24,7 @@
 
 - [ ] Suite de tests existante verte (`pytest`), corrections si besoin (imports, chemins).
 - [ ] Nouveau test (TDD) : appel synchrone à un outil → réponse contient le format attendu (ex. `short_summary`) ; mock de `run_research_async`.
-- [ ] Script UAT `scripts/uat_mcp_agentic_research_client.py` : connexion Streamable HTTP, appel `research_query`, affichage du résultat ; URL configurable (env ou défaut `http://localhost:8002/mcp`).
+- [ ] Script UAT `scripts/uat_mcp_agentic_research_client.py` : connexion Streamable HTTP, appel `research_query`, affichage du résultat ; URL configurable (env ou défaut `http://localhost:8008/mcp`).
 - [ ] Doc : dans `MCP_SERVER.md`, section ou phrase sur test manuel avec MCP Inspector / MCP Jam (optionnel).
 - [ ] Aucun changement de comportement pour la CLI.
 

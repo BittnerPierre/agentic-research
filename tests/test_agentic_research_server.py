@@ -77,6 +77,29 @@ async def test_research_syllabus_tool_wraps_content_and_calls_run(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_sync_call_returns_response_with_short_summary(monkeypatch):
+    """Appel synchrone à research_query retourne une réponse contenant short_summary (contrat UAT)."""
+    report = ReportData(
+        file_name="report.md",
+        research_topic="RAG",
+        short_summary="Résumé court pour UAT",
+        markdown_report="# Rapport",
+        follow_up_questions=[],
+    )
+    monkeypatch.setattr(
+        agentic_research_server,
+        "run_research_async",
+        AsyncMock(return_value=report),
+    )
+    server = agentic_research_server.create_agentic_research_server()
+    tool = await server.get_tool("research_query")
+    result = await tool.run({"query": "RAG en une phrase"})
+    text = result.content[0].text or ""
+    assert "short_summary" in text
+    assert "Résumé court pour UAT" in text
+
+
+@pytest.mark.asyncio
 async def test_research_query_tool_returns_error_message_on_failure(monkeypatch):
     """research_query retourne un message d'erreur explicite en cas d'échec."""
     monkeypatch.setattr(
