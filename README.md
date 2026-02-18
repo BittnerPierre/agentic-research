@@ -99,6 +99,22 @@ manager:
 You can also set the default manager via the `DEFAULT_MANAGER` environment variable.
 Use `--config` to load a different config file.
 
+## Benchmarking
+
+Benchmark defaults live in `configs/benchmark-default.yaml` (runs, models, syllabus file, etc.).
+CLI flags override the config.
+
+```bash
+# Run a single setup with warmup reporting and worst-run exclusion
+./scripts/benchmark-dgx.sh mistralai --report-warmup --drop-worst-run
+
+# Run a subset of setups
+./scripts/benchmark-all-dgx.sh --models mistralai,qwen --runs 3
+
+# Use a custom benchmark config
+./scripts/benchmark-all-dgx.sh --benchmark-config configs/benchmark-default.yaml
+```
+
 ## Vector search providers
 
 - `openai`: uses `FileSearchTool` with the configured vector store id.

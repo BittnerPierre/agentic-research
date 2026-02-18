@@ -14,7 +14,7 @@ from .schemas import ResearchInfo
 
 DEFAULT_RETRIEVE_CANDIDATES = 80
 MAX_CHARS_PER_CHUNK = 1500
-MIN_CHARS_PER_CHUNK = 200
+MIN_CHARS_PER_CHUNK = 100
 MAX_CHUNKS_PER_DOCUMENT = 5
 
 _PROMPT_ARTIFACT_RE = re.compile(
@@ -395,12 +395,14 @@ async def vector_search_impl(
     seen: set[tuple[str, str]] = set()
     per_doc_count: dict[str, int] = {}
     filtered_results: list[dict] = []
+    filtered_out_short = 0
 
     for hit in sorted(all_hits, key=lambda item: item.score, reverse=True):
         metadata = dict(hit.metadata or {})
         document = _normalize_document_text(hit.document or "")
 
         if len(document) < MIN_CHARS_PER_CHUNK:
+            filtered_out_short += 1
             continue
         if _PROMPT_ARTIFACT_RE.search(document):
             continue
@@ -425,6 +427,14 @@ async def vector_search_impl(
         )
         if len(filtered_results) >= final_top_k:
             break
+
+    if not filtered_results and filtered_out_short:
+        logger.warning(
+            "vector_search filtered out %s short chunks (<%s chars). "
+            "Consider lowering MIN_CHARS_PER_CHUNK or increasing document size.",
+            filtered_out_short,
+            MIN_CHARS_PER_CHUNK,
+        )
 
     if logger.isEnabledFor(logging.DEBUG):
         kept_scores = [result["score"] for result in filtered_results]

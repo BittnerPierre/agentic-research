@@ -1,0 +1,16 @@
+benchmark:
+  runs: 3
+  output_dir: benchmarks
+  syllabus_file: test_files/query_advanced_1.md
+  config_file: configs/config-docker-dgx.yaml
+  vector_store_name: agentic-research-dgx
+  timeout_seconds:
+  report_warmup: false
+  drop_worst_run: false
+  keep_services: false
+  models:
+    - ministral
+    - mistralai
+    - glm
+    - qwen
+    - openai

@@ -2,24 +2,81 @@
 # Benchmark all model setups on DGX
 set -euo pipefail
 
-SETUPS=("ministral" "mistralai" "glm" "qwen" "openai")
-RUNS=3
+DEFAULT_SETUPS=("ministral" "mistralai" "glm" "qwen" "openai")
+SETUPS=()
+RUNS=""
+MODELS_RAW=""
+CONFIG_FILE=""
+SYLLABUS_FILE=""
+VECTOR_STORE_NAME=""
+REPORT_WARMUP=""
+DROP_WORST_RUN=""
+TIMEOUT_SECONDS=""
+KEEP_SERVICES=""
+BENCHMARK_CONFIG="configs/benchmark-default.yaml"
 INTERACTIVE=false
-SYLLABUS="/app/test_files/query_advanced_1.md"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --help|-h)
+      echo "Usage: $0 [--benchmark-config PATH] [--models a,b,c] [--config PATH] [--syllabus PATH] [--runs N] [--vector-store-name NAME] [--report-warmup|--no-report-warmup] [--drop-worst-run|--no-drop-worst-run] [--timeout-seconds N] [--keep-services|--no-keep-services] [--interactive]"
+      exit 0
+      ;;
+    --benchmark-config)
+      BENCHMARK_CONFIG="${2:-}"
+      shift 2
+      ;;
+    --models)
+      MODELS_RAW="${2:-}"
+      shift 2
+      ;;
+    --config)
+      CONFIG_FILE="${2:-}"
+      shift 2
+      ;;
+    --syllabus)
+      SYLLABUS_FILE="${2:-}"
+      shift 2
+      ;;
     --runs)
       RUNS="${2:-}"
       shift 2
       ;;
+    --vector-store-name)
+      VECTOR_STORE_NAME="${2:-}"
+      shift 2
+      ;;
+    --report-warmup)
+      REPORT_WARMUP="true"
+      shift
+      ;;
+    --no-report-warmup)
+      REPORT_WARMUP="false"
+      shift
+      ;;
+    --drop-worst-run)
+      DROP_WORST_RUN="true"
+      shift
+      ;;
+    --no-drop-worst-run)
+      DROP_WORST_RUN="false"
+      shift
+      ;;
+    --timeout-seconds)
+      TIMEOUT_SECONDS="${2:-}"
+      shift 2
+      ;;
+    --keep-services)
+      KEEP_SERVICES="true"
+      shift
+      ;;
+    --no-keep-services)
+      KEEP_SERVICES="false"
+      shift
+      ;;
     --interactive)
       INTERACTIVE=true
       shift
-      ;;
-    --syllabus)
-      SYLLABUS="${2:-}"
-      shift 2
       ;;
     --auto)
       # Backward-compatible no-op: default is already non-interactive.
@@ -27,14 +84,96 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown argument: $1"
-      echo "Usage: $0 [--runs N] [--interactive] [--syllabus PATH]"
+      echo "Usage: $0 [--benchmark-config PATH] [--models a,b,c] [--config PATH] [--syllabus PATH] [--runs N] [--vector-store-name NAME] [--report-warmup|--no-report-warmup] [--drop-worst-run|--no-drop-worst-run] [--timeout-seconds N] [--keep-services|--no-keep-services] [--interactive]"
       exit 1
       ;;
   esac
 done
 
+if [ -f "$BENCHMARK_CONFIG" ]; then
+  if BENCHMARK_DEFAULTS=$(python3 - <<'PY'
+import shlex
+import sys
+from pathlib import Path
+
+import yaml
+
+path = Path(sys.argv[1])
+try:
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+except Exception:
+    sys.exit(1)
+
+bench = data.get("benchmark", data)
+
+def emit(key, value):
+    if value is None:
+        print(f"{key}=")
+    elif isinstance(value, bool):
+        print(f"{key}={'true' if value else 'false'}")
+    else:
+        print(f"{key}={shlex.quote(str(value))}")
+
+emit("BENCH_DEFAULT_RUNS", bench.get("runs"))
+emit("BENCH_DEFAULT_OUTPUT_BASE", bench.get("output_dir"))
+emit("BENCH_DEFAULT_CONFIG", bench.get("config_file"))
+emit("BENCH_DEFAULT_SYLLABUS", bench.get("syllabus_file"))
+emit("BENCH_DEFAULT_VECTOR_STORE", bench.get("vector_store_name"))
+emit("BENCH_DEFAULT_REPORT_WARMUP", bench.get("report_warmup"))
+emit("BENCH_DEFAULT_DROP_WORST", bench.get("drop_worst_run"))
+emit("BENCH_DEFAULT_TIMEOUT", bench.get("timeout_seconds"))
+emit("BENCH_DEFAULT_KEEP_SERVICES", bench.get("keep_services"))
+models = bench.get("models") or []
+emit("BENCH_DEFAULT_MODELS", ",".join(models))
+PY
+"$BENCHMARK_CONFIG"); then
+    eval "$BENCHMARK_DEFAULTS"
+  fi
+fi
+
+RUNS="${RUNS:-${BENCH_DEFAULT_RUNS:-3}}"
+CONFIG_FILE="${CONFIG_FILE:-${BENCH_DEFAULT_CONFIG:-configs/config-docker-dgx.yaml}}"
+SYLLABUS_FILE="${SYLLABUS_FILE:-${BENCH_DEFAULT_SYLLABUS:-test_files/query_advanced_1.md}}"
+VECTOR_STORE_NAME="${VECTOR_STORE_NAME:-${BENCH_DEFAULT_VECTOR_STORE:-agentic-research-dgx}}"
+REPORT_WARMUP="${REPORT_WARMUP:-${BENCH_DEFAULT_REPORT_WARMUP:-}}"
+DROP_WORST_RUN="${DROP_WORST_RUN:-${BENCH_DEFAULT_DROP_WORST:-}}"
+TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-${BENCH_DEFAULT_TIMEOUT:-}}"
+KEEP_SERVICES="${KEEP_SERVICES:-${BENCH_DEFAULT_KEEP_SERVICES:-false}}"
+OUTPUT_BASE="${BENCH_DEFAULT_OUTPUT_BASE:-benchmarks}"
+
+if [ -z "$MODELS_RAW" ]; then
+  MODELS_RAW="${BENCH_DEFAULT_MODELS:-}"
+fi
+
+if [ -n "$MODELS_RAW" ]; then
+  IFS=',' read -r -a SETUPS <<< "$MODELS_RAW"
+else
+  SETUPS=("${DEFAULT_SETUPS[@]}")
+fi
+
+REPORT_WARMUP_FLAG=""
+if [ "$REPORT_WARMUP" = "true" ]; then
+  REPORT_WARMUP_FLAG="--report-warmup"
+elif [ "$REPORT_WARMUP" = "false" ]; then
+  REPORT_WARMUP_FLAG="--no-report-warmup"
+fi
+
+DROP_WORST_FLAG=""
+if [ "$DROP_WORST_RUN" = "true" ]; then
+  DROP_WORST_FLAG="--drop-worst-run"
+elif [ "$DROP_WORST_RUN" = "false" ]; then
+  DROP_WORST_FLAG="--no-drop-worst-run"
+fi
+
+KEEP_SERVICES_FLAG=""
+if [ "$KEEP_SERVICES" = "true" ]; then
+  KEEP_SERVICES_FLAG="--keep-services"
+elif [ "$KEEP_SERVICES" = "false" ]; then
+  KEEP_SERVICES_FLAG="--no-keep-services"
+fi
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-OUTPUT_DIR="benchmarks/run_${TIMESTAMP}"
+OUTPUT_DIR="${OUTPUT_BASE}/run_${TIMESTAMP}"
 
 echo "========================================"
 echo "Benchmarking All Setups"
@@ -42,7 +181,6 @@ echo "========================================"
 echo "Output directory: $OUTPUT_DIR"
 echo "Setups to benchmark: ${SETUPS[*]}"
 echo "Runs per setup: $RUNS"
-echo "Syllabus: $SYLLABUS"
 if [ "$INTERACTIVE" = true ]; then
   echo "Mode: interactive"
 else
@@ -65,11 +203,17 @@ for SETUP in "${SETUPS[@]}"; do
     fi
   fi
 
-  # Run benchmark for this setup
   ./scripts/benchmark-dgx.sh "$SETUP" \
+    --benchmark-config "$BENCHMARK_CONFIG" \
+    --config "$CONFIG_FILE" \
+    --syllabus "$SYLLABUS_FILE" \
     --runs "$RUNS" \
     --output-dir "$OUTPUT_DIR" \
-    --syllabus "$SYLLABUS" || {
+    --vector-store-name "$VECTOR_STORE_NAME" \
+    $REPORT_WARMUP_FLAG \
+    $DROP_WORST_FLAG \
+    ${TIMEOUT_SECONDS:+--timeout-seconds "$TIMEOUT_SECONDS"} \
+    $KEEP_SERVICES_FLAG || {
     echo "❌ Benchmark failed for $SETUP"
     continue
   }

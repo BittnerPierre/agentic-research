@@ -1000,6 +1000,53 @@ class TestBenchmarkRunnerHelpers:
         assert avg["rag_triad"]["average"] == pytest.approx(0.75)
         assert avg["scores"]["overall_100"] == pytest.approx(78.8)
 
+    def test_select_runs_for_average_drop_worst(self):
+        from evaluations.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner()
+        runs = [
+            {"timing": {"total_seconds": 30.0}},
+            {"timing": {"total_seconds": 10.0}},
+            {"timing": {"total_seconds": 20.0}},
+        ]
+
+        selected, dropped = runner._select_runs_for_average(
+            runs, report_warmup=False, drop_worst_run=True
+        )
+
+        assert selected == [1, 2]
+        assert dropped == 0
+
+    def test_select_runs_for_average_warmup_and_drop_worst(self):
+        from evaluations.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner()
+        runs = [
+            {"timing": {"total_seconds": 50.0}},
+            {"timing": {"total_seconds": 12.0}},
+            {"timing": {"total_seconds": 18.0}},
+        ]
+
+        selected, dropped = runner._select_runs_for_average(
+            runs, report_warmup=True, drop_worst_run=True
+        )
+
+        assert selected == [1]
+        assert dropped == 2
+
+    def test_select_runs_for_average_warmup_single_run(self):
+        from evaluations.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner()
+        runs = [{"timing": {"total_seconds": 50.0}}]
+
+        selected, dropped = runner._select_runs_for_average(
+            runs, report_warmup=True, drop_worst_run=False
+        )
+
+        assert selected == [0]
+        assert dropped is None
+
     def test_runner_uses_supported_trace_processor_api(self):
         import evaluations.benchmark_runner as benchmark_runner
 
@@ -1142,3 +1189,45 @@ class TestBenchmarkComparator:
         assert "setup-a" in markdown
         assert "setup-b" in markdown
         assert (run_dir / "comparison_table.md").exists()
+
+
+class TestBenchmarkConfig:
+    """Test benchmark config parsing and defaults."""
+
+    def test_load_benchmark_config(self, tmp_path):
+        from evaluations.benchmark_config import load_benchmark_config
+
+        config_path = tmp_path / "benchmark.yaml"
+        config_path.write_text(
+            "\n".join(
+                [
+                    "benchmark:",
+                    "  runs: 4",
+                    "  output_dir: benchmarks",
+                    "  syllabus_file: test_files/query_advanced_1.md",
+                    "  config_file: configs/config-docker-dgx.yaml",
+                    "  vector_store_name: agentic-research-dgx",
+                    "  timeout_seconds: 120",
+                    "  report_warmup: true",
+                    "  drop_worst_run: true",
+                    "  keep_services: true",
+                    "  models:",
+                    "    - mistralai",
+                    "    - qwen",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        config = load_benchmark_config(str(config_path))
+
+        assert config.runs == 4
+        assert config.output_dir == "benchmarks"
+        assert config.syllabus_file == "test_files/query_advanced_1.md"
+        assert config.config_file == "configs/config-docker-dgx.yaml"
+        assert config.vector_store_name == "agentic-research-dgx"
+        assert config.timeout_seconds == 120
+        assert config.report_warmup is True
+        assert config.drop_worst_run is True
+        assert config.keep_services is True
+        assert config.models == ["mistralai", "qwen"]

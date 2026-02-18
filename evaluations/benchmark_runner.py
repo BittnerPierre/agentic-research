@@ -22,6 +22,7 @@ from agentic_research.config import get_config
 from agents import Agent, Runner
 from agents.mcp import MCPServerSse, MCPServerStdio
 
+from .benchmark_config import load_benchmark_config
 from .benchmark_trace_processor import BenchmarkTraceProcessor
 from .prompts import llm_as_judge_prompt_v1
 from .rag_triad_evaluator import evaluate_rag_triad, extract_raw_notes_from_report
@@ -65,6 +66,9 @@ class BenchmarkRunner:
         syllabus_file: str,
         num_runs: int = 2,
         vector_store_name: str | None = None,
+        report_warmup: bool = False,
+        drop_worst_run: bool = False,
+        timeout_seconds: int | None = None,
     ) -> dict:
         """
         Run complete benchmark for active setup.
@@ -106,6 +110,7 @@ class BenchmarkRunner:
                 syllabus=syllabus,
                 run_dir=run_dir / f"run_{i+1}",
                 vector_store_name=vector_store_name,
+                timeout_seconds=timeout_seconds,
             )
             runs.append(run_result)
 
@@ -131,7 +136,11 @@ class BenchmarkRunner:
             print("✅ No outliers detected")
 
         # 6. Compute averages
-        average = self._compute_average(runs)
+        selected_indices, dropped_index = self._select_runs_for_average(
+            runs, report_warmup=report_warmup, drop_worst_run=drop_worst_run
+        )
+        selected_runs = [runs[i] for i in selected_indices]
+        average = self._compute_average(selected_runs)
 
         # 7. Save complete benchmark result
         benchmark_result = {
@@ -144,6 +153,11 @@ class BenchmarkRunner:
             "runs": runs,
             "average": average,
             "outliers": outliers,
+            "warmup_run_index": 0 if report_warmup and runs else None,
+            "average_run_indices": selected_indices,
+            "dropped_run_index": dropped_index,
+            "report_warmup": report_warmup,
+            "drop_worst_run": drop_worst_run,
         }
 
         result_file = run_dir.parent / "benchmark_result.json"
@@ -160,6 +174,7 @@ class BenchmarkRunner:
         syllabus: str,
         run_dir: Path,
         vector_store_name: str | None,
+        timeout_seconds: int | None = None,
     ) -> dict:
         """
         Run a single evaluation with full metrics capture.
@@ -225,13 +240,17 @@ class BenchmarkRunner:
 
             add_trace_processor(trace_processor)
 
-            await manager.run(
+            run_coro = manager.run(
                 fs_server=fs_server,
                 dataprep_server=dataprep_server,
                 vector_mcp_server=None,
                 query=syllabus,
                 research_info=research_info,
             )
+            if timeout_seconds and timeout_seconds > 0:
+                await asyncio.wait_for(run_coro, timeout_seconds)
+            else:
+                await run_coro
 
         # Save trace
         trace_processor.save()
@@ -380,6 +399,29 @@ class BenchmarkRunner:
             "scores": avg_scores,
         }
 
+    def _select_runs_for_average(
+        self,
+        runs: list[dict],
+        report_warmup: bool,
+        drop_worst_run: bool,
+    ) -> tuple[list[int], int | None]:
+        if not runs:
+            return [], None
+
+        indices = list(range(len(runs)))
+        if report_warmup and len(indices) > 1:
+            indices = indices[1:]
+
+        dropped_index = None
+        if drop_worst_run and len(indices) > 1:
+            dropped_index = max(indices, key=lambda i: runs[i]["timing"]["total_seconds"])
+            indices = [i for i in indices if i != dropped_index]
+
+        if not indices:
+            indices = [0]
+
+        return indices, dropped_index
+
     def _load_syllabus(self, syllabus_file: str) -> str:
         """Load syllabus from file."""
         with open(syllabus_file, encoding="utf-8") as f:
@@ -472,40 +514,80 @@ async def main():
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="Run model setup benchmark")
     parser.add_argument(
+        "--benchmark-config",
+        help="Benchmark config file (default: configs/benchmark-default.yaml)",
+    )
+    parser.add_argument(
         "--config",
-        default="configs/config-docker-dgx.yaml",
-        help="Config file (default: configs/config-docker-dgx.yaml)",
+        help="Config file (default: from benchmark config)",
     )
     parser.add_argument(
         "--syllabus",
-        required=True,
-        help="Syllabus/query file (e.g., test_files/query_advanced_1.md)",
+        help="Syllabus/query file (default: from benchmark config)",
     )
     parser.add_argument(
         "--runs",
         type=int,
-        default=2,
-        help="Number of runs (default: 2)",
+        help="Number of runs (default: from benchmark config)",
     )
     parser.add_argument(
         "--output",
-        default="benchmarks",
-        help="Output directory (default: benchmarks)",
+        help="Output directory (default: from benchmark config)",
     )
     parser.add_argument(
         "--vector-store-name",
         help="Vector store name (for Chroma)",
     )
+    parser.add_argument(
+        "--report-warmup",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Report warmup run separately and average remaining runs",
+    )
+    parser.add_argument(
+        "--drop-worst-run",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Exclude the slowest run (by total time) from averages",
+    )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=int,
+        help="Timeout per run (seconds)",
+    )
 
     args = parser.parse_args()
 
-    runner = BenchmarkRunner(output_dir=args.output)
+    bench_config = load_benchmark_config(args.benchmark_config)
+
+    config_file = args.config or bench_config.config_file
+    syllabus_file = args.syllabus or bench_config.syllabus_file
+    if not syllabus_file:
+        raise ValueError("Syllabus file is required (CLI or benchmark config).")
+
+    num_runs = args.runs if args.runs is not None else bench_config.runs
+    output_dir = args.output or bench_config.output_dir
+    vector_store_name = args.vector_store_name or bench_config.vector_store_name
+    report_warmup = (
+        args.report_warmup if args.report_warmup is not None else bench_config.report_warmup
+    )
+    drop_worst_run = (
+        args.drop_worst_run if args.drop_worst_run is not None else bench_config.drop_worst_run
+    )
+    timeout_seconds = (
+        args.timeout_seconds if args.timeout_seconds is not None else bench_config.timeout_seconds
+    )
+
+    runner = BenchmarkRunner(output_dir=output_dir)
 
     result = await runner.run_benchmark(
-        config_file=args.config,
-        syllabus_file=args.syllabus,
-        num_runs=args.runs,
-        vector_store_name=args.vector_store_name,
+        config_file=config_file,
+        syllabus_file=syllabus_file,
+        num_runs=num_runs,
+        vector_store_name=vector_store_name,
+        report_warmup=report_warmup,
+        drop_worst_run=drop_worst_run,
+        timeout_seconds=timeout_seconds,
     )
 
     print("\n" + "=" * 60)
