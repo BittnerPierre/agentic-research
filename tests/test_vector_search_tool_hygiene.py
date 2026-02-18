@@ -336,6 +336,28 @@ async def test_vector_search_tool_uses_agent_threshold_from_config(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_vector_search_tool_passes_vector_store_id(monkeypatch):
+    config = get_config()
+    snapshot = _snapshot_config(config)
+    config.agents.file_search_rewrite_mode = "none"
+
+    calls = []
+
+    def _fake_search(query, config, top_k, score_threshold, filenames=None, vectorstore_id=None):
+        calls.append(vectorstore_id)
+        return VectorSearchResult(query=query, results=[])
+
+    monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
+    monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
+
+    await vector_search_impl(_Wrapper(vector_store_id="vs_abc"), "id test")
+
+    assert calls == ["vs_abc"]
+
+    _restore_config(config, snapshot)
+
+
+@pytest.mark.asyncio
 async def test_vector_search_tool_detects_financial_domain_hint(monkeypatch):
     config = get_config()
     snapshot = _snapshot_config(config)

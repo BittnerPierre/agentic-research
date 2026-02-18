@@ -10,6 +10,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..utils.filename import normalize_filenames
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,7 +84,7 @@ class LocalVectorSearchBackend:
             return []
 
         index = self._read_index()
-        normalized_filenames = _normalize_filenames(filenames)
+        normalized_filenames = normalize_filenames(filenames)
         if normalized_filenames:
             filtered_index = [
                 record
@@ -160,15 +162,6 @@ def _tokenize(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
 
 
-def _normalize_filenames(filenames: list[str] | None) -> list[str]:
-    if not filenames:
-        return []
-    normalized: list[str] = []
-    for name in filenames:
-        cleaned = str(name).strip()
-        if cleaned:
-            normalized.append(cleaned)
-    return normalized
 
 
 def _score_chunk(query_tokens: set[str], chunk: str) -> float:

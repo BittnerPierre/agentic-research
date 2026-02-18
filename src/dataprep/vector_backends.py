@@ -12,6 +12,7 @@ from typing import Any, ClassVar, Protocol
 import chromadb
 from openai import OpenAI
 
+from ..utils.filename import normalize_filenames
 from .chroma_embedding_factory import get_chroma_embedding_function
 from .knowledge_db import KnowledgeDBManager
 from .models import UploadResult
@@ -138,17 +139,6 @@ def _is_high_quality_chunk(chunk: str) -> bool:
     if chunk.count("http") > 6:
         return False
     return True
-
-
-def _normalize_filenames(filenames: list[str] | None) -> list[str]:
-    if not filenames:
-        return []
-    normalized: list[str] = []
-    for name in filenames:
-        cleaned = str(name).strip()
-        if cleaned:
-            normalized.append(cleaned)
-    return normalized
 
 
 def _openai_search_results_to_hits(
@@ -721,7 +711,7 @@ class ChromaVectorBackend:
             score_threshold if score_threshold is not None else config.vector_search.score_threshold
         )
         collection = self._collection(config, config.vector_search.index_name)
-        normalized_filenames = _normalize_filenames(filenames)
+        normalized_filenames = normalize_filenames(filenames)
         where = None
         if normalized_filenames and self._collection_has_any_filename(
             collection, normalized_filenames

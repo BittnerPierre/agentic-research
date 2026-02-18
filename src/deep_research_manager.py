@@ -291,8 +291,8 @@ class DeepResearchManager:
 
     def _normalize_search_filename(self, raw_file_name: str) -> str:
         lower = raw_file_name.strip().lower()
-        cleaned = re.sub(r"[^a-z0-9_\\s]", "", lower)
-        cleaned = re.sub(r"\\s+", "_", cleaned).strip("_")
+        cleaned = re.sub(r"[^a-z0-9_\s]", "", lower)
+        cleaned = re.sub(r"\s+", "_", cleaned).strip("_")
         if not cleaned:
             return ""
         max_len = 255

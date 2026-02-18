@@ -9,6 +9,7 @@ from agents import RunContextWrapper, function_tool
 
 from ..config import get_config
 from ..dataprep.mcp_functions import vector_search as _vector_search
+from ..utils.filename import normalize_filenames
 from .schemas import ResearchInfo
 
 DEFAULT_RETRIEVE_CANDIDATES = 80
@@ -71,17 +72,6 @@ _DOMAIN_HINT_KEYWORDS: dict[str, tuple[str, ...]] = {
 
 def _normalize_query(query: str) -> str:
     return " ".join(query.split()).strip()
-
-
-def _normalize_filenames(filenames: list[str] | None) -> list[str]:
-    if not filenames:
-        return []
-    normalized: list[str] = []
-    for name in filenames:
-        cleaned = str(name).strip()
-        if cleaned:
-            normalized.append(cleaned)
-    return normalized
 
 
 def _query_terms(query: str) -> list[str]:
@@ -356,7 +346,7 @@ async def vector_search_impl(
     if getattr(wrapper.context, "vector_store_id", None):
         config.vector_store.vector_store_id = wrapper.context.vector_store_id
 
-    normalized_filenames = _normalize_filenames(filenames)
+    normalized_filenames = normalize_filenames(filenames)
     rewrite_mode = getattr(config.agents, "file_search_rewrite_mode", "none")
     rewrite_enabled = rewrite_mode != "none"
     rewrite_max_variants = int(getattr(config.agents, "file_search_rewrite_max_variants", 2))
@@ -387,6 +377,7 @@ async def vector_search_impl(
     )
     retrieve_top_k = max(final_top_k, DEFAULT_RETRIEVE_CANDIDATES)
     if config.vector_search.provider == "openai":
+        # OpenAI vector_stores.search max_num_results is capped at 50.
         retrieve_top_k = min(retrieve_top_k, 50)
 
     all_hits = []
