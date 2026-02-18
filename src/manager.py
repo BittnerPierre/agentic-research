@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
 
 from rich.console import Console
 
@@ -28,6 +29,9 @@ class StandardResearchManager:
         vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
+        progress_callback: (
+            Callable[[float, float | None, str | None], Awaitable[None]] | None
+        ) = None,
     ) -> None:
         trace_id = gen_trace_id()
         with trace("Research trace", trace_id=trace_id):

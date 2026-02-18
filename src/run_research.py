@@ -7,6 +7,7 @@ import logging
 import os
 import shlex
 import tempfile
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 
 from langsmith.wrappers import OpenAIAgentsTracingProcessor
@@ -20,6 +21,8 @@ from .config import get_config
 from .dataprep.vector_backends import get_vector_backend
 from .logging_config import setup_run_logging
 from .tracing.trace_processor import FileTraceProcessor
+
+ProgressCallback = Callable[[float, float | None, str | None], Awaitable[None]]
 
 
 def get_manager_class(manager_path: str):
@@ -60,9 +63,13 @@ async def run_research_async(
     dataprep_port: int | None = None,
     max_search_plan: str | None = None,
     setup_logging: bool = True,
+    progress_callback: ProgressCallback | None = None,
 ) -> ReportData | None:
     """
     Run a full research workflow (query or syllabus content).
+
+    progress_callback(progress, total, message) is called at phase boundaries
+    when provided (e.g. for MCP progress notifications).
 
     Returns ReportData for managers that produce a report (agentic_manager, deep_manager),
     None otherwise.
@@ -134,12 +141,13 @@ async def run_research_async(
             await stack.enter_async_context(dataprep_server)
 
             backend = get_vector_backend(config)
-            config.vector_store.vector_store_id = backend.resolve_store_id(
+            vector_store_id = backend.resolve_store_id(
                 config.vector_store.name, config
             )
+            config.vector_store.vector_store_id = vector_store_id
             research_info = ResearchInfo(
                 vector_store_name=config.vector_store.name,
-                vector_store_id=config.vector_store.vector_store_id,
+                vector_store_id=vector_store_id,
                 temp_dir=canonical_tmp_dir,
                 max_search_plan=config.agents.max_search_plan,
                 output_dir=config.agents.output_dir,
@@ -151,5 +159,6 @@ async def run_research_async(
                 vector_mcp_server=vector_mcp_server,
                 query=query,
                 research_info=research_info,
+                progress_callback=progress_callback,
             )
             return result

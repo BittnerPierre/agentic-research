@@ -214,59 +214,68 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
    - Corriger les imports dans `run_research.py` si des erreurs apparaissent (contexte d’exécution CLI vs MCP vs Docker).
    - S’assurer que `agentic_manager` et `deep_manager` retournent bien un `ReportData` dans tous les chemins (déjà le cas avec les patchs actuels).
 
-### Phase 2 – MCP Tasks, Cancellation, Ping, Progress (priorité haute)
+### Phase 2 – Cancellation, Ping, Progress ; Tasks reporté ; multi-run (priorité haute)
 
-4. **Implémentation MCP Tasks**
-   - Faire évoluer le serveur pour accepter les appels `tools/call` avec paramètre `task` (optionnel ou requis selon `execution.taskSupport`).
-   - Retourner un `CreateTaskResult` (taskId, status `working`, ttl, pollInterval) dès l’acceptation ; lancer `run_research_async()` en arrière-plan (thread, asyncio task, ou file d’exécution).
-   - Implémenter `tasks/list`, `tasks/get`, `tasks/result`, `tasks/cancel` ; stocker l’état des tâches (taskId → statut, résultat ou erreur) avec TTL et nettoyage.
-   - Déclarer les capabilities `tasks` (ex. `tasks.requests.tools.call`) et, pour chaque outil, `execution.taskSupport: "optional"` (recommandé) ou `"required"`.
-   - Vérifier la compatibilité SDK/FastMCP avec la spec MCP 2025-11-25 (Tasks) ; si FastMCP ne supporte pas encore les Tasks, évaluer une couche personnalisée ou une mise à jour de dépendances.
+4. **MCP Tasks (reporté à plus tard – on_hold)**
+   - Le mode task-augmented (CreateTaskResult, `tasks/get`, `tasks/result`, `tasks/cancel`) est **expérimental** et s’est avéré instable avec Streamable HTTP (erreurs SSE / flux). On garde les outils en **synchrone** pour l’instant. À reprendre quand le SDK / le transport le permettront.
 
-5. **Cancellation, Ping, Progress**
-   - **Cancellation** : pour les requêtes non tâche, gérer `notifications/cancelled` ; pour les tâches, implémenter `tasks/cancel` (passer la tâche en `cancelled`, arrêter l’exécution si possible, ex. via un flag ou un mécanisme d’annulation asynchrone).
-   - **Ping** : répondre à la requête `ping` par une réponse vide (vérifier si FastMCP le fait déjà).
-   - **Progress** : pour les tâches, accepter `progressToken` dans la requête initiale et envoyer `notifications/progress` pendant l’exécution (ex. étapes : planning, search, writing) ; le token reste valide pendant toute la durée de la tâche (spec Progress).
+5. **Cancellation, Ping, Progress (fait pour le mode sync)**
+   - **Cancellation** : gestion `notifications/cancelled` (best-effort, aux frontières de phase), log « Demande d’annulation reçue », arrêt du spinner (try/finally `printer.end()`).
+   - **Ping** : à vérifier si FastMCP le fait déjà.
+   - **Progress** : notifications par phase (démarrage, préparation, plan, recherche, rédaction, terminé) via `ctx.report_progress`.
 
-6. **Tests et doc**
-   - Tests unitaires ou d’intégration pour création de tâche, polling, résultat, annulation.
-   - Mettre à jour `MCP_SERVER.md` : exemple client avec appel task-augmented, polling, `tasks/result`.
+6. **Multi-run (un utilisateur, plusieurs recherches)**
+   - Gérer proprement **plusieurs recherches** lancées par un même utilisateur (concurrentes ou séquentielles) : isolation par run (variable locale `vector_store_id` déjà en place), lock autour de `resolve_store_id` / `get_or_create_vector_store` pour éviter races, logs identifiés par run si besoin. Voir issue [#114](https://github.com/BittnerPierre/agentic-research/issues/114) (multi-user / multi-run).
 
-### Phase 3 – DGX Spark : déploiement conteneur (priorité haute)
+7. **Tests et doc**
+   - Tests unitaires serveur MCP, UAT progress/cancellation. Mettre à jour `MCP_SERVER.md` (Progress, Cancellation, multi-run).
 
-7. **Intégration dans `docker-compose.dgx.yml`**
-   - Ajouter un bloc de surcharge pour le service **agentic-research-mcp** : `command` avec `--config configs/config-docker-dgx.yaml`, `MCP_DATAPREP_URL` pointant vers le service dataprep (ex. `http://dataprep:8001/sse`), et si pertinent `depends_on: [dataprep, chromadb]`.
-   - Vérifier que la stack DGX démarre avec `scripts/start-docker-dgx.sh` (ou équivalent) en incluant `agentic-research-mcp` dans les services lancés, et tester un appel client MCP (avec Tasks) vers le serveur (Tailscale ou accès direct au host).
+### Phase 2.1 – Validation clients réels puis Docker local (avant DGX)
 
-8. **Documentation**
-   - Mettre à jour `MCP_SERVER.md` (et si besoin `docs/README_DOCKER.md`) : démarrage sur DGX avec `docker-compose.dgx.yml`, URL Tailscale, variables d’environnement.
+8. **Test de l’existant avec clients MCP (Poetry)**
+   - Tester le serveur lancé en local avec **Open WebUI** ou **Claude** (connexion MCP vers `http://localhost:8008/mcp`), modes query et syllabus. Valider que l’usage réel est correct avant de passer au déploiement Docker.
 
-### Phase 4 – Alpic.ai : déploiement plateforme (étape 3, après local + DGX)
+9. **Déploiement Docker en local**
+   - `docker compose up -d dataprep agentic-research-mcp`, test client vers `http://localhost:8008/mcp`. S’assurer que la stack Docker locale fonctionne (config, `MCP_DATAPREP_URL`, ports). Le DGX étant utilisé pour les benchmarks, cette étape valide le déploiement conteneur **en local** avant de toucher à `docker-compose.dgx.yml`.
 
-9. **Compatibilité Alpic**
+10. **Documentation**
+    - Mettre à jour `MCP_SERVER.md` : démarrage Docker local, prérequis, variables. Procédure de test avec Open WebUI / Claude.
+
+### Phase 3 – DGX Spark : déploiement conteneur (priorité haute, après 2.1)
+
+11. **Intégration dans `docker-compose.dgx.yml`**
+    - Ajouter un bloc de surcharge pour le service **agentic-research-mcp** : `command` avec `--config configs/config-docker-dgx.yaml`, `MCP_DATAPREP_URL` pointant vers le service dataprep (ex. `http://dataprep:8001/sse`), et si pertinent `depends_on: [dataprep, chromadb]`.
+    - Vérifier que la stack DGX démarre avec `scripts/start-docker-dgx.sh` (ou équivalent) en incluant `agentic-research-mcp` dans les services lancés, et tester un appel client MCP vers le serveur (Tailscale ou accès direct au host).
+
+12. **Documentation**
+    - Mettre à jour `MCP_SERVER.md` (et si besoin `docs/README_DOCKER.md`) : démarrage sur DGX avec `docker-compose.dgx.yml`, URL Tailscale, variables d’environnement.
+
+### Phase 4 – Alpic.ai : déploiement plateforme (après local + Docker local + DGX)
+
+13. **Compatibilité Alpic**
    - Vérifier que Alpic détecte le transport Streamable HTTP (FastMCP avec `server.run(transport="streamable-http", ...)`). En cas d’échec « No MCP transport found », ajouter à la racine un **`alpic.json`** avec au minimum `startCommand` et `installCommand`.
-   - Alpic supporte les Tasks ; vérifier que le déploiement expose bien les capabilities et les outils en mode tâche.
+   - Vérifier que le déploiement expose bien les capabilities et les outils (Tasks optionnel, reporté à plus tard).
    - Documenter la dépendance à DataPrep : sur Alpic, configurer `MCP_DATAPREP_URL` vers l’URL du serveur DataPrep (déployé séparément sur Alpic ou accessible ailleurs).
 
-10. **Tests d’intégration et critères d’acceptation**
-   - Procédure reproductible (MCP Inspector ou script client) pour les modes query et syllabus (avec Tasks), documentée dans `MCP_SERVER.md`.
-   - Optionnel : test automatisé avec client MCP (Streamable HTTP + task-augmented call) en environnement contrôlé.
+14. **Tests d’intégration et critères d’acceptation**
+    - Procédure reproductible (MCP Inspector, Open WebUI, Claude ou script client) pour les modes query et syllabus, documentée dans `MCP_SERVER.md`.
+    - Optionnel : test automatisé avec client MCP (Streamable HTTP) en environnement contrôlé.
 
 ### Phase 5 – Renforcement (priorité moyenne, selon temps et besoin)
 
-11. **Garde-fous**
-   - Timeout configurable par tâche (ttl max), limite de taille sur `query` et `syllabus_content` (refus propre avec message d’erreur).
+15. **Garde-fous**
+    - Timeout configurable, limite de taille sur `query` et `syllabus_content` (refus propre avec message d’erreur).
 
-12. **Docker / opérations**
-   - Ajouter un healthcheck pour le service `agentic-research-mcp` (ex. HTTP sur le path Streamable HTTP ou endpoint dédié si FastMCP le permet).
+16. **Docker / opérations**
+    - Ajouter un healthcheck pour le service `agentic-research-mcp` (ex. HTTP sur le path Streamable HTTP ou endpoint dédié si FastMCP le permet).
 
-13. **Sécurité / déploiement**
-   - Traiter les questions ouvertes de l’issue (ports, auth, ACL) : au minimum les documenter (recommandations Tailscale, token MCP si applicable).
-   - **Exécution durable** : si reprise après crash s’avère nécessaire, s’appuyer sur le POC Restate (issue [#69](https://github.com/BittnerPierre/agentic-research/issues/69), PR [#84](https://github.com/BittnerPierre/agentic-research/pull/84)).
+17. **Sécurité / déploiement**
+    - Traiter les questions ouvertes de l’issue (ports, auth, ACL) : au minimum les documenter (recommandations Tailscale, token MCP si applicable).
+    - **Exécution durable** : si reprise après crash s’avère nécessaire, s’appuyer sur le POC Restate (issue [#69](https://github.com/BittnerPierre/agentic-research/issues/69), PR [#84](https://github.com/BittnerPierre/agentic-research/pull/84)).
 
 ### Phase 6 – Clôture (priorité haute)
 
-14. **PR et merge**
+18. **PR et merge**
    - Commits propres, message de commit et PR qui référencent l’issue 83.
    - Vérifier que les critères d’acceptation de l’issue sont couverts (checklist dans la PR).
    - Après review : merge selon les règles du projet (branch protection, CI).
@@ -275,12 +284,13 @@ Ce travail n’a pas encore été revu/mergé. Il est **potentiellement lié** �
 
 ## 6. Résumé
 
-- **Besoin** : Exposer agentic-research comme service MCP (modes query + syllabus, Streamable HTTP, Docker, doc et tests), avec déploiement possible sur **DGX Spark** (conteneur, `docker-compose.dgx.yml`) et sur **Alpic.ai** (config build/start). **Alpic supporte les MCP Tasks.**
-- **Exigences MCP (obligatoires)** : **Tasks** (outils en mode task-augmented : `CreateTaskResult`, `tasks/get`, `tasks/result`, `tasks/cancel`), **Cancellation**, **Ping**, **Progress** (spec MCP 2025-11-25). **Elicitation** : hors périmètre pour cette phase (étape ultérieure si feedback utilisateur dans le workflow).
-- **Exigence de déploiement** : ordre **1. Local (working)** → **2. DGX Spark** → **3. Alpic**. Stack : FastMCP (package `mcp`).
+- **Besoin** : Exposer agentic-research comme service MCP (modes query + syllabus, Streamable HTTP, Docker, doc et tests), avec déploiement possible sur **DGX Spark** (conteneur, `docker-compose.dgx.yml`) et sur **Alpic.ai** (config build/start).
+- **Exigences MCP** : **Cancellation**, **Ping**, **Progress** en place pour le mode synchrone. **Tasks** (task-augmented) : reporté à plus tard (on_hold), instable avec Streamable HTTP. **Elicitation** : hors périmètre.
+- **Multi-run** : gérer proprement un utilisateur qui lance plusieurs recherches (concurrentes ou séquentielles) — isolation, lock `resolve_store_id`, voir issue [#114](https://github.com/BittnerPierre/agentic-research/issues/114).
+- **Exigence de déploiement** : ordre **1. Local (Poetry)** → **2.1 Docker local** (validation avant DGX) → **3. DGX Spark** (benchmarks) → **4. Alpic**. Stack : FastMCP (package `mcp`).
 - **Lien Restate** : Issue [#69](https://github.com/BittnerPierre/agentic-research/issues/69), PR [#84](https://github.com/BittnerPierre/agentic-research/pull/84) (POC writer durable) : non mergé ; si exécution durable (reprise après crash) est requise, s’appuyer sur ce POC.
-- **État** : Implémentation actuelle en appels synchrones ; à faire évoluer vers Tasks + Cancellation + Ping + Progress.
-- **Plan** : Phase 1 Local → Phase 2 **MCP Tasks, Cancellation, Ping, Progress** → Phase 3 DGX → Phase 4 Alpic → Phase 5 Renforcement → Phase 6 Clôture.
+- **État** : Mode synchrone avec Progress + Cancellation ; Tasks en attente ; prochaines étapes : tests clients (Open WebUI / Claude), puis Docker local, puis DGX.
+- **Plan** : Phase 1 Local → Phase 2 (Cancellation, Progress, multi-run ; Tasks on_hold) → **Phase 2.1 (tests clients réels + Docker local)** → Phase 3 DGX → Phase 4 Alpic → Phase 5 Renforcement → Phase 6 Clôture.
 
 ---
 

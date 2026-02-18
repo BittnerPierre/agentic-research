@@ -113,3 +113,28 @@ async def test_research_query_tool_returns_error_message_on_failure(monkeypatch)
     assert result.content[0].text is not None
     assert "ERROR" in result.content[0].text
     assert "Vector store unavailable" in result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_research_query_propagates_cancellation(monkeypatch):
+    """research_query propage asyncio.CancelledError (annulation MCP)."""
+    import asyncio
+
+    monkeypatch.setattr(
+        agentic_research_server,
+        "run_research_async",
+        AsyncMock(side_effect=asyncio.CancelledError()),
+    )
+    server = agentic_research_server.create_agentic_research_server()
+    tool = await server.get_tool("research_query")
+    with pytest.raises(asyncio.CancelledError):
+        await tool.run({"query": "Cancel me"})
+
+
+@pytest.mark.asyncio
+async def test_research_tools_expose_query_and_syllabus():
+    """Les outils research_query et research_syllabus sont bien exposés (mode synchrone uniquement)."""
+    server = agentic_research_server.create_agentic_research_server()
+    tools = await server.get_tools()
+    assert "research_query" in tools
+    assert "research_syllabus" in tools

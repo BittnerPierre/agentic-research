@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 
@@ -12,6 +13,16 @@ from ..logging_config import setup_server_logging
 from ..run_research import run_research_async
 
 logger = logging.getLogger(__name__)
+
+
+def _get_context_or_none():
+    """Return current MCP Context if available (for progress), else None (e.g. in tests)."""
+    try:
+        from fastmcp.server.dependencies import get_context
+
+        return get_context()
+    except RuntimeError:
+        return None
 
 
 def _format_report(report: ReportData) -> str:
@@ -53,13 +64,29 @@ def create_agentic_research_server() -> FastMCP:
         """
         logger.info("[MCP Tool] research_query called with query=%s", query[:200] if query else "")
         wrapped = f"<research_request>\n{query}\n</research_request>"
+        ctx = _get_context_or_none()
+        progress_callback = None
+        if ctx is not None:
+
+            async def _on_progress(
+                progress: float, total: float | None, message: str | None
+            ) -> None:
+                await ctx.report_progress(progress, total, message)
+
+            progress_callback = _on_progress
         try:
-            result = await run_research_async(wrapped, setup_logging=True)
+            result = await run_research_async(
+                wrapped, setup_logging=True, progress_callback=progress_callback
+            )
             if result is None:
                 return (
                     "ERROR: Manager did not return a report (use agentic_manager or deep_manager)."
                 )
+            logger.info("[MCP Tool] research_query terminé normalement")
             return _format_report(result)
+        except asyncio.CancelledError:
+            logger.warning("Demande d'annulation reçue (research_query).")
+            raise
         except Exception as e:
             logger.exception("[MCP Tool] research_query failed: %s", e)
             return f"ERROR: research_query failed: {e}"
@@ -80,13 +107,29 @@ def create_agentic_research_server() -> FastMCP:
             len(syllabus_content),
         )
         wrapped = f"<research_request>\n{syllabus_content}\n</research_request>"
+        ctx = _get_context_or_none()
+        progress_callback = None
+        if ctx is not None:
+
+            async def _on_progress(
+                progress: float, total: float | None, message: str | None
+            ) -> None:
+                await ctx.report_progress(progress, total, message)
+
+            progress_callback = _on_progress
         try:
-            result = await run_research_async(wrapped, setup_logging=True)
+            result = await run_research_async(
+                wrapped, setup_logging=True, progress_callback=progress_callback
+            )
             if result is None:
                 return (
                     "ERROR: Manager did not return a report (use agentic_manager or deep_manager)."
                 )
+            logger.info("[MCP Tool] research_syllabus terminé normalement")
             return _format_report(result)
+        except asyncio.CancelledError:
+            logger.warning("Demande d'annulation reçue (research_syllabus).")
+            raise
         except Exception as e:
             logger.exception("[MCP Tool] research_syllabus failed: %s", e)
             return f"ERROR: research_syllabus failed: {e}"

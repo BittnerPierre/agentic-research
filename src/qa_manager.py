@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from agents import Runner
@@ -25,6 +26,9 @@ class QAManager:
         vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
+        progress_callback: (
+            Callable[[float, float | None, str | None], Awaitable[None]] | None
+        ) = None,
     ) -> None:
         logger.info("QA manager starting")
         logger.info(f"QA query: {query}")

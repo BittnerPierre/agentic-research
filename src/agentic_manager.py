@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Awaitable, Callable
+
 from rich.console import Console
 
 from agents import Runner, gen_trace_id, trace
@@ -35,6 +38,9 @@ class AgenticResearchManager:
         vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
+        progress_callback: (
+            Callable[[float, float | None, str | None], Awaitable[None]] | None
+        ) = None,
     ) -> ReportData:
         self.fs_server = fs_server
         self.dataprep_server = dataprep_server
@@ -69,12 +75,20 @@ class AgenticResearchManager:
                 [self.dataprep_server], file_planner_agent, file_search_agent, writer_agent
             )
 
-            report = await self._agentic_research(query, research_info)
+            try:
+                await asyncio.sleep(0)  # yield so cancellation can be delivered
+                if progress_callback:
+                    await progress_callback(0, 100, "Démarrage recherche")
+                if progress_callback:
+                    await progress_callback(33, 100, "Recherche en cours (supervisor)")
+                report = await self._agentic_research(query, research_info)
+                if progress_callback:
+                    await progress_callback(100, 100, "Terminé")
 
-            final_report = f"Report summary\n\n{report.short_summary}"
-            self.printer.update_item("final_report", final_report, is_done=True)
-
-            self.printer.end()
+                final_report = f"Report summary\n\n{report.short_summary}"
+                self.printer.update_item("final_report", final_report, is_done=True)
+            finally:
+                self.printer.end()
 
         print("\n\n=====SAVING REPORT=====\n\n")
         _new_report = await save_final_report_function(

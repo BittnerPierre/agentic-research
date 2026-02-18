@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""UAT script: client MCP qui appelle le serveur agentic-research (Streamable HTTP).
+"""UAT: test des notifications Progress (MCP) du serveur agentic-research.
+
+Le client envoie un progressToken (via progress_callback) et affiche les
+notifications progress reçues (Démarrage recherche, Terminé).
 
 Usage:
-  poetry run python scripts/uat_mcp_agentic_research_client.py [query]
-  MCP_AGENTIC_RESEARCH_URL=http://localhost:8008/mcp poetry run python scripts/uat_mcp_agentic_research_client.py
+  poetry run python scripts/uat_mcp_progress.py [query]
+  MCP_AGENTIC_RESEARCH_URL=http://localhost:8008/mcp poetry run python scripts/uat_mcp_progress.py
 
 Prérequis: serveur MCP agentic-research et dataprep démarrés (voir docs/MCP_SERVER.md).
 """
@@ -27,13 +30,25 @@ async def main() -> int:
         print("Lancer: poetry install", file=sys.stderr)
         return 1
 
+    progress_events: list[tuple[float, float | None, str | None]] = []
+
+    async def on_progress(progress: float, total: float | None, message: str | None) -> None:
+        progress_events.append((progress, total, message))
+        total_s = f"/{total}" if total is not None else ""
+        msg_s = f" — {message}" if message else ""
+        print(f"  [Progress] {progress}{total_s}{msg_s}")
+
     print(f"Connexion à {url} ...")
-    print(f"Appel research_query(query={query!r})")
+    print(f"Appel research_query avec progress_callback (query={query!r})")
     try:
         async with streamable_http_client(url) as (read_stream, write_stream, _):
             async with ClientSession(read_stream, write_stream) as session:
                 await session.initialize()
-                result = await session.call_tool("research_query", {"query": query})
+                result = await session.call_tool(
+                    "research_query",
+                    {"query": query},
+                    progress_callback=on_progress,
+                )
     except Exception as e:
         print(f"Erreur: {e}", file=sys.stderr)
         print(
@@ -49,10 +64,16 @@ async def main() -> int:
     if result.isError:
         print("Erreur outil:", text, file=sys.stderr)
         return 1
-    print("--- Résultat ---")
-    print(text)
-    if "short_summary" in text:
-        print("\n[UAT OK: short_summary présent dans la réponse]")
+    print("--- Résultat (extrait) ---")
+    print(text[:500] + "..." if len(text) > 500 else text)
+    print(f"\n[UAT Progress] {len(progress_events)} notification(s) reçue(s)")
+    if progress_events:
+        print("[UAT OK: Progress fonctionne]")
+    else:
+        print(
+            "[UAT: aucune notification progress — le client n'envoie peut-être pas progressToken]",
+            file=sys.stderr,
+        )
     return 0
 
 
