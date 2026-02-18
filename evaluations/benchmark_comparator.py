@@ -139,6 +139,11 @@ class BenchmarkComparator:
         lines.extend(self._generate_run_details_table(benchmarks))
         lines.append("")
 
+        # Warmup + steady-state details (if configured)
+        lines.extend(self._generate_warmup_table(benchmarks))
+        if lines[-1] != "":
+            lines.append("")
+
         # Per-setup notes
         lines.extend(self._generate_setup_notes(benchmarks))
         lines.append("")
@@ -209,6 +214,8 @@ class BenchmarkComparator:
             "- `P/B/F` = `PASS / BORDERLINE / FAIL` counts across runs.",
             "- `Quality (0-100)` is the averaged content-quality score across runs.",
             "- Aggregation rule: mean for `<5` runs; trimmed mean (drop min/max) for `>=5` runs.",
+            "- If warmup reporting is enabled, averages exclude run 1.",
+            "- If drop-worst-run is enabled, averages exclude the slowest run by total time.",
             "- `Judgment` is an aggregated verdict: `EXCELLENT`, `STRONG`, `PASS`, `ACCEPTABLE`, `FAIL`.",
             "- `ACCEPTABLE` means usable but with notable weaknesses in at least one run.",
         ]
@@ -326,6 +333,52 @@ class BenchmarkComparator:
                     f"| {setup_name} | {idx} | {timing:.1f} | {quality:.1f} | "
                     f"{judgment} | {grades_str} | {rag_avg:.3f} |"
                 )
+        return lines
+
+    def _generate_warmup_table(self, benchmarks: list[dict]) -> list[str]:
+        eligible = [
+            bench
+            for bench in benchmarks
+            if bench.get("report_warmup") or bench.get("drop_worst_run")
+        ]
+        if not eligible:
+            return []
+
+        lines = [
+            "## Warmup / Steady-State",
+            "",
+            "| Setup | Warmup Run | Warmup Time (s) | Warmup Quality | Avg Runs | Avg Time (s) | Avg Quality | Dropped Run |",
+            "|-------|------------|-----------------|----------------|----------|--------------|-------------|-------------|",
+        ]
+
+        for bench in sorted(eligible, key=lambda b: b["setup_metadata"]["setup_name"]):
+            setup_name = bench["setup_metadata"]["setup_name"]
+            warmup_idx = bench.get("warmup_run_index")
+            warmup_run = None
+            if warmup_idx is not None and warmup_idx < len(bench.get("runs", [])):
+                warmup_run = bench["runs"][warmup_idx]
+
+            warmup_label = str(warmup_idx + 1) if warmup_idx is not None else "N/A"
+            warmup_time = (
+                f"{float(warmup_run.get('timing', {}).get('total_seconds', 0.0)):.1f}"
+                if warmup_run
+                else "N/A"
+            )
+            warmup_quality = f"{self._run_quality_score(warmup_run):.1f}" if warmup_run else "N/A"
+
+            avg_indices = bench.get("average_run_indices", [])
+            avg_runs = ", ".join(str(i + 1) for i in avg_indices) if avg_indices else "N/A"
+            avg_time = f"{bench['average']['timing']['total_seconds']:.1f}"
+            avg_quality = f"{self._quality_score(bench):.1f}"
+
+            dropped_idx = bench.get("dropped_run_index")
+            dropped_label = str(dropped_idx + 1) if dropped_idx is not None else "N/A"
+
+            lines.append(
+                f"| {setup_name} | {warmup_label} | {warmup_time} | {warmup_quality} | "
+                f"{avg_runs} | {avg_time} | {avg_quality} | {dropped_label} |"
+            )
+
         return lines
 
     def _generate_setup_notes(self, benchmarks: list[dict]) -> list[str]:
