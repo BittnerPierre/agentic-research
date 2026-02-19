@@ -11,7 +11,7 @@ vector_search:
   index_name: "agentic-research-dgx"
   chunk_size: 800
   chunk_overlap: 120
-  chroma_host: "gx10-957b"
+  chroma_host: "chromadb"
   chroma_port: 8000
   chroma_ssl: false
   chroma_embedding_provider: "openai"
@@ -31,7 +31,7 @@ vector_mcp:
     - "--client-type"
     - "http"
     - "--host"
-    - "gx10-957b"
+    - "chromadb"
     - "--port"
     - "8000"
     - "--ssl"
@@ -57,7 +57,7 @@ logging:
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 mcp:
-  server_host: "gx10-957b"
+  server_host: "dataprep"
   server_port: 8001
   client_timeout_seconds: 60.0
   http_timeout_seconds: 5.0
@@ -68,6 +68,18 @@ models:
   search_model: "openai/gpt-4.1-mini"
   writer_model: "openai/gpt-4.1-mini"
   knowledge_preparation_model: "openai/gpt-4.1-mini"
+
+dataprep:
+  llm:
+    enabled: true
+    model:
+      name: "openai/gpt-4.1-mini"
+      base_url: "https://api.openai.com/v1"
+      api_key: "dummy"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
 
 manager:
   default_manager: "deep_manager"
