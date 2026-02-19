@@ -115,6 +115,16 @@ CLI flags override the config.
 ./scripts/benchmark-all-dgx.sh --benchmark-config configs/benchmark-default.yaml
 ```
 
+Per-setup config override (mapping) can be defined in `configs/benchmark-default.yaml`:
+
+```yaml
+benchmark:
+  config_file: configs/config-docker-dgx.yaml
+  setup_config_map:
+    openai-api: configs/tests/config-dgx-remote-openai-api.yaml
+    mistral-api: configs/tests/config-dgx-remote-mistral-api.yaml
+```
+
 ## Vector search providers
 
 - `openai`: uses `FileSearchTool` with the configured vector store id.

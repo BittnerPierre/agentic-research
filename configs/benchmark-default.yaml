@@ -3,6 +3,7 @@ benchmark:
   output_dir: benchmarks
   syllabus_file: test_files/query_advanced_1.md
   config_file: configs/config-docker-dgx.yaml
+  setup_config_map: {}
   vector_store_name: agentic-research-dgx
   timeout_seconds:
   report_warmup: false
