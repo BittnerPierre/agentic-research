@@ -76,3 +76,7 @@ agents:
   max_search_plan: "5-7"
   output_dir: "output/"
   writer_output_format: "markdown"
+  file_search_rewrite_mode: "none"
+  file_search_rewrite_max_variants: 1
+  file_search_top_k: null
+  file_search_score_threshold: null
