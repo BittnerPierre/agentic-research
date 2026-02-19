@@ -3,7 +3,9 @@ benchmark:
   output_dir: benchmarks
   syllabus_file: test_files/query_advanced_1.md
   config_file: configs/config-docker-dgx.yaml
-  setup_config_map: {}
+  setup_config_map:
+    openai-api: configs/tests/config-dgx-remote-openai-api.yaml
+    mistral-api: configs/tests/config-dgx-remote-mistral-api.yaml
   vector_store_name: agentic-research-dgx
   timeout_seconds:
   report_warmup: false
@@ -15,3 +17,5 @@ benchmark:
     - glm
     - qwen
     - openai
+    - openai-api
+    - mistral-api
