@@ -91,7 +91,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -f "$BENCHMARK_CONFIG" ]; then
-  if BENCHMARK_DEFAULTS=$(python3 - <<'PY'
+  if BENCHMARK_DEFAULTS=$(python3 - "$BENCHMARK_CONFIG" <<'PY'
 import shlex
 import sys
 from pathlib import Path
@@ -126,7 +126,7 @@ emit("BENCH_DEFAULT_KEEP_SERVICES", bench.get("keep_services"))
 models = bench.get("models") or []
 emit("BENCH_DEFAULT_MODELS", ",".join(models))
 PY
-"$BENCHMARK_CONFIG"); then
+); then
     eval "$BENCHMARK_DEFAULTS"
   fi
 fi
@@ -203,6 +203,10 @@ for SETUP in "${SETUPS[@]}"; do
   echo "Setup: $SETUP"
   echo "========================================"
 
+  setup_log_dir="${OUTPUT_DIR}/${SETUP}"
+  setup_log_file="${setup_log_dir}/failure.log"
+  mkdir -p "$setup_log_dir"
+
   if [ "$INTERACTIVE" = true ]; then
     read -p "Benchmark $SETUP? (y/n) " -n 1 -r
     echo
@@ -222,7 +226,22 @@ for SETUP in "${SETUPS[@]}"; do
     $REPORT_WARMUP_FLAG \
     $DROP_WORST_FLAG \
     ${TIMEOUT_SECONDS:+--timeout-seconds "$TIMEOUT_SECONDS"} \
-    $KEEP_SERVICES_FLAG || {
+    $KEEP_SERVICES_FLAG 2>&1 | tee "$setup_log_file"
+  status=${PIPESTATUS[0]}
+  if [ $status -ne 0 ]; then
+    ts=$(date +%Y%m%d_%H%M%S)
+    cat > "${setup_log_dir}/benchmark_result.json" <<EOF
+{
+  "setup_metadata": { "setup_name": "${SETUP}" },
+  "status": "FAILED",
+  "timestamp": "${ts}",
+  "syllabus_file": "${SYLLABUS_FILE}",
+  "runs": [],
+  "average": {},
+  "error_message": "Benchmark failed for ${SETUP}. See failure log.",
+  "log_file": "${setup_log_file}"
+}
+EOF
     echo "❌ Benchmark failed for $SETUP"
     continue
   }

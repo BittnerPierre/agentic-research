@@ -90,11 +90,17 @@ class BenchmarkComparator:
 
     def _generate_markdown(self, benchmarks: list[dict]) -> str:
         """Generate Markdown comparison report."""
-        all_runs = [self._bench_num_runs(bench) for bench in benchmarks]
+        failures = [bench for bench in benchmarks if bench.get("status") == "FAILED"]
+        successes = [bench for bench in benchmarks if bench.get("status") != "FAILED"]
+
+        if not successes:
+            return self._generate_failure_only_report(failures)
+
+        all_runs = [self._bench_num_runs(bench) for bench in successes]
         all_syllabi = sorted(
             {
                 bench.get("syllabus_file", "N/A")
-                for bench in benchmarks
+                for bench in successes
                 if bench.get("syllabus_file", "N/A")
             }
         )
@@ -112,7 +118,7 @@ class BenchmarkComparator:
         ]
 
         # Summary Table
-        lines.extend(self._generate_summary_table(benchmarks))
+        lines.extend(self._generate_summary_table(successes))
         lines.append("")
 
         # Legend
@@ -120,45 +126,60 @@ class BenchmarkComparator:
         lines.append("")
 
         # Detailed Timing Table
-        lines.extend(self._generate_timing_table(benchmarks))
+        lines.extend(self._generate_timing_table(successes))
         lines.append("")
 
         # RAG Triad Table
-        lines.extend(self._generate_rag_triad_table(benchmarks))
+        lines.extend(self._generate_rag_triad_table(successes))
         lines.append("")
 
         # Quality Grades Table
-        lines.extend(self._generate_quality_table(benchmarks))
+        lines.extend(self._generate_quality_table(successes))
         lines.append("")
 
         # Stability metrics
-        lines.extend(self._generate_stability_table(benchmarks))
+        lines.extend(self._generate_stability_table(successes))
         lines.append("")
 
         # Detailed per-run diagnostics
-        lines.extend(self._generate_run_details_table(benchmarks))
+        lines.extend(self._generate_run_details_table(successes))
         lines.append("")
 
         # Warmup + steady-state details (if configured)
-        lines.extend(self._generate_warmup_table(benchmarks))
+        lines.extend(self._generate_warmup_table(successes))
+        if lines[-1] != "":
+            lines.append("")
+
+        # Failures summary
+        lines.extend(self._generate_failures_table(failures))
         if lines[-1] != "":
             lines.append("")
 
         # Per-setup notes
-        lines.extend(self._generate_setup_notes(benchmarks))
+        lines.extend(self._generate_setup_notes(successes))
         lines.append("")
 
         # Podium
-        lines.extend(self._generate_podium(benchmarks))
+        lines.extend(self._generate_podium(successes))
         lines.append("")
 
         # Best Performers
-        lines.extend(self._generate_best_performers(benchmarks))
+        lines.extend(self._generate_best_performers(successes))
         lines.append("")
 
         # Recommendations
-        lines.extend(self._generate_recommendations(benchmarks))
+        lines.extend(self._generate_recommendations(successes))
 
+        return "\n".join(lines)
+
+    def _generate_failure_only_report(self, failures: list[dict]) -> str:
+        lines = [
+            "# Benchmark Comparison Report",
+            "",
+            "**Status**: No successful benchmark results found.",
+            "",
+        ]
+        lines.extend(self._generate_failures_table(failures))
         return "\n".join(lines)
 
     def _generate_summary_table(self, benchmarks: list[dict]) -> list[str]:
@@ -333,6 +354,22 @@ class BenchmarkComparator:
                     f"| {setup_name} | {idx} | {timing:.1f} | {quality:.1f} | "
                     f"{judgment} | {grades_str} | {rag_avg:.3f} |"
                 )
+        return lines
+
+    def _generate_failures_table(self, failures: list[dict]) -> list[str]:
+        if not failures:
+            return []
+        lines = [
+            "## Failures",
+            "",
+            "| Setup | Error | Log File |",
+            "|-------|-------|----------|",
+        ]
+        for bench in sorted(failures, key=lambda b: b["setup_metadata"]["setup_name"]):
+            setup_name = bench["setup_metadata"]["setup_name"]
+            error = str(bench.get("error_message") or "Unknown failure")
+            log_file = str(bench.get("log_file") or "N/A")
+            lines.append(f"| {setup_name} | {error} | {log_file} |")
         return lines
 
     def _generate_warmup_table(self, benchmarks: list[dict]) -> list[str]:

@@ -1190,6 +1190,71 @@ class TestBenchmarkComparator:
         assert "setup-b" in markdown
         assert (run_dir / "comparison_table.md").exists()
 
+    def test_compare_includes_failures(self, tmp_path):
+        from evaluations.benchmark_comparator import BenchmarkComparator
+
+        run_dir = tmp_path / "run_20260218_170000"
+        setup_ok = run_dir / "setup-ok"
+        setup_fail = run_dir / "setup-fail"
+        setup_ok.mkdir(parents=True)
+        setup_fail.mkdir(parents=True)
+
+        benchmark_ok = {
+            "timestamp": "2026-02-18T17:00:00",
+            "setup_metadata": {"setup_name": "setup-ok"},
+            "runs": [
+                {
+                    "quality_result": {
+                        "judgment": "PASS",
+                        "grades": {
+                            "format": "A",
+                            "grounding": "A",
+                            "agenda": "A",
+                            "usability": "A",
+                        },
+                    }
+                }
+            ],
+            "average": {
+                "timing": {
+                    "total_seconds": 10.0,
+                    "phases": {
+                        "knowledge_preparation": 2.0,
+                        "planning": 2.0,
+                        "search": 3.0,
+                        "writing": 3.0,
+                    },
+                },
+                "agent_calls": {"total": 8},
+                "rag_triad": {
+                    "groundedness": 0.9,
+                    "context_relevance": 0.8,
+                    "answer_relevance": 0.9,
+                    "average": 0.866,
+                },
+            },
+        }
+        benchmark_fail = {
+            "timestamp": "2026-02-18T17:00:00",
+            "setup_metadata": {"setup_name": "setup-fail"},
+            "status": "FAILED",
+            "error_message": "Boom",
+            "log_file": "benchmarks/run_x/setup-fail/failure.log",
+            "runs": [],
+            "average": {},
+        }
+
+        (setup_ok / "benchmark_result.json").write_text(json.dumps(benchmark_ok), encoding="utf-8")
+        (setup_fail / "benchmark_result.json").write_text(
+            json.dumps(benchmark_fail), encoding="utf-8"
+        )
+
+        comparator = BenchmarkComparator(str(run_dir))
+        markdown = comparator.compare()
+
+        assert "## Failures" in markdown
+        assert "setup-fail" in markdown
+
 
 class TestBenchmarkConfig:
     """Test benchmark config parsing and defaults."""
