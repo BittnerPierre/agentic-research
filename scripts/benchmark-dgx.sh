@@ -141,7 +141,7 @@ PY
 fi
 
 RUNS="${RUNS:-${BENCH_DEFAULT_RUNS:-1}}"
-CONFIG_FILE="${CONFIG_FILE:-${BENCH_DEFAULT_CONFIG:-configs/config-docker-dgx.yaml}}"
+CONFIG_FILE_DEFAULT="${BENCH_DEFAULT_CONFIG:-configs/config-docker-dgx.yaml}"
 SYLLABUS_FILE="${SYLLABUS_FILE:-${BENCH_DEFAULT_SYLLABUS:-test_files/query_advanced_1.md}}"
 VECTOR_STORE_NAME="${VECTOR_STORE_NAME:-${BENCH_DEFAULT_VECTOR_STORE:-agentic-research-dgx}}"
 REPORT_WARMUP="${REPORT_WARMUP:-${BENCH_DEFAULT_REPORT_WARMUP:-}}"
@@ -153,6 +153,38 @@ OUTPUT_BASE="${BENCH_DEFAULT_OUTPUT_BASE:-benchmarks}"
 if [ -z "$SYLLABUS_FILE" ]; then
   echo "Error: --syllabus must not be empty"
   exit 1
+fi
+
+setup_config_override=""
+if [ -f "$BENCHMARK_CONFIG" ]; then
+  setup_config_override=$(python3 - "$BENCHMARK_CONFIG" "$SETUP_NAME" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+config_path = Path(sys.argv[1])
+setup = sys.argv[2]
+try:
+    data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+except Exception:
+    sys.exit(0)
+
+bench = data.get("benchmark", data)
+mapping = bench.get("setup_config_map") or {}
+value = mapping.get(setup)
+if value:
+    print(value)
+PY
+)
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
+  EFFECTIVE_CONFIG_FILE="$CONFIG_FILE"
+elif [ -n "$setup_config_override" ]; then
+  EFFECTIVE_CONFIG_FILE="$setup_config_override"
+else
+  EFFECTIVE_CONFIG_FILE="$CONFIG_FILE_DEFAULT"
 fi
 
 REPORT_WARMUP_FLAG=""
@@ -244,7 +276,7 @@ docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models
   agentic-research \
   benchmark-models \
   --benchmark-config "/app/${BENCHMARK_CONFIG}" \
-  --config "/app/${CONFIG_FILE}" \
+  --config "/app/${EFFECTIVE_CONFIG_FILE}" \
   --syllabus "/app/${SYLLABUS_FILE}" \
   --runs "$RUNS" \
   --output "/app/$OUTPUT_DIR" \

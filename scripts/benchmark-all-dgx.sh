@@ -6,7 +6,8 @@ DEFAULT_SETUPS=("ministral" "mistralai" "glm" "qwen" "openai")
 SETUPS=()
 RUNS=""
 MODELS_RAW=""
-CONFIG_FILE=""
+CLI_CONFIG_FILE=""
+CONFIG_FILE_DEFAULT=""
 SYLLABUS_FILE=""
 VECTOR_STORE_NAME=""
 REPORT_WARMUP=""
@@ -31,7 +32,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --config)
-      CONFIG_FILE="${2:-}"
+      CLI_CONFIG_FILE="${2:-}"
       shift 2
       ;;
     --syllabus)
@@ -132,7 +133,7 @@ PY
 fi
 
 RUNS="${RUNS:-${BENCH_DEFAULT_RUNS:-3}}"
-CONFIG_FILE="${CONFIG_FILE:-${BENCH_DEFAULT_CONFIG:-configs/config-docker-dgx.yaml}}"
+CONFIG_FILE_DEFAULT="${BENCH_DEFAULT_CONFIG:-configs/config-docker-dgx.yaml}"
 SYLLABUS_FILE="${SYLLABUS_FILE:-${BENCH_DEFAULT_SYLLABUS:-test_files/query_advanced_1.md}}"
 VECTOR_STORE_NAME="${VECTOR_STORE_NAME:-${BENCH_DEFAULT_VECTOR_STORE:-agentic-research-dgx}}"
 REPORT_WARMUP="${REPORT_WARMUP:-${BENCH_DEFAULT_REPORT_WARMUP:-}}"
@@ -216,9 +217,41 @@ for SETUP in "${SETUPS[@]}"; do
     fi
   fi
 
+  setup_config_override=""
+  if [ -f "$BENCHMARK_CONFIG" ]; then
+    setup_config_override=$(python3 - "$BENCHMARK_CONFIG" "$SETUP" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+config_path = Path(sys.argv[1])
+setup = sys.argv[2]
+try:
+    data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+except Exception:
+    sys.exit(0)
+
+bench = data.get("benchmark", data)
+mapping = bench.get("setup_config_map") or {}
+value = mapping.get(setup)
+if value:
+    print(value)
+PY
+)
+  fi
+
+  if [ -n "$setup_config_override" ]; then
+    EFFECTIVE_CONFIG_FILE="$setup_config_override"
+  elif [ -n "$CLI_CONFIG_FILE" ]; then
+    EFFECTIVE_CONFIG_FILE="$CLI_CONFIG_FILE"
+  else
+    EFFECTIVE_CONFIG_FILE="$CONFIG_FILE_DEFAULT"
+  fi
+
   ./scripts/benchmark-dgx.sh "$SETUP" \
     --benchmark-config "$BENCHMARK_CONFIG" \
-    --config "$CONFIG_FILE" \
+    --config "$EFFECTIVE_CONFIG_FILE" \
     --syllabus "$SYLLABUS_FILE" \
     --runs "$RUNS" \
     --output-dir "$OUTPUT_DIR" \
@@ -244,7 +277,7 @@ for SETUP in "${SETUPS[@]}"; do
 EOF
     echo "❌ Benchmark failed for $SETUP"
     continue
-  }
+  fi
 done
 
 echo ""
