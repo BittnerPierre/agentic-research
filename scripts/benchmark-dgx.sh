@@ -102,7 +102,7 @@ if [ ! -f "$MODELS_ENV" ]; then
 fi
 
 if [ -f "$BENCHMARK_CONFIG" ]; then
-  if BENCHMARK_DEFAULTS=$(python3 - <<'PY'
+  if BENCHMARK_DEFAULTS=$(python3 - "$BENCHMARK_CONFIG" <<'PY'
 import shlex
 import sys
 from pathlib import Path
@@ -135,7 +135,7 @@ emit("BENCH_DEFAULT_DROP_WORST", bench.get("drop_worst_run"))
 emit("BENCH_DEFAULT_TIMEOUT", bench.get("timeout_seconds"))
 emit("BENCH_DEFAULT_KEEP_SERVICES", bench.get("keep_services"))
 PY
-"$BENCHMARK_CONFIG"); then
+); then
     eval "$BENCHMARK_DEFAULTS"
   fi
 fi

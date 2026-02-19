@@ -11,11 +11,11 @@ vector_search:
   index_name: "agentic-research-dgx"
   chunk_size: 800
   chunk_overlap: 120
-  chroma_host: "gx10-957b"
+  chroma_host: "chromadb"
   chroma_port: 8000
   chroma_ssl: false
   chroma_embedding_provider: "openai"
-  chroma_embedding_api_base: "http://gx10-957b:8003/v1"
+  chroma_embedding_api_base: "http://embeddings-gpu:8003/v1"
   chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
   chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
   top_k: 5
@@ -31,7 +31,7 @@ vector_mcp:
     - "--client-type"
     - "http"
     - "--host"
-    - "gx10-957b"
+    - "chromadb"
     - "--port"
     - "8000"
     - "--ssl"
@@ -57,7 +57,7 @@ logging:
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 mcp:
-  server_host: "gx10-957b"
+  server_host: "dataprep"
   server_port: 8001
   client_timeout_seconds: 60.0
   http_timeout_seconds: 5.0
@@ -69,6 +69,16 @@ models:
   writer_model: "openai/gpt-4.1-mini"
   knowledge_preparation_model: "openai/gpt-4.1-mini"
 
+dataprep:
+  llm:
+    enabled: true
+    name: "gpt-4.1-mini"
+    base_url: "https://api.openai.com/v1"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+
 manager:
   default_manager: "deep_manager"
 
@@ -76,3 +86,7 @@ agents:
   max_search_plan: "5-7"
   output_dir: "output/"
   writer_output_format: "markdown"
+  file_search_rewrite_mode: "none"
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null
