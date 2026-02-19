@@ -277,7 +277,7 @@ PY
 EOF
     echo "❌ Benchmark failed for $SETUP"
     continue
-  }
+  fi
 done
 
 echo ""
