@@ -15,7 +15,7 @@ vector_search:
   chroma_port: 8000
   chroma_ssl: false
   chroma_embedding_provider: "openai"
-  chroma_embedding_api_base: "http://gx10-957b:8003/v1"
+  chroma_embedding_api_base: "http://embeddings-gpu:8003/v1"
   chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
   chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
   top_k: 5
@@ -72,10 +72,8 @@ models:
 dataprep:
   llm:
     enabled: true
-    model:
-      name: "litellm/mistral/mistral-small-latest"
-      base_url: "https://api.mistral.ai/v1"
-      api_key: "dummy"
+    name: "mistral-small-latest"
+    base_url: "https://api.mistral.ai/v1"
     api_key_env: "MISTRAL_API_KEY"
     temperature: 0.1
     max_tokens: 256
@@ -89,6 +87,6 @@ agents:
   output_dir: "output/"
   writer_output_format: "markdown"
   file_search_rewrite_mode: "none"
-  file_search_rewrite_max_variants: 1
+  file_search_rewrite_max_variants: 2
   file_search_top_k: null
   file_search_score_threshold: null
