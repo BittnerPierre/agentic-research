@@ -291,12 +291,14 @@ class BenchmarkRunner:
         )
 
         # Compile results
+        usage = self._coerce_usage(getattr(manager, "usage_summary", None))
         result = {
             "report_file": str(report_file),
             "report_path": str(report_file),
             "trace_file": str(trace_file),
             "timing": timing.model_dump(),
             "agent_calls": agent_calls.model_dump(),
+            "usage": usage,
             "quality_result": quality_result.model_dump(),
             "rag_triad": rag_triad_data,
             "spec_compliance": spec_compliance.model_dump(),
@@ -396,8 +398,44 @@ class BenchmarkRunner:
             "timing": avg_timing,
             "agent_calls": avg_agent_calls,
             "rag_triad": avg_rag_triad,
+            "usage": self._average_usage(runs),
             "scores": avg_scores,
         }
+
+    def _coerce_usage(self, usage: dict | None) -> dict | None:
+        if not usage:
+            return None
+        if not any(value for value in usage.values()):
+            return None
+        return {
+            "requests": usage.get("requests"),
+            "input_tokens": usage.get("input_tokens"),
+            "output_tokens": usage.get("output_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+            "cached_tokens": usage.get("cached_tokens"),
+            "reasoning_tokens": usage.get("reasoning_tokens"),
+        }
+
+    def _average_usage(self, runs: list[dict]) -> dict | None:
+        usage_runs = [r.get("usage") for r in runs if r.get("usage")]
+        if not usage_runs:
+            return None
+
+        keys = (
+            "requests",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "reasoning_tokens",
+        )
+        averaged: dict[str, float] = {}
+        for key in keys:
+            values = [u.get(key) for u in usage_runs if u.get(key) is not None]
+            if not values:
+                continue
+            averaged[key] = sum(values) / len(values)
+        return averaged or None
 
     def _select_runs_for_average(
         self,

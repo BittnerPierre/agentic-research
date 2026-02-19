@@ -9,6 +9,7 @@ from .schemas import ResearchInfo
 from .utils import (
     adjust_model_settings_for_base_url,
     display_agenda,
+    enable_usage_for_litellm,
     extract_model_name,
     fetch_vector_store_name,
     load_prompt_from_file,
@@ -54,6 +55,7 @@ def create_knowledge_preparation_agent(mcp_servers: list[MCPServer] | None = Non
     model_name = extract_model_name(model_spec)
     model_settings = get_default_model_settings(model_name)
     adjust_model_settings_for_base_url(model_spec, model_settings)
+    enable_usage_for_litellm(model_spec, model_settings)
 
     knowledge_preparation_agent = Agent(
         name="knowledge_preparation_agent",

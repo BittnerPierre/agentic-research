@@ -41,6 +41,14 @@ class DeepResearchManager:
             "total": 0,
             "failures": 0,
         }
+        self.usage_summary = {
+            "requests": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "cached_tokens": 0,
+            "reasoning_tokens": 0,
+        }
         # Désactiver le tracing automatique pour cet appel
         # self._run_config = RunConfig(
         #     workflow_name="deep_research",
@@ -145,6 +153,7 @@ class DeepResearchManager:
             query,
             context=self.research_info,
         )
+        self._record_usage(result)
         self.agent_calls["knowledge_preparation_agent"] += 1
         self.agent_calls["total"] += 1
         self.printer.update_item(
@@ -173,6 +182,7 @@ class DeepResearchManager:
                     planner_input,
                     context=self.research_info,
                 )
+                self._record_usage(result)
                 plan = result.final_output_as(FileSearchPlan)
                 if not plan.searches:
                     raise ValueError("FileSearchPlan is empty")
@@ -230,6 +240,7 @@ class DeepResearchManager:
                 input_text,
                 context=self.research_info,
             )
+            self._record_usage(result)
             self.agent_calls["file_search_agent"] += 1
             self.agent_calls["total"] += 1
             raw_file_name = str(result.final_output_as(FileSearchResult).file_name)
@@ -340,5 +351,32 @@ class DeepResearchManager:
         self.printer.mark_item_done("writing")
         self.agent_calls["writer_agent"] += 1
         self.agent_calls["total"] += 1
+        self._record_usage(result)
         output = result.final_output
         return coerce_report_data(output, query)
+
+    def _record_usage(self, result) -> None:
+        usage = getattr(getattr(result, "context_wrapper", None), "usage", None)
+        if usage is None:
+            return
+
+        def _get_value(obj, key):
+            if isinstance(obj, dict):
+                return obj.get(key)
+            return getattr(obj, key, None)
+
+        for key in (
+            "requests",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "reasoning_tokens",
+        ):
+            value = _get_value(usage, key)
+            if value is None:
+                continue
+            try:
+                self.usage_summary[key] += int(value)
+            except (TypeError, ValueError):
+                continue

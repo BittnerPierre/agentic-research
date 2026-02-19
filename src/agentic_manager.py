@@ -21,6 +21,14 @@ class AgenticResearchManager:
         self.printer = Printer(self.console)
         self.mcp_server = None
         self._config = get_config()
+        self.usage_summary = {
+            "requests": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "cached_tokens": 0,
+            "reasoning_tokens": 0,
+        }
         # self._run_config = RunConfig(
         #     workflow_name="agentic_research",
         #     tracing_disabled=False,
@@ -103,6 +111,7 @@ class AgenticResearchManager:
             context=research_info,
             max_turns=25,
         )
+        self._record_usage(result)
         self.printer.update_item(
             "agentic_research",
             "Doing Agentic Research",
@@ -110,3 +119,29 @@ class AgenticResearchManager:
         )
         output = result.final_output
         return coerce_report_data(output, query)
+
+    def _record_usage(self, result) -> None:
+        usage = getattr(getattr(result, "context_wrapper", None), "usage", None)
+        if usage is None:
+            return
+
+        def _get_value(obj, key):
+            if isinstance(obj, dict):
+                return obj.get(key)
+            return getattr(obj, key, None)
+
+        for key in (
+            "requests",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "reasoning_tokens",
+        ):
+            value = _get_value(usage, key)
+            if value is None:
+                continue
+            try:
+                self.usage_summary[key] += int(value)
+            except (TypeError, ValueError):
+                continue

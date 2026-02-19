@@ -103,6 +103,8 @@ Use `--config` to load a different config file.
 
 Benchmark defaults live in `configs/benchmark-default.yaml` (runs, models, syllabus file, etc.).
 CLI flags override the config.
+Benchmark reports now include token usage when the underlying model provider exposes usage data.
+For LiteLLM models, usage reporting is enabled automatically.
 
 ```bash
 # Run a single setup with warmup reporting and worst-run exclusion
