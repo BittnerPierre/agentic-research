@@ -22,6 +22,16 @@ services:
       - ./models:/app/models:ro
       - ./benchmarks:/app/benchmarks
 
+  agentic-research-mcp:
+    command: ["agentic_research_server", "--host", "0.0.0.0", "--port", "8008", "--transport", "streamable-http", "--path", "/mcp", "--config", "configs/config-docker-dgx.yaml"]
+    depends_on:
+      - dataprep
+      - chromadb
+    environment:
+      MCP_DATAPREP_URL: http://dataprep:8001/sse
+    ports:
+      - "8008:8008"
+
   chromadb:
     image: chromadb/chroma:1.4.1
     ports:

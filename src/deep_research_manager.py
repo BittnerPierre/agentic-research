@@ -4,6 +4,7 @@ import asyncio
 import os
 import re
 import time
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from rich.console import Console
@@ -98,7 +99,10 @@ class DeepResearchManager:
         vector_mcp_server: MCPServer | None,
         query: str,
         research_info: ResearchInfo,
-    ) -> None:
+        progress_callback: (
+            Callable[[float, float | None, str | None], Awaitable[None]] | None
+        ) = None,
+    ) -> ReportData:
         self.fs_server = fs_server
         self.dataprep_server = dataprep_server
         self.research_info = research_info
@@ -133,34 +137,49 @@ class DeepResearchManager:
             )
             self.writer_agent = create_writer_agent([self.fs_server], do_save_report=False)
 
-            # Phase 1: Knowledge Preparation
-            prep_start = time.time()
-            agenda = await self._prepare_knowledge(query)
-            self.timings["knowledge_preparation"] = time.time() - prep_start
-            print("\n\n=====AGENDA=====\n\n")
-            print(agenda)
+            try:
+                # Phase 1: Knowledge Preparation
+                await asyncio.sleep(0)  # yield so cancellation can be delivered
+                if progress_callback:
+                    await progress_callback(0, 100, "Préparation connaissance")
+                prep_start = time.time()
+                agenda = await self._prepare_knowledge(query)
+                self.timings["knowledge_preparation"] = time.time() - prep_start
+                print("\n\n=====AGENDA=====\n\n")
+                print(agenda)
 
-            # Phase 2: Planning
-            plan_start = time.time()
-            search_plan = await self._plan_file_searches(agenda)
-            self.timings["planning"] = time.time() - plan_start
-            print("\n\n=====SEARCH PLAN=====\n\n")
-            print(search_plan)
+                # Phase 2: Planning
+                await asyncio.sleep(0)  # yield so cancellation can be delivered
+                if progress_callback:
+                    await progress_callback(25, 100, "Plan de recherche")
+                plan_start = time.time()
+                search_plan = await self._plan_file_searches(agenda)
+                self.timings["planning"] = time.time() - plan_start
+                print("\n\n=====SEARCH PLAN=====\n\n")
+                print(search_plan)
 
-            # Phase 3: Search
-            search_start = time.time()
-            search_results = await self._perform_file_searches(search_plan)
-            self.timings["search"] = time.time() - search_start
+                # Phase 3: Search
+                await asyncio.sleep(0)  # yield so cancellation can be delivered
+                if progress_callback:
+                    await progress_callback(50, 100, "Recherche dans les documents")
+                search_start = time.time()
+                search_results = await self._perform_file_searches(search_plan)
+                self.timings["search"] = time.time() - search_start
 
-            # Phase 4: Writing
-            write_start = time.time()
-            report = await self._write_report(query, search_results)
-            self.timings["writing"] = time.time() - write_start
+                # Phase 4: Writing
+                await asyncio.sleep(0)  # yield so cancellation can be delivered
+                if progress_callback:
+                    await progress_callback(75, 100, "Rédaction du rapport")
+                write_start = time.time()
+                report = await self._write_report(query, search_results)
+                self.timings["writing"] = time.time() - write_start
+                if progress_callback:
+                    await progress_callback(100, 100, "Terminé")
 
-            final_report = f"Report summary\n\n{report.short_summary}"
-            self.printer.update_item("final_report", final_report, is_done=True)
-
-            self.printer.end()
+                final_report = f"Report summary\n\n{report.short_summary}"
+                self.printer.update_item("final_report", final_report, is_done=True)
+            finally:
+                self.printer.end()
 
         # Total timing
         self.timings["total"] = time.time() - workflow_start
@@ -180,6 +199,8 @@ class DeepResearchManager:
         print("\n\n=====FOLLOW UP QUESTIONS=====\n\n")
         follow_up_questions = "\n".join(report.follow_up_questions)
         print(f"Follow up questions: {follow_up_questions}")
+
+        return _new_report
 
     async def _prepare_knowledge(self, query: str) -> str:
         self.printer.update_item("preparing", "Préparation de la connaissance...")

@@ -10,10 +10,13 @@ class Printer:
         self.live = Live(console=console)
         self.items: dict[str, tuple[str, bool]] = {}
         self.hide_done_ids: set[str] = set()
+        self._ended = False
         self.live.start()
 
     def end(self) -> None:
-        self.live.stop()
+        if not self._ended:
+            self._ended = True
+            self.live.stop()
 
     def hide_done_checkmark(self, item_id: str) -> None:
         self.hide_done_ids.add(item_id)

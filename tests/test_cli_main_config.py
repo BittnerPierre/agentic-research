@@ -82,6 +82,8 @@ def test_importing_main_does_not_initialize_config(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cli_args_override_config_and_flow(monkeypatch, tmp_path):
+    import src.run_research as run_research
+
     main = _import_fresh_main()
     config = _make_config(tmp_path)
     call_order: list[tuple[str, Any]] = []
@@ -99,13 +101,15 @@ async def test_cli_args_override_config_and_flow(monkeypatch, tmp_path):
     syllabus_path.write_text("Syllabus content", encoding="utf-8")
 
     monkeypatch.setattr(main, "get_config", fake_get_config)
-    monkeypatch.setattr(main, "get_manager_class", fake_get_manager_class)
     monkeypatch.setattr(main, "setup_run_logging", lambda **_kwargs: "test.log")
-    monkeypatch.setattr(main, "add_trace_processor", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(main, "MCPServerStdio", lambda **_kwargs: DummyAsyncCM())
-    monkeypatch.setattr(main, "MCPServerSse", lambda **_kwargs: DummyAsyncCM())
-    monkeypatch.setattr(main, "get_vector_backend", lambda _cfg: DummyBackend())
-    monkeypatch.setattr(main.os.path, "exists", lambda _path: True)
+    monkeypatch.setattr(run_research, "get_config", fake_get_config)
+    monkeypatch.setattr(run_research, "get_manager_class", fake_get_manager_class)
+    monkeypatch.setattr(run_research, "setup_run_logging", lambda **_kwargs: "test.log")
+    monkeypatch.setattr(run_research, "add_trace_processor", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(run_research, "MCPServerStdio", lambda **_kwargs: DummyAsyncCM())
+    monkeypatch.setattr(run_research, "MCPServerSse", lambda **_kwargs: DummyAsyncCM())
+    monkeypatch.setattr(run_research, "get_vector_backend", lambda _cfg: DummyBackend())
+    monkeypatch.setattr(run_research.os.path, "exists", lambda _path: True)
 
     argv = [
         "agentic-research",
@@ -132,7 +136,7 @@ async def test_cli_args_override_config_and_flow(monkeypatch, tmp_path):
     await main.main()
 
     assert call_order[0] == ("get_config", argv[2])
-    assert call_order[1] == ("get_manager_class", "deep_manager")
+    assert ("get_manager_class", "deep_manager") in call_order
 
     assert config.vector_store.name == "custom-store"
     assert config.agents.max_search_plan == "5-7"
@@ -147,18 +151,22 @@ async def test_cli_args_override_config_and_flow(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_cli_query_from_input(monkeypatch, tmp_path):
+    import src.run_research as run_research
+
     main = _import_fresh_main()
     config = _make_config(tmp_path)
     DummyManager.last_call = None
 
     monkeypatch.setattr(main, "get_config", lambda _path=None: config)
-    monkeypatch.setattr(main, "get_manager_class", lambda _path: DummyManager)
     monkeypatch.setattr(main, "setup_run_logging", lambda **_kwargs: "test.log")
-    monkeypatch.setattr(main, "add_trace_processor", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(main, "MCPServerStdio", lambda **_kwargs: DummyAsyncCM())
-    monkeypatch.setattr(main, "MCPServerSse", lambda **_kwargs: DummyAsyncCM())
-    monkeypatch.setattr(main, "get_vector_backend", lambda _cfg: DummyBackend())
-    monkeypatch.setattr(main.os.path, "exists", lambda _path: True)
+    monkeypatch.setattr(run_research, "get_config", lambda _path=None: config)
+    monkeypatch.setattr(run_research, "get_manager_class", lambda _path: DummyManager)
+    monkeypatch.setattr(run_research, "setup_run_logging", lambda **_kwargs: "test.log")
+    monkeypatch.setattr(run_research, "add_trace_processor", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(run_research, "MCPServerStdio", lambda **_kwargs: DummyAsyncCM())
+    monkeypatch.setattr(run_research, "MCPServerSse", lambda **_kwargs: DummyAsyncCM())
+    monkeypatch.setattr(run_research, "get_vector_backend", lambda _cfg: DummyBackend())
+    monkeypatch.setattr(run_research.os.path, "exists", lambda _path: True)
     monkeypatch.setattr("builtins.input", lambda _prompt: "Interactive query")
 
     monkeypatch.setattr(sys, "argv", ["agentic-research"])

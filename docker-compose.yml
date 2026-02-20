@@ -43,6 +43,32 @@ services:
     stdin_open: true
     tty: true
 
+  agentic-research-mcp:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agentic-research
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+    env_file:
+      - .env
+    environment:
+      MCP_DATAPREP_URL: http://dataprep:8001/sse
+      MCP_FS_COMMAND: node
+      MCP_FS_ARGS: /usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
+      LITELLM_LOG: ERROR
+      CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./configs:/app/configs
+      - ./urls.txt:/app/urls.txt
+      - ./data:/app/data
+      - ./data/chroma-cache:/root/.cache/chroma
+      - ./output:/app/output
+      - ./logs:/app/logs
+    command: ["agentic_research_server", "--host", "0.0.0.0", "--port", "8008", "--transport", "streamable-http", "--path", "/mcp"]
+    restart: unless-stopped
+
   evaluations:
     build:
       context: .
