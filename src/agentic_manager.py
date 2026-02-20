@@ -29,6 +29,16 @@ class AgenticResearchManager:
             "cached_tokens": 0,
             "reasoning_tokens": 0,
         }
+        self.usage_by_phase = {
+            "agentic_research": {
+                "requests": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cached_tokens": 0,
+                "reasoning_tokens": 0,
+            }
+        }
         # self._run_config = RunConfig(
         #     workflow_name="agentic_research",
         #     tracing_disabled=False,
@@ -85,6 +95,7 @@ class AgenticResearchManager:
             self.printer.end()
 
         print("\n\n=====SAVING REPORT=====\n\n")
+        self.usage_by_phase["total"] = dict(self.usage_summary)
         _new_report = await save_final_report_function(
             research_info.output_dir,
             report.research_topic,
@@ -111,7 +122,7 @@ class AgenticResearchManager:
             context=research_info,
             max_turns=25,
         )
-        self._record_usage(result)
+        self._record_usage(result, phase="agentic_research")
         self.printer.update_item(
             "agentic_research",
             "Doing Agentic Research",
@@ -120,7 +131,7 @@ class AgenticResearchManager:
         output = result.final_output
         return coerce_report_data(output, query)
 
-    def _record_usage(self, result) -> None:
+    def _record_usage(self, result, phase: str | None = None) -> None:
         usage = getattr(getattr(result, "context_wrapper", None), "usage", None)
         if usage is None:
             return
@@ -142,6 +153,9 @@ class AgenticResearchManager:
             if value is None:
                 continue
             try:
-                self.usage_summary[key] += int(value)
+                value_int = int(value)
             except (TypeError, ValueError):
                 continue
+            self.usage_summary[key] += value_int
+            if phase and phase in self.usage_by_phase:
+                self.usage_by_phase[phase][key] += value_int

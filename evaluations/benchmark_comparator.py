@@ -133,6 +133,10 @@ class BenchmarkComparator:
         lines.extend(self._generate_usage_table(successes))
         lines.append("")
 
+        # Token usage by phase
+        lines.extend(self._generate_usage_by_phase_table(successes))
+        lines.append("")
+
         # RAG Triad Table
         lines.extend(self._generate_rag_triad_table(successes))
         lines.append("")
@@ -239,6 +243,7 @@ class BenchmarkComparator:
             "- `P/B/F` = `PASS / BORDERLINE / FAIL` counts across runs.",
             "- `Quality (0-100)` is the averaged content-quality score across runs.",
             "- Token usage fields are averaged across runs when available; `N/A` indicates missing usage.",
+            "- Token usage per phase is shown as `in/out/total` tokens.",
             "- Aggregation rule: mean for `<5` runs; trimmed mean (drop min/max) for `>=5` runs.",
             "- If warmup reporting is enabled, averages exclude run 1.",
             "- If drop-worst-run is enabled, averages exclude the slowest run by total time.",
@@ -290,6 +295,28 @@ class BenchmarkComparator:
                 f"| {setup_name} | {input_tokens} | {output_tokens} | {total_tokens} | "
                 f"{cached_tokens} | {reasoning_tokens} |"
             )
+
+        return lines
+
+    def _generate_usage_by_phase_table(self, benchmarks: list[dict]) -> list[str]:
+        """Generate token usage by phase table."""
+        lines = [
+            "## Token Usage by Phase",
+            "",
+            "| Setup | Prep (in/out/total) | Plan (in/out/total) | Search (in/out/total) | "
+            "Write (in/out/total) | Total (in/out/total) |",
+            "|-------|----------------------|--------------------|----------------------|"
+            "---------------------|----------------------|",
+        ]
+
+        for bench in sorted(benchmarks, key=lambda b: b["setup_metadata"]["setup_name"]):
+            setup_name = bench["setup_metadata"]["setup_name"]
+            prep = self._format_phase_usage(bench, "knowledge_preparation")
+            plan = self._format_phase_usage(bench, "planning")
+            search = self._format_phase_usage(bench, "search")
+            write = self._format_phase_usage(bench, "writing")
+            total = self._format_phase_usage(bench, "total")
+            lines.append(f"| {setup_name} | {prep} | {plan} | {search} | {write} | {total} |")
 
         return lines
 
@@ -798,6 +825,59 @@ class BenchmarkComparator:
             except (TypeError, ValueError):
                 return "N/A"
         return f"{self._aggregate_values(values):.1f}"
+
+    def _format_phase_usage(self, bench: dict, phase: str) -> str:
+        phase_usage = self._phase_usage_aggregate(bench, phase)
+        if not phase_usage:
+            return "N/A"
+        input_tokens = phase_usage.get("input_tokens")
+        output_tokens = phase_usage.get("output_tokens")
+        total_tokens = phase_usage.get("total_tokens")
+        if input_tokens is None and output_tokens is None and total_tokens is None:
+            return "N/A"
+        return (
+            f"{self._format_usage_value(input_tokens)}/"
+            f"{self._format_usage_value(output_tokens)}/"
+            f"{self._format_usage_value(total_tokens)}"
+        )
+
+    def _format_usage_value(self, value: float | int | None) -> str:
+        if value is None:
+            return "N/A"
+        return f"{value:.1f}" if isinstance(value, float) else f"{value}"
+
+    def _phase_usage_aggregate(self, bench: dict, phase: str) -> dict | None:
+        runs = bench.get("runs", [])
+        values: dict[str, list[float]] = {
+            "input_tokens": [],
+            "output_tokens": [],
+            "total_tokens": [],
+        }
+        for run in runs:
+            usage_by_phase = run.get("usage_by_phase") or {}
+            usage = usage_by_phase.get(phase) or {}
+            for key in values:
+                val = usage.get(key)
+                if val is not None:
+                    values[key].append(float(val))
+
+        averaged = {
+            key: (self._aggregate_values(vals) if vals else None) for key, vals in values.items()
+        }
+        if any(val is not None for val in averaged.values()):
+            return averaged
+
+        avg_usage_by_phase = bench.get("average", {}).get("usage_by_phase", {})
+        if not avg_usage_by_phase:
+            return None
+        avg_usage = avg_usage_by_phase.get(phase)
+        if not avg_usage:
+            return None
+        return {
+            "input_tokens": avg_usage.get("input_tokens"),
+            "output_tokens": avg_usage.get("output_tokens"),
+            "total_tokens": avg_usage.get("total_tokens"),
+        }
 
 
 def main():

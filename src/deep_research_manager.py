@@ -49,6 +49,40 @@ class DeepResearchManager:
             "cached_tokens": 0,
             "reasoning_tokens": 0,
         }
+        self.usage_by_phase = {
+            "knowledge_preparation": {
+                "requests": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cached_tokens": 0,
+                "reasoning_tokens": 0,
+            },
+            "planning": {
+                "requests": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cached_tokens": 0,
+                "reasoning_tokens": 0,
+            },
+            "search": {
+                "requests": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cached_tokens": 0,
+                "reasoning_tokens": 0,
+            },
+            "writing": {
+                "requests": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cached_tokens": 0,
+                "reasoning_tokens": 0,
+            },
+        }
         # Désactiver le tracing automatique pour cet appel
         # self._run_config = RunConfig(
         #     workflow_name="deep_research",
@@ -130,6 +164,7 @@ class DeepResearchManager:
 
         # Total timing
         self.timings["total"] = time.time() - workflow_start
+        self.usage_by_phase["total"] = dict(self.usage_summary)
 
         print("\n\n=====SAVING REPORT=====\n\n")
         _new_report = await save_final_report_function(
@@ -153,7 +188,7 @@ class DeepResearchManager:
             query,
             context=self.research_info,
         )
-        self._record_usage(result)
+        self._record_usage(result, phase="knowledge_preparation")
         self.agent_calls["knowledge_preparation_agent"] += 1
         self.agent_calls["total"] += 1
         self.printer.update_item(
@@ -182,7 +217,7 @@ class DeepResearchManager:
                     planner_input,
                     context=self.research_info,
                 )
-                self._record_usage(result)
+                self._record_usage(result, phase="planning")
                 plan = result.final_output_as(FileSearchPlan)
                 if not plan.searches:
                     raise ValueError("FileSearchPlan is empty")
@@ -240,7 +275,7 @@ class DeepResearchManager:
                 input_text,
                 context=self.research_info,
             )
-            self._record_usage(result)
+            self._record_usage(result, phase="search")
             self.agent_calls["file_search_agent"] += 1
             self.agent_calls["total"] += 1
             raw_file_name = str(result.final_output_as(FileSearchResult).file_name)
@@ -351,11 +386,11 @@ class DeepResearchManager:
         self.printer.mark_item_done("writing")
         self.agent_calls["writer_agent"] += 1
         self.agent_calls["total"] += 1
-        self._record_usage(result)
+        self._record_usage(result, phase="writing")
         output = result.final_output
         return coerce_report_data(output, query)
 
-    def _record_usage(self, result) -> None:
+    def _record_usage(self, result, phase: str | None = None) -> None:
         usage = getattr(getattr(result, "context_wrapper", None), "usage", None)
         if usage is None:
             return
@@ -377,6 +412,9 @@ class DeepResearchManager:
             if value is None:
                 continue
             try:
-                self.usage_summary[key] += int(value)
+                value_int = int(value)
             except (TypeError, ValueError):
                 continue
+            self.usage_summary[key] += value_int
+            if phase and phase in self.usage_by_phase:
+                self.usage_by_phase[phase][key] += value_int
