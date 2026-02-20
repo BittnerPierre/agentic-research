@@ -949,6 +949,41 @@ class TestBenchmarkRunnerHelpers:
                         "answer_relevance": 0.7,
                         "average": 0.8,
                     },
+                    "usage": {
+                        "requests": 4,
+                        "input_tokens": 120,
+                        "output_tokens": 80,
+                        "total_tokens": 200,
+                        "cached_tokens": 10,
+                        "reasoning_tokens": 5,
+                    },
+                    "usage_by_phase": {
+                        "knowledge_preparation": {
+                            "input_tokens": 40,
+                            "output_tokens": 20,
+                            "total_tokens": 60,
+                        },
+                        "planning": {
+                            "input_tokens": 20,
+                            "output_tokens": 10,
+                            "total_tokens": 30,
+                        },
+                        "search": {
+                            "input_tokens": 30,
+                            "output_tokens": 20,
+                            "total_tokens": 50,
+                        },
+                        "writing": {
+                            "input_tokens": 30,
+                            "output_tokens": 30,
+                            "total_tokens": 60,
+                        },
+                        "total": {
+                            "input_tokens": 120,
+                            "output_tokens": 80,
+                            "total_tokens": 200,
+                        },
+                    },
                     "scores": {
                         "spec_compliance_100": 90.0,
                         "content_quality_100": 88.0,
@@ -982,6 +1017,41 @@ class TestBenchmarkRunnerHelpers:
                         "answer_relevance": 0.8,
                         "average": 0.7,
                     },
+                    "usage": {
+                        "requests": 6,
+                        "input_tokens": 180,
+                        "output_tokens": 120,
+                        "total_tokens": 300,
+                        "cached_tokens": 20,
+                        "reasoning_tokens": 15,
+                    },
+                    "usage_by_phase": {
+                        "knowledge_preparation": {
+                            "input_tokens": 60,
+                            "output_tokens": 30,
+                            "total_tokens": 90,
+                        },
+                        "planning": {
+                            "input_tokens": 30,
+                            "output_tokens": 20,
+                            "total_tokens": 50,
+                        },
+                        "search": {
+                            "input_tokens": 50,
+                            "output_tokens": 30,
+                            "total_tokens": 80,
+                        },
+                        "writing": {
+                            "input_tokens": 40,
+                            "output_tokens": 40,
+                            "total_tokens": 80,
+                        },
+                        "total": {
+                            "input_tokens": 180,
+                            "output_tokens": 120,
+                            "total_tokens": 300,
+                        },
+                    },
                     "scores": {
                         "spec_compliance_100": 70.0,
                         "content_quality_100": 72.0,
@@ -998,6 +1068,8 @@ class TestBenchmarkRunnerHelpers:
         assert avg["timing"]["phases"]["search"] == pytest.approx(4.5)
         assert avg["agent_calls"]["total"] == pytest.approx(6.0)
         assert avg["rag_triad"]["average"] == pytest.approx(0.75)
+        assert avg["usage"]["total_tokens"] == pytest.approx(250.0)
+        assert avg["usage_by_phase"]["search"]["total_tokens"] == pytest.approx(65.0)
         assert avg["scores"]["overall_100"] == pytest.approx(78.8)
 
     def test_select_runs_for_average_drop_worst(self):
@@ -1096,6 +1168,35 @@ class TestBenchmarkRunnerHelpers:
         assert output_dir == os.path.realpath(str(out_input))
 
 
+class TestAgenticManagerUsage:
+    def test_record_usage_from_run_result(self):
+        from src.agentic_manager import AgenticResearchManager
+
+        class _Usage:
+            requests = 2
+            input_tokens = 50
+            output_tokens = 30
+            total_tokens = 80
+            cached_tokens = 10
+            reasoning_tokens = 5
+
+        class _ContextWrapper:
+            usage = _Usage()
+
+        class _Result:
+            context_wrapper = _ContextWrapper()
+
+        manager = AgenticResearchManager()
+        manager._record_usage(_Result())
+
+        assert manager.usage_summary["requests"] == 2
+        assert manager.usage_summary["input_tokens"] == 50
+        assert manager.usage_summary["output_tokens"] == 30
+        assert manager.usage_summary["total_tokens"] == 80
+        assert manager.usage_summary["cached_tokens"] == 10
+        assert manager.usage_summary["reasoning_tokens"] == 5
+
+
 class TestBenchmarkComparator:
     """Test benchmark comparison generation."""
 
@@ -1135,6 +1236,13 @@ class TestBenchmarkComparator:
                     },
                 },
                 "agent_calls": {"total": 10},
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 80,
+                    "total_tokens": 180,
+                    "cached_tokens": 5,
+                    "reasoning_tokens": 0,
+                },
                 "rag_triad": {
                     "groundedness": 0.8,
                     "context_relevance": 0.7,
@@ -1186,6 +1294,8 @@ class TestBenchmarkComparator:
         markdown = comparator.compare()
 
         assert "# Benchmark Comparison Report" in markdown
+        assert "## Token Usage" in markdown
+        assert "## Token Usage by Phase" in markdown
         assert "setup-a" in markdown
         assert "setup-b" in markdown
         assert (run_dir / "comparison_table.md").exists()

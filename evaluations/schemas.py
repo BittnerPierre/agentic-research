@@ -87,9 +87,14 @@ class AgentCallsResult(BaseModel):
 class TokensResult(BaseModel):
     """Token usage statistics (optional)."""
 
-    total_input: int = Field(description="Total input tokens")
-    total_output: int = Field(description="Total output tokens")
-    total: int = Field(description="Total tokens (input + output)")
+    requests: int | None = Field(default=None, description="Total requests")
+    input_tokens: int | None = Field(default=None, description="Total input tokens")
+    output_tokens: int | None = Field(default=None, description="Total output tokens")
+    total_tokens: int | None = Field(default=None, description="Total tokens (input + output)")
+    cached_tokens: int | None = Field(default=None, description="Cached tokens (if available)")
+    reasoning_tokens: int | None = Field(
+        default=None, description="Reasoning tokens (if available)"
+    )
 
 
 class SetupMetadata(BaseModel):

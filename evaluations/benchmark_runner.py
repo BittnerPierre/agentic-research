@@ -60,6 +60,28 @@ class BenchmarkRunner:
             return "BORDERLINE"
         return "FAIL"
 
+    def _format_usage_line(self, usage: dict | None) -> str:
+        if not usage:
+            return "N/A"
+        input_tokens = usage.get("input_tokens")
+        output_tokens = usage.get("output_tokens")
+        total_tokens = usage.get("total_tokens")
+        if input_tokens is None and output_tokens is None and total_tokens is None:
+            return "N/A"
+        return (
+            f"in={self._format_usage_value(input_tokens)} "
+            f"out={self._format_usage_value(output_tokens)} "
+            f"total={self._format_usage_value(total_tokens)}"
+        )
+
+    def _format_usage_value(self, value: float | int | None) -> str:
+        if value is None:
+            return "N/A"
+        return f"{value:.1f}" if isinstance(value, float) else f"{value}"
+
+    def _phase_usage(self, run_result: dict, phase: str) -> dict | None:
+        return (run_result.get("usage_by_phase") or {}).get(phase)
+
     async def run_benchmark(
         self,
         config_file: str,
@@ -126,6 +148,23 @@ class BenchmarkRunner:
             print(f"   - Content quality: {run_result['scores']['content_quality_100']:.1f}/100")
             print(f"   - RAG compliance: {run_result['scores']['rag_compliance_100']:.1f}/100")
             print(f"   - Efficiency: {run_result['scores']['efficiency_100']:.1f}/100")
+            print(f"   - Tokens total: {self._format_usage_line(run_result.get('usage'))}")
+            print(
+                "   - Tokens prep: "
+                f"{self._format_usage_line(self._phase_usage(run_result, 'knowledge_preparation'))}"
+            )
+            print(
+                "   - Tokens plan: "
+                f"{self._format_usage_line(self._phase_usage(run_result, 'planning'))}"
+            )
+            print(
+                "   - Tokens search: "
+                f"{self._format_usage_line(self._phase_usage(run_result, 'search'))}"
+            )
+            print(
+                "   - Tokens write: "
+                f"{self._format_usage_line(self._phase_usage(run_result, 'writing'))}"
+            )
 
         # 5. Detect outliers
         print("\n🔍 Analyzing runs...")
@@ -291,12 +330,16 @@ class BenchmarkRunner:
         )
 
         # Compile results
+        usage = self._coerce_usage(getattr(manager, "usage_summary", None))
+        usage_by_phase = self._coerce_usage_by_phase(getattr(manager, "usage_by_phase", None))
         result = {
             "report_file": str(report_file),
             "report_path": str(report_file),
             "trace_file": str(trace_file),
             "timing": timing.model_dump(),
             "agent_calls": agent_calls.model_dump(),
+            "usage": usage,
+            "usage_by_phase": usage_by_phase,
             "quality_result": quality_result.model_dump(),
             "rag_triad": rag_triad_data,
             "spec_compliance": spec_compliance.model_dump(),
@@ -396,8 +439,99 @@ class BenchmarkRunner:
             "timing": avg_timing,
             "agent_calls": avg_agent_calls,
             "rag_triad": avg_rag_triad,
+            "usage": self._average_usage(runs),
+            "usage_by_phase": self._average_usage_by_phase(runs),
             "scores": avg_scores,
         }
+
+    def _coerce_usage(self, usage: dict | None) -> dict | None:
+        if not usage:
+            return None
+        if not any(value for value in usage.values()):
+            return None
+        return {
+            "requests": usage.get("requests"),
+            "input_tokens": usage.get("input_tokens"),
+            "output_tokens": usage.get("output_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+            "cached_tokens": usage.get("cached_tokens"),
+            "reasoning_tokens": usage.get("reasoning_tokens"),
+        }
+
+    def _average_usage(self, runs: list[dict]) -> dict | None:
+        usage_runs = [r.get("usage") for r in runs if r.get("usage")]
+        if not usage_runs:
+            return None
+
+        keys = (
+            "requests",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "reasoning_tokens",
+        )
+        averaged: dict[str, float] = {}
+        for key in keys:
+            values = [u.get(key) for u in usage_runs if u.get(key) is not None]
+            if not values:
+                continue
+            averaged[key] = sum(values) / len(values)
+        return averaged or None
+
+    def _coerce_usage_by_phase(self, usage_by_phase: dict | None) -> dict | None:
+        if not usage_by_phase:
+            return None
+
+        cleaned: dict[str, dict] = {}
+        for phase, usage in usage_by_phase.items():
+            if not usage:
+                continue
+            if not any(value for value in usage.values()):
+                continue
+            cleaned[phase] = {
+                "requests": usage.get("requests"),
+                "input_tokens": usage.get("input_tokens"),
+                "output_tokens": usage.get("output_tokens"),
+                "total_tokens": usage.get("total_tokens"),
+                "cached_tokens": usage.get("cached_tokens"),
+                "reasoning_tokens": usage.get("reasoning_tokens"),
+            }
+
+        return cleaned or None
+
+    def _average_usage_by_phase(self, runs: list[dict]) -> dict | None:
+        usage_runs = [r.get("usage_by_phase") for r in runs if r.get("usage_by_phase")]
+        if not usage_runs:
+            return None
+
+        phases = sorted({phase for usage in usage_runs for phase in usage.keys()})
+        averaged: dict[str, dict] = {}
+        keys = (
+            "requests",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "cached_tokens",
+            "reasoning_tokens",
+        )
+
+        for phase in phases:
+            phase_values: dict[str, list[float]] = {key: [] for key in keys}
+            for usage in usage_runs:
+                phase_usage = usage.get(phase) or {}
+                for key in keys:
+                    value = phase_usage.get(key)
+                    if value is None:
+                        continue
+                    phase_values[key].append(float(value))
+            averaged_phase = {
+                key: (sum(values) / len(values)) for key, values in phase_values.items() if values
+            }
+            if averaged_phase:
+                averaged[phase] = averaged_phase
+
+        return averaged or None
 
     def _select_runs_for_average(
         self,
@@ -606,6 +740,25 @@ async def main():
     print(f"Average RAG compliance: {result['average']['scores']['rag_compliance_100']:.1f}/100")
     print(f"Average efficiency: {result['average']['scores']['efficiency_100']:.1f}/100")
     print(f"Analysis: {result['average']['scores']['analysis']}")
+    avg_usage = result["average"].get("usage")
+    avg_usage_by_phase = result["average"].get("usage_by_phase", {})
+    print(f"Average tokens total: {runner._format_usage_line(avg_usage)}")
+    print(
+        "Average tokens prep: "
+        f"{runner._format_usage_line((avg_usage_by_phase or {}).get('knowledge_preparation'))}"
+    )
+    print(
+        "Average tokens plan: "
+        f"{runner._format_usage_line((avg_usage_by_phase or {}).get('planning'))}"
+    )
+    print(
+        "Average tokens search: "
+        f"{runner._format_usage_line((avg_usage_by_phase or {}).get('search'))}"
+    )
+    print(
+        "Average tokens write: "
+        f"{runner._format_usage_line((avg_usage_by_phase or {}).get('writing'))}"
+    )
 
 
 def cli_main():

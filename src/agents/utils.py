@@ -393,6 +393,15 @@ def adjust_model_settings_for_base_url(model_spec: Any, model_settings) -> None:
     model_settings.extra_args = extra_args
 
 
+def enable_usage_for_litellm(model_spec: Any, model_settings) -> None:
+    """Enable usage reporting for LiteLLM models when supported."""
+    model_string = model_spec_to_string(model_spec)
+    if not model_string.startswith("litellm/"):
+        return
+    if hasattr(model_settings, "include_usage"):
+        model_settings.include_usage = True
+
+
 def is_mistral_model(model_string: Any) -> bool:
     """
     Vérifie si le modèle est un modèle Mistral.
