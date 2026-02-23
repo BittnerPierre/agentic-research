@@ -371,5 +371,5 @@ When adding evaluation features:
 ## Related Documentation
 
 - Issue #8: Functional Evaluation Framework
-- `docs/FUNCTIONAL_EVALUATION_PLAN.md` - Implementation plan
+- `docs/plannings/released/FUNCTIONAL_EVALUATION_PLAN.md` - Implementation plan
 - `evaluations/write_agent_eval.py` - Writer-only evaluation (existing pattern)

@@ -190,7 +190,7 @@ Writer agent doit appeler `save_report` tool → modèle peut skip ou boucler su
 - Si nouvel échec, **retourner un JSON vide** avec un **code/message d’erreur** dans le format de retour (pas d’exception).
 - Le manager (LLM) détecte l’échec via la réponse structurée vide et décide de relancer.
 
-**Référence** : voir `plannings/ROBUSTIFICATION_PROPOSAL_FALLBACK_STRATEGY.md` (proposition d’implémentation).
+**Référence** : voir `docs/plannings/ROBUSTIFICATION_PROPOSAL_FALLBACK_STRATEGY.md` (proposition d’implémentation).
 
 **Tests attendus** :
 

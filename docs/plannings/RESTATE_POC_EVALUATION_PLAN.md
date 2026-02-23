@@ -285,7 +285,7 @@ async def test_writer_comparison(scenario):
   - Nombre de retries
   - Qualité des traces (subjective)
 
-- [ ] Documenter observations dans `plannings/RESTATE_POC_RESULTS.md`
+- [ ] Documenter observations dans `docs/plannings/RESTATE_POC_RESULTS.md`
 
 **Validation** :
 
@@ -332,7 +332,7 @@ async def test_writer_comparison(scenario):
 
 ### Documents
 
-1. **RESTATE_POC_RESULTS.md** (plannings/) :
+1. **RESTATE_POC_RESULTS.md** (docs/plannings/) :
    - Résultats des tests
    - Métriques comparatives
    - Screenshots Restate UI
@@ -429,7 +429,7 @@ Jour 1 (Plan principal)         | Jour 1 (POC Restate)
 
 ### Contexte projet
 
-- Plan principal: `plannings/ROBUSTIFICATION_DGX_SPARK_PLAN.md`
+- Plan principal: `docs/plannings/ROBUSTIFICATION_DGX_SPARK_PLAN.md`
 - Issues concernées: #6, #7, #46, #47
 - Architecture: `CLAUDE.md`
 
