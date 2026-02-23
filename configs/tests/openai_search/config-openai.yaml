@@ -13,7 +13,6 @@ vector_search:
 # Configuration des données d'entrée
 data:
   # Fichier contenant les URLs à traiter (une par ligne)
-  urls_file: "urls.txt"
   # Base de connaissances locale (JSON)
   knowledge_db_path: "data/knowledge_db.json"
   # Dossier de stockage local des fichiers .md

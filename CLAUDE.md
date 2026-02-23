@@ -91,7 +91,7 @@ Configuration structure (`src/config.py`):
 Config
 ├── config_name: str
 ├── vector_store: VectorStoreConfig (name, description, expires_after_days, vector_store_id)
-├── data: DataConfig (urls_file, knowledge_db_path, local_storage_dir)
+├── data: DataConfig (knowledge_db_path, local_storage_dir)
 ├── debug: DebugConfig (enabled, output_dir, save_reports)
 ├── logging: LoggingConfig (level, format)
 ├── models: ModelsConfig (research_model, planning_model, search_model, writer_model, knowledge_preparation_model)
@@ -146,7 +146,7 @@ poetry run agentic-research --debug
 
 ### Data Preparation
 ```bash
-# Run dataprep workflow (downloads URLs from urls.txt)
+# Run dataprep workflow (dynamic references from syllabus)
 poetry run mcp-dataprep-workflow
 
 # Legacy dataprep command

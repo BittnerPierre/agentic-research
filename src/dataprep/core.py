@@ -164,55 +164,13 @@ def upload_files_to_vector_store(
 
 def load_urls_from_file() -> list[str]:
     """
-    Charge la liste des URLs depuis un fichier texte configuré.
-
-    Returns:
-        Liste des URLs valides
-
-    Raises:
-        FileNotFoundError: Si le fichier URLs n'existe pas
-        ValueError: Si aucune URL valide n'est trouvée dans le fichier
-        Exception: Pour toute autre erreur de lecture du fichier
+    Deprecated: static urls.txt ingestion is not supported.
+    Use dynamic references extracted from the syllabus instead.
     """
-    config = get_config()
-    # Récupérer le nom du fichier depuis la configuration
-    urls_file_path = config.data.urls_file
-
-    # Déterminer le chemin absolu du fichier URLs
-    current_dir = Path(
-        __file__
-    ).parent.parent.parent  # Remonter au dossier experiments/agentic-research
-    urls_file = current_dir / urls_file_path
-
-    # Vérifier que le fichier existe
-    if not urls_file.exists():
-        raise FileNotFoundError(f"Fichier URLs non trouvé: {urls_file}")
-
-    urls = []
-
-    try:
-        with open(urls_file, encoding="utf-8") as f:
-            for line_num, line in enumerate(f, 1):
-                url = line.strip()
-
-                # Ignorer les lignes vides et les commentaires
-                if url and not url.startswith("#"):
-                    # Validation basique d'URL
-                    if url.startswith(("http://", "https://")):
-                        urls.append(url)
-                        logger.debug(f"URL ajoutée: {url}")
-                    else:
-                        logger.warning(f"URL invalide ignorée (ligne {line_num}): {url}")
-
-        if not urls:
-            raise ValueError(f"Aucune URL valide trouvée dans le fichier: {urls_file}")
-
-        logger.info(f"{len(urls)} URLs chargées depuis {urls_file}")
-
-    except OSError as e:
-        raise Exception(f"Erreur lors de la lecture du fichier URLs {urls_file}: {e}")
-
-    return urls
+    raise RuntimeError(
+        "Static urls.txt ingestion is deprecated. "
+        "Provide dynamic references from the syllabus instead."
+    )
 
 
 def main():
@@ -329,11 +287,9 @@ def main():
 
             logger.info("Traitement terminé. Dossier temporaire nettoyé automatiquement.")
 
-    except (FileNotFoundError, ValueError) as e:
+    except (FileNotFoundError, ValueError, RuntimeError) as e:
         logger.error(f"Erreur de configuration: {e}")
-        logger.error(
-            f"Veuillez créer un fichier '{config.data.urls_file}' avec les URLs à traiter (une par ligne)"
-        )
+        logger.error("Veuillez fournir des références dynamiques (syllabus) à traiter.")
         raise
     except Exception as e:
         logger.error(f"Erreur critique dans le traitement: {e}")

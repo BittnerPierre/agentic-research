@@ -22,7 +22,6 @@ vector_search:
   score_threshold: null
 
 data:
-  urls_file: "urls.txt"
   knowledge_db_path: "data/knowledge_db.json"
   local_storage_dir: "data/"
 

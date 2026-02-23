@@ -13,7 +13,6 @@ services:
       CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     volumes:
       - ./configs:/app/configs
-      - ./urls.txt:/app/urls.txt
       - ./data:/app/data
       - ./output:/app/output
       - ./logs:/app/logs
@@ -35,7 +34,6 @@ services:
       CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     volumes:
       - ./configs:/app/configs
-      - ./urls.txt:/app/urls.txt
       - ./data:/app/data
       - ./data/chroma-cache:/root/.cache/chroma
       - ./output:/app/output
@@ -59,7 +57,6 @@ services:
       CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-dummy}
     volumes:
       - ./configs:/app/configs
-      - ./urls.txt:/app/urls.txt
       - ./data:/app/data
       - ./data/chroma-cache:/root/.cache/chroma
       - ./output:/app/output
