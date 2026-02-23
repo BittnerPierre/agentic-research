@@ -408,7 +408,7 @@ def temp_config(self):
 
 ### Phase 8: Documentation
 
-**Création :** `MCP_DATAPREP_README.md`
+**Création :** `docs/MCP_DATAPREP_README.md`
 
 **Sections complètes :**
 
@@ -810,7 +810,7 @@ integration_tests/
 └── test_[module].py       # Comprehensive integration tests
 
 [MODULE]_README.md          # Complete documentation + examples
-IMPLEMENTATION_HISTORY.md   # Trace complète pour reproductibilité
+docs/history/IMPLEMENTATION_HISTORY.md   # Trace complète pour reproductibilité
 ```
 
 ---

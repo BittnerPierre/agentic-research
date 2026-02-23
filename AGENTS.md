@@ -64,6 +64,6 @@
 ## Architecture & Planning Notes
 - The multi-agent flow is: supervisor → (optional) knowledge prep → plan → parallel search → writer report.
 - MCP servers include a filesystem server and the custom DataPrep server in `src/mcp/dataprep_server.py`.
-- Future architecture changes are tracked in `CHROMADB_MIGRATION_PLAN.md`.
+- Future architecture changes are tracked in `docs/plannings/released/CHROMADB_MIGRATION_PLAN.md`.
 - Active roadmap items live in GitHub issues #11–#13 (vector store integration, Response API removal, DGX Spark deployment).
 - Evaluation work targets cross-LLM comparisons (OpenAI, Claude, Mistral) plus open-source models via `vllm` or `llama.cpp`.
