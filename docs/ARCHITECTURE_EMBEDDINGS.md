@@ -7,8 +7,8 @@ This note documents how embeddings are computed in two modes:
 2) Remote embedding service (GPU)
 
 The goal is to keep the **same embedding function** for both indexing (dataprep)
-and retrieval (MCP / chroma-mcp). This is achieved by persisting the embedding
-function on the Chroma collection at creation time.
+and retrieval (DataPrep vector_search). This is achieved by persisting the
+embedding function on the Chroma collection at creation time.
 
 ---
 
@@ -17,7 +17,11 @@ function on the Chroma collection at creation time.
 ```
 ┌────────────────────────────┐
 │ agentic-research (CLI)     │
-│  └─ chroma-mcp (client)    │
+└─────────────┬──────────────┘
+              │ vector_search (MCP)
+              ▼
+┌────────────────────────────┐
+│ dataprep (MCP server)      │
 └─────────────┬──────────────┘
               │ query_texts
               ▼
@@ -40,9 +44,9 @@ function on the Chroma collection at creation time.
 ```
 
 **Key points**
-- Embeddings are computed **inside the app containers** (agentic-research, dataprep).
+- Embeddings are computed **inside the dataprep container** (indexing + retrieval).
 - Chroma only stores vectors and serves similarity search.
-- The embedding function is persisted on the collection by dataprep and reused by chroma-mcp.
+- The embedding function is persisted on the collection by dataprep and reused for queries.
 
 ---
 
@@ -51,7 +55,11 @@ function on the Chroma collection at creation time.
 ```
 ┌────────────────────────────┐
 │ agentic-research (CLI)     │
-│  └─ chroma-mcp (client)    │
+└─────────────┬──────────────┘
+              │ vector_search (MCP)
+              ▼
+┌────────────────────────────┐
+│ dataprep (MCP server)      │
 └─────────────┬──────────────┘
               │ query_texts
               ▼
@@ -75,7 +83,7 @@ function on the Chroma collection at creation time.
 
 **Key points**
 - Dataprep attaches a remote embedding function (OpenAIEmbeddingFunction) to the collection.
-- chroma-mcp uses the persisted embedding function when querying with query_texts.
+- Dataprep uses the persisted embedding function when querying with query_texts.
 - Chroma never computes embeddings on its own; it only stores and queries vectors.
 
 ---
@@ -88,6 +96,6 @@ EmbeddingFactory
   └─ remote: /v1/embeddings (embeddings-gpu)
 ```
 
-The factory is used in dataprep (indexing). chroma-mcp does not call the factory
-directly; it uses the embedding function persisted on the collection. This
+The factory is used in dataprep (indexing + retrieval). DataPrep does not call
+the factory directly during retrieval; it uses the embedding function persisted on the collection. This
 guarantees consistent vectors across index + retrieval.

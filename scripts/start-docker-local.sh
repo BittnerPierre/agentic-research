@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ ! -f models.env ]; then
-  echo "Error: models.env not found. Copy models.env.example and configure it."
+ENV_FILE="models/models.local.env"
+if [ ! -f "${ENV_FILE}" ]; then
+  echo "Error: ${ENV_FILE} not found. Configure it for local llama.cpp."
   exit 1
 fi
 
@@ -14,12 +15,12 @@ fi
 
 APP_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo dev)
 
-docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env build \
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file "${ENV_FILE}" build \
   --build-arg APP_VERSION="${APP_VERSION}" \
   dataprep agentic-research
 
-docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env up -d \
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file "${ENV_FILE}" up -d \
   chromadb dataprep llama-cpp-cpu
 
 echo "Services started. Run research with:"
-echo "docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env run --rm agentic-research agentic-research --config /app/configs/config-docker-local.yaml --query 'your query'"
+echo "docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file ${ENV_FILE} run --rm agentic-research agentic-research --config /app/configs/config-docker-local.yaml --query 'your query'"

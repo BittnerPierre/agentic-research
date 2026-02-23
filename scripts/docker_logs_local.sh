@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ ! -f models.env ]; then
-  echo "Error: models.env not found. Copy models.env.example and configure it."
+ENV_FILE="models/models.local.env"
+if [ ! -f "${ENV_FILE}" ]; then
+  echo "Error: ${ENV_FILE} not found. Configure it for local llama.cpp."
   exit 1
 fi
 
@@ -11,4 +12,4 @@ if [ "$#" -lt 1 ]; then
   exit 1
 fi
 
-docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file models.env logs "$@"
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file "${ENV_FILE}" logs "$@"

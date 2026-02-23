@@ -58,7 +58,6 @@ async def test_agentic_manager_saves_report(monkeypatch, tmp_path):
     await manager.run(
         fs_server=DummyServer(),
         dataprep_server=DummyServer(),
-        vector_mcp_server=None,
         query="<research_request>Q</research_request>",
         research_info=research_info,
     )

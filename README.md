@@ -23,7 +23,7 @@ For Docker/Docker Compose usage (local, DGX Spark, smoke tests, logs), see
   `sentence-transformers:*` embedding function (used by `local`/`chroma`).
   The first run will download the model weights.
 - `chromadb` (Python client) is required for the `chroma` provider because
-  dataprep uses `chromadb.HttpClient` and the `chroma-mcp` client depends on it.
+  dataprep uses `chromadb.HttpClient`.
 
 Note on embeddings config: in DGX Docker, the embeddings model is configured in
 two places: models.env (full path for embeddings-gpu) and
@@ -132,5 +132,4 @@ benchmark:
 
 - `openai`: uses `FileSearchTool` with the configured vector store id.
 - `local`: uses the local vector search tool.
-- `chroma`: tools are provided by the Chroma MCP server configured under `vector_mcp`
-  (e.g. `chroma_query_documents`, `chroma_get_documents`).
+- `chroma`: retrieval is routed through DataPrep `vector_search` (no Chroma MCP client).

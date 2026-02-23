@@ -162,20 +162,16 @@ The `vector_search.provider` in config determines the backend:
 
 - `openai`: OpenAI file_search (cloud, requires API key)
 - `local`: Local mock (for tests only)
-- `chroma`: ChromaDB via MCP
+- `chroma`: ChromaDB via DataPrep `vector_search`
 
 ### Docker Configs
 
 - `configs/config-docker-local.yaml`: Local development (CPU)
 - `configs/config-docker-dgx.yaml`: DGX production (GPU)
 
-### MCP Integration
+### DataPrep Integration
 
-The `vector_mcp` section enables agents to query ChromaDB directly:
-
-- Command: `chroma-mcp`
-- Tool allowlist: `chroma_query_documents`, `chroma_get_documents`
-- Used by search agents during research
+Agents query ChromaDB through the DataPrep MCP server using the `vector_search` tool.
 
 ### Note on `docker compose run`
 
