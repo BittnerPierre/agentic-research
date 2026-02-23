@@ -133,3 +133,7 @@ benchmark:
 - `openai`: uses `FileSearchTool` with the configured vector store id.
 - `local`: uses the local vector search tool.
 - `chroma`: retrieval is routed through DataPrep `vector_search` (no Chroma MCP client).
+
+## License
+
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
