@@ -197,8 +197,6 @@ async def main() -> None:
             f"(http timeout: {config.mcp.http_timeout_seconds}s, "
             f"client session timeout: {config.mcp.client_timeout_seconds}s)"
         )
-        vector_mcp_server = None
-
         async with AsyncExitStack() as stack:
             await stack.enter_async_context(fs_server)
             await stack.enter_async_context(dataprep_server)
@@ -225,7 +223,6 @@ async def main() -> None:
                 await manager_class().run(
                     dataprep_server=dataprep_server,
                     fs_server=fs_server,
-                    vector_mcp_server=vector_mcp_server,
                     query=query,
                     research_info=research_info,
                 )

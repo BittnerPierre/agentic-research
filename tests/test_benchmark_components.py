@@ -14,8 +14,6 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from agents.mcp import MCPServerStdio
-
 
 class TestSetupDetector:
     """Test setup detection logic."""
@@ -616,7 +614,6 @@ class TestBenchmarkRunnerIntegration:
                 client_timeout_seconds=60.0,
             ),
             vector_search=SimpleNamespace(provider="openai"),
-            vector_mcp=SimpleNamespace(command="uvx", args=[], client_timeout_seconds=60.0),
         )
         monkeypatch.setattr(benchmark_runner, "get_config", lambda _path: config)
 
@@ -785,9 +782,6 @@ class TestBenchmarkRunnerIntegration:
                 client_timeout_seconds=60.0,
             ),
             vector_search=SimpleNamespace(provider="chroma"),
-            vector_mcp=SimpleNamespace(
-                command="uvx", args=["chroma-mcp"], client_timeout_seconds=60.0
-            ),
         )
         monkeypatch.setattr(benchmark_runner, "get_config", lambda _path: config)
 
@@ -801,7 +795,7 @@ class TestBenchmarkRunnerIntegration:
 
         assert len(created_servers) == 2
         assert created_servers[1].params["url"] == "http://override:9001/sse"
-        assert "VECTOR_MCP_SERVER" not in entered
+        assert entered == ["FS_MCP_SERVER", "DATAPREP_MCP_SERVER"]
         assert result["rag_triad"]["average"] == 0.7
         assert result["scores"]["overall_100"] == pytest.approx(79.6)
 
@@ -835,71 +829,6 @@ class TestBenchmarkRunnerIntegration:
         assert resp.status == 200
         assert "heartbeat" in body.lower()
         conn.close()
-
-    @pytest.mark.integration
-    @pytest.mark.asyncio
-    async def test_remote_chroma_mcp_query_documents(self):
-        """
-        Optional remote integration check for Chroma MCP query.
-
-        Enable with:
-        RUN_REMOTE_BENCHMARK_INTEGRATION=1
-        """
-        if os.getenv("RUN_REMOTE_BENCHMARK_INTEGRATION") != "1":
-            pytest.skip("Set RUN_REMOTE_BENCHMARK_INTEGRATION=1 to run remote checks")
-
-        host = os.getenv("BENCHMARK_REMOTE_HOST", "gx10-957b")
-        query_text = os.getenv("BENCHMARK_REMOTE_QUERY", "Maximum Inner Product Search")
-        collection_name = os.getenv("BENCHMARK_REMOTE_COLLECTION", "agentic-research-dgx")
-
-        args = [
-            "--python",
-            "3.12",
-            "chroma-mcp",
-            "--client-type",
-            "http",
-            "--host",
-            host,
-            "--port",
-            "8000",
-            "--ssl",
-            "false",
-        ]
-        if os.getenv("BENCHMARK_USE_UVX_QUIET", "1") == "1":
-            args.insert(0, "--quiet")
-
-        mcp_server = MCPServerStdio(
-            name="CHROMA_MCP_SERVER",
-            params={
-                "command": "uvx",
-                "args": args,
-                "env": dict(os.environ),
-            },
-            client_session_timeout_seconds=60.0,
-            cache_tools_list=True,
-        )
-
-        async with mcp_server:
-            tools = await mcp_server.list_tools()
-            tool_names = {tool.name for tool in tools}
-            assert "chroma_query_documents" in tool_names
-
-            result = await mcp_server.call_tool(
-                "chroma_query_documents",
-                {
-                    "collection_name": collection_name,
-                    "query_texts": [query_text],
-                    "n_results": 3,
-                    "include": ["documents", "metadatas", "distances"],
-                },
-            )
-
-            assert not result.isError
-            assert result.content, "Expected non-empty MCP response content"
-
-            text_parts = [getattr(item, "text", "") for item in result.content]
-            output_text = "\n".join(part for part in text_parts if part)
-            assert "Error executing tool" not in output_text
 
 
 class TestBenchmarkRunnerHelpers:

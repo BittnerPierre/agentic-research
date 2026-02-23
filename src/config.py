@@ -52,17 +52,6 @@ class VectorSearchConfig(BaseModel):
     score_threshold: float | None = Field(default=None)
 
 
-class VectorMCPConfig(BaseModel):
-    """Configuration for launching a vector search MCP server."""
-
-    command: str = Field(default="uvx")
-    args: list[str] = Field(default_factory=lambda: ["chroma-mcp"])
-    tool_allowlist: list[str] = Field(
-        default_factory=lambda: ["chroma_query_documents", "chroma_get_documents"]
-    )
-    client_timeout_seconds: float = Field(default=30.0)
-
-
 class DataConfig(BaseModel):
     """Configuration for data sources."""
 
@@ -180,7 +169,6 @@ class Config(BaseModel):
     config_name: str
     vector_store: VectorStoreConfig
     vector_search: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
-    vector_mcp: VectorMCPConfig = Field(default_factory=VectorMCPConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     dataprep: DataprepConfig = Field(default_factory=DataprepConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)

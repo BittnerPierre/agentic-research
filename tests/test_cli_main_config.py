@@ -50,12 +50,6 @@ def _make_config(tmp_path) -> SimpleNamespace:
             client_timeout_seconds=60.0,
         ),
         vector_search=SimpleNamespace(provider="local"),
-        vector_mcp=SimpleNamespace(
-            tool_allowlist=[],
-            command="echo",
-            args=[],
-            client_timeout_seconds=60.0,
-        ),
     )
 
 

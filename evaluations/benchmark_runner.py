@@ -282,7 +282,6 @@ class BenchmarkRunner:
             run_coro = manager.run(
                 fs_server=fs_server,
                 dataprep_server=dataprep_server,
-                vector_mcp_server=None,
                 query=syllabus,
                 research_info=research_info,
             )
@@ -607,41 +606,6 @@ class BenchmarkRunner:
         Avoid /var vs /private/var mismatches with filesystem MCP allowed roots.
         """
         return os.path.realpath(temp_dir), os.path.realpath(output_dir)
-
-    def _build_vector_mcp_server(self, config):
-        """Build vector MCP server for Chroma."""
-        from agents.mcp import MCPServerStdio
-
-        allowlist = set(config.vector_mcp.tool_allowlist)
-
-        def chroma_tool_filter(_context, tool):
-            return tool.name in allowlist
-
-        chroma_env = dict(os.environ)
-        chroma_env.update(
-            {
-                "ANONYMIZED_TELEMETRY": "False",
-                "HTTPX_LOG_LEVEL": "ERROR",
-                "HTTPCORE_LOG_LEVEL": "ERROR",
-                "FASTMCP_LOG_LEVEL": "ERROR",
-            }
-        )
-        # Some existing Chroma collections store OPENAI_API_KEY as api_key_env_var.
-        # If only CHROMA_OPENAI_API_KEY is set, mirror it for compatibility.
-        if chroma_env.get("CHROMA_OPENAI_API_KEY") and not chroma_env.get("OPENAI_API_KEY"):
-            chroma_env["OPENAI_API_KEY"] = chroma_env["CHROMA_OPENAI_API_KEY"]
-
-        return MCPServerStdio(
-            name="CHROMA_MCP_SERVER",
-            params={
-                "command": config.vector_mcp.command,
-                "args": config.vector_mcp.args,
-                "env": chroma_env,
-            },
-            tool_filter=chroma_tool_filter,
-            cache_tools_list=True,
-            client_session_timeout_seconds=config.vector_mcp.client_timeout_seconds,
-        )
 
 
 async def main():

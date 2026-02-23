@@ -10,13 +10,9 @@ run_docker_test() {
   local query
   local manager_args=""
 
-  if [ ! -f "${env_file}" ]; then
-    echo "Error: ${env_file} not found. Copy models.env.example and configure it."
-    exit 1
-  fi
-
   case "${stack}" in
     local)
+      env_file="models/models.local.env"
       compose_files=(-f docker-compose.yml -f docker-compose.local.yml)
       config_path="/app/configs/config-docker-local.yaml"
       if [ "${SKIP_LLAMA_CPP_BUILD:-0}" != "1" ]; then
@@ -34,6 +30,11 @@ run_docker_test() {
       exit 1
       ;;
   esac
+
+  if [ ! -f "${env_file}" ]; then
+    echo "Error: ${env_file} not found. Configure it for the selected stack."
+    exit 1
+  fi
 
   case "${mode}" in
     smoke)
@@ -103,7 +104,7 @@ PY
   fi
 
   if ! docker compose "${compose_files[@]}" --env-file "${env_file}" logs agentic-research \
-    | grep -q "chroma_query_documents"; then
-    echo "Warning: chroma_query_documents not found in agentic-research logs."
+    | grep -q "vector_search"; then
+    echo "Warning: vector_search not found in agentic-research logs."
   fi
 }

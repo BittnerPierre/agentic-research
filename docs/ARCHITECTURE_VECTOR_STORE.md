@@ -92,14 +92,15 @@ Current Implementation (as-is)
 
 Retrieval path (chroma)
 -----------------------
-The retrieval path uses chroma-mcp (client) from agentic-research:
+The retrieval path uses DataPrep's vector_search tool:
 
-agentic-research -> chroma-mcp (client) -> chromadb (server)
+agentic-research -> DataPrep MCP -> chromadb (server)
 
-The client sends query_texts, so the embedding function is executed on the
-client side by chroma-mcp. The embedding function is taken from the collection
-configuration that was persisted when the collection was created (by dataprep).
-agentic-research does not choose the embedding function; it is passive here.
+DataPrep uses the Chroma Python client and sends query_texts, so the embedding
+function is executed client-side by dataprep. The embedding function is taken
+from the collection configuration that was persisted when the collection was
+created (by dataprep). agentic-research does not choose the embedding function;
+it is passive here.
 
 Late attachment
 ---------------
@@ -113,7 +114,7 @@ There are two embedding paths:
 1) Indexing (dataprep): dataprep creates the collection and persists the
    embedding function on it. That embedding function is then used for all
    subsequent inserts and queries.
-2) Retrieval (agentic-research via chroma-mcp): chroma-mcp reads the collection
+2) Retrieval (agentic-research via DataPrep): dataprep reads the collection
    configuration and executes the embedding function on the client side.
 
 In local mode, we accept the default Chroma embedding (ONNX all-MiniLM-L6-v2).
@@ -128,31 +129,31 @@ We use a shared EmbeddingFactory with two modes:
 2) remote: embeddings-gpu service for DGX (OpenAI-compatible /v1/embeddings)
 
 Dataprep uses the factory to attach the embedding function to the collection.
-chroma-mcp then uses the persisted embedding function when handling query_texts.
-agentic-research does not call the factory directly in the chroma-mcp path.
+Dataprep then uses the persisted embedding function when handling query_texts.
+agentic-research does not call the factory directly; it routes through DataPrep.
 
 Two-mode diagram
 ----------------
 
 Local (in-process)
   dataprep         -> EmbeddingFactory(in-process) -> collection embedding function (default ONNX)
-  agentic-research -> chroma-mcp -> uses collection embedding function
+  agentic-research -> DataPrep (vector_search) -> uses collection embedding function
   chromadb         -> stores vectors, no embedding computation
 
 DGX (remote service)
   dataprep         -> EmbeddingFactory(remote) -> collection embedding function (custom, remote)
-  agentic-research -> chroma-mcp -> uses collection embedding function
+  agentic-research -> DataPrep (vector_search) -> uses collection embedding function
   chromadb         -> stores vectors, no embedding computation
 
 Note: EmbeddingFactory is invoked by dataprep at collection creation time.
-chroma-mcp uses the persisted embedding function from the collection.
+Dataprep uses the persisted embedding function from the collection.
 
 
 Findings
 --------
-- The embedding function is executed in the chroma-mcp client, not in the
-  chromadb server. The ONNX download observed in logs comes from the client
-  container (agentic-research one-off run).
+- The embedding function is executed in the dataprep client, not in the
+  chromadb server. The ONNX download observed in logs comes from the dataprep
+  container (dataprep service).
 - Chroma persists an embedding function at the collection level. If a collection
   is created without an explicit embedding function, Chroma default (ONNX) is
   used for subsequent queries.

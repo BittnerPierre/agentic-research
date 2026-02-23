@@ -21,26 +21,6 @@ vector_search:
   top_k: 5
   score_threshold: null
 
-vector_mcp:
-  command: "uvx"
-  args:
-    - "--quiet"
-    - "--python"
-    - "3.12"
-    - "chroma-mcp"
-    - "--client-type"
-    - "http"
-    - "--host"
-    - "chromadb"
-    - "--port"
-    - "8000"
-    - "--ssl"
-    - "false"
-  tool_allowlist:
-    - "chroma_query_documents"
-    - "chroma_get_documents"
-  client_timeout_seconds: 60.0
-
 data:
   urls_file: "urls.txt"
   knowledge_db_path: "data/knowledge_db.json"
