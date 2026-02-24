@@ -41,7 +41,7 @@ poetry install
 
 ```yaml
 data:
-  urls_file: "urls.txt" # URLs existantes (lecture seule)
+  # urls_file supprimé: références dynamiques (syllabus)
   knowledge_db_path: "data/knowledge_db.json" # Base de connaissances
   local_storage_dir: "data/" # Stockage fichiers .md
 ```

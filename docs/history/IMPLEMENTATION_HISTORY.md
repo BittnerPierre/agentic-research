@@ -16,7 +16,7 @@
 
 ```yaml
 data:
-  urls_file: legacy list (read only)
+  urls_file: deprecated (dynamic references now)
   knowledge_db_path: new JSON file (read/write)
   local_storage_dir: where .md files are saved
 ```
@@ -38,7 +38,7 @@ data:
 - ✅ Always use MCP filesystem operations
 - ✅ Write to knowledge_db.json protected by file lock (portalocker)
 - ✅ Use **portalocker** for file lock pattern: read → merge → write
-- ✅ Legacy urls.txt is read-only
+- ✅ Legacy urls.txt removed (dynamic references now)
 
 ### 1.2 Clarifications et Corrections Importantes
 

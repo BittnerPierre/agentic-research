@@ -44,7 +44,7 @@ cd experiments/agentic-research
 python -m src.dataprep.core
 ```
 
-Assurez-vous d'avoir un fichier `urls.txt` avec les URLs à traiter.
+Les références à traiter sont fournies dynamiquement (syllabus), pas via un fichier statique `urls.txt`.
 
 ## Architecture des Agents
 
