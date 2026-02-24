@@ -1,5 +1,12 @@
 # Repository Guidelines
 
+## Agent Operating Rules (Strict)
+- No code changes, file edits, or tool-driven modifications without an explicit user “go”.
+- Do not implement work unless an issue number (or explicit task) is specified by the user.
+- Always create or switch to a dedicated branch before any change; never work on `main`.
+- If unsure about scope or permissions, stop and ask before modifying anything.
+- Planning-only responses are required when the user asks for planning or review.
+
 ## Project Structure & Module Organization
 - `src/` contains the application code (CLI entrypoints, managers, agents, MCP integrations).
 - `tests/` holds pytest-based unit/integration tests (e.g., `tests/test_*.py`).
