@@ -12,7 +12,6 @@ packages = [{include = "src"}, {include = "evaluations"}]
 
 [tool.poetry.scripts]
 agentic-research = "src.main:cli_main"
-dataprep = "src.dataprep.core:main"
 mcp-dataprep-workflow = "src.dataprep.workflow:run_workflow"
 dataprep_server = "src.mcp.dataprep_server:main"
 evaluate_writer = "evaluations.write_agent_eval:eval_main"
