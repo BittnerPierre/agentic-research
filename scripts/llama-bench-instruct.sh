@@ -92,6 +92,10 @@ trim() {
   printf '%s' "$value"
 }
 
+to_lower() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 contains_setup() {
   local needle="$1"
   shift || true
@@ -161,7 +165,7 @@ extract_bench_extra_args() {
       --flash-attn)
         next_value="on"
         if [ $((index + 1)) -lt ${#tokens[@]} ]; then
-          next_value="${tokens[$((index + 1))],,}"
+          next_value=$(to_lower "${tokens[$((index + 1))]}")
         fi
         case "$next_value" in
           on|true|1|yes)
@@ -285,7 +289,10 @@ printf 'setup,model,quantization,ctx_size,batch_size,ubatch_size,backend,threads
 
 FAILURES=0
 
-mapfile -t ENV_FILES < <(discover_env_files)
+ENV_FILES=()
+while IFS= read -r env_file; do
+  [ -n "$env_file" ] && ENV_FILES+=("$env_file")
+done < <(discover_env_files)
 
 if [ ${#ENV_FILES[@]} -eq 0 ]; then
   echo "Error: no instruct setup found"
