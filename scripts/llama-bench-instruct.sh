@@ -20,6 +20,19 @@ usage() {
   echo "  $0 --setups mistralai,qwen,openai --runs 5 --build"
 }
 
+require_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Error: docker command not found"
+    exit 1
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "Error: Docker daemon is not reachable"
+    echo "Check that Docker is running and that your user can access the Docker socket."
+    exit 1
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --setups)
@@ -66,6 +79,8 @@ if ! [[ "$RUNS" =~ ^[0-9]+$ ]] || [ "$RUNS" -lt 1 ]; then
   echo "Error: --runs must be a positive integer"
   exit 1
 fi
+
+require_docker
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 if [ -z "$OUTPUT_DIR" ]; then
@@ -373,7 +388,12 @@ for env_file in "${ENV_FILES[@]}"; do
   fi
 
   if ! "${DOCKER_CMD[@]}" >"$RAW_OUTPUT_FILE" 2>"$STDERR_OUTPUT_FILE"; then
-    echo "llama-bench failed for ${setup_name}" | tee "$ERROR_OUTPUT_FILE"
+    {
+      echo "llama-bench failed for ${setup_name}"
+      echo ""
+      echo "stderr:"
+      sed -n '1,200p' "$STDERR_OUTPUT_FILE"
+    } | tee "$ERROR_OUTPUT_FILE"
     FAILURES=$((FAILURES + 1))
     continue
   fi
