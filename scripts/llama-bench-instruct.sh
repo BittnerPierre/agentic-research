@@ -107,10 +107,6 @@ trim() {
   printf '%s' "$value"
 }
 
-to_lower() {
-  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
-}
-
 contains_setup() {
   local needle="$1"
   shift || true
@@ -153,59 +149,6 @@ extract_quantization() {
   fi
 
   printf 'unknown'
-}
-
-extract_bench_extra_args() {
-  local extra_params="$1"
-  local -a tokens=()
-  local -a filtered=()
-  local index=0
-  local token=""
-  local next_value=""
-
-  if [ -z "$extra_params" ]; then
-    return 0
-  fi
-
-  # shellcheck disable=SC2206
-  tokens=($extra_params)
-
-  while [ $index -lt ${#tokens[@]} ]; do
-    token="${tokens[$index]}"
-
-    case "$token" in
-      -fa)
-        filtered+=("-fa")
-        ;;
-      --flash-attn)
-        next_value="on"
-        if [ $((index + 1)) -lt ${#tokens[@]} ]; then
-          next_value=$(to_lower "${tokens[$((index + 1))]}")
-        fi
-        case "$next_value" in
-          on|true|1|yes)
-            filtered+=("-fa")
-            index=$((index + 1))
-            ;;
-          off|false|0|no)
-            index=$((index + 1))
-            ;;
-          *)
-            filtered+=("-fa")
-            ;;
-        esac
-        ;;
-      --mlock|--no-mmap)
-        filtered+=("$token")
-        ;;
-    esac
-
-    index=$((index + 1))
-  done
-
-  if [ ${#filtered[@]} -gt 0 ]; then
-    printf '%s\n' "${filtered[@]}"
-  fi
 }
 
 discover_env_files() {
@@ -347,11 +290,6 @@ for env_file in "${ENV_FILES[@]}"; do
   ubatch_size="${LLM_INSTRUCT_UBATCH_SIZE:-512}"
   n_gpu_layers="${LLM_INSTRUCT_N_GPU_LAYERS:-70}"
 
-  BENCH_EXTRA_ARGS=()
-  while IFS= read -r arg; do
-    [ -n "$arg" ] && BENCH_EXTRA_ARGS+=("$arg")
-  done < <(extract_bench_extra_args "${LLM_INSTRUCT_EXTRA_PARAMS:-}")
-
   RAW_OUTPUT_FILE="${RAW_DIR}/${setup_name}.txt"
   STDERR_OUTPUT_FILE="${RAW_DIR}/${setup_name}.stderr.txt"
   ERROR_OUTPUT_FILE="${RAW_DIR}/${setup_name}.error.txt"
@@ -381,10 +319,6 @@ for env_file in "${ENV_FILES[@]}"; do
     -ub "$ubatch_size"
     -ngl "$n_gpu_layers"
   )
-
-  if [ ${#BENCH_EXTRA_ARGS[@]} -gt 0 ]; then
-    DOCKER_CMD+=("${BENCH_EXTRA_ARGS[@]}")
-  fi
 
   if ! "${DOCKER_CMD[@]}" >"$RAW_OUTPUT_FILE" 2>"$STDERR_OUTPUT_FILE"; then
     {
