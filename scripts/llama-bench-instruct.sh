@@ -211,7 +211,7 @@ append_csv_row() {
   local batch_size="$5"
   local ubatch_size="$6"
   local backend="$7"
-  local threads="$8"
+  local ngl="$8"
   local pp512="$9"
   local ttft_ms="${10}"
   local tg128="${11}"
@@ -219,7 +219,7 @@ append_csv_row() {
 
   printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
     "$setup_name" "$model_name" "$quantization" "$ctx_size" "$batch_size" "$ubatch_size" \
-    "$backend" "$threads" "$pp512" "$ttft_ms" "$tg128" "$tpot_ms" >> "$CSV_OUTPUT"
+    "$backend" "$ngl" "$pp512" "$ttft_ms" "$tg128" "$tpot_ms" >> "$CSV_OUTPUT"
 }
 
 append_markdown_row() {
@@ -243,7 +243,7 @@ printf '# Llama Bench Instruct Comparison\n\n' > "$MARKDOWN_OUTPUT"
 printf '| Setup | Model | Quant | Ctx | Batch | UBatch | PP512 tok/s | TTFT ms | TG128 tok/s | TPOT ms/token |\n' >> "$MARKDOWN_OUTPUT"
 printf '| ----- | ----- | ----- | --: | ----: | -----: | ----------: | ------: | ----------: | ------------: |\n' >> "$MARKDOWN_OUTPUT"
 
-printf 'setup,model,quantization,ctx_size,batch_size,ubatch_size,backend,threads,pp512_tokens_per_second,ttft_ms,tg128_tokens_per_second,tpot_ms_per_token\n' > "$CSV_OUTPUT"
+printf 'setup,model,quantization,ctx_size,batch_size,ubatch_size,backend,ngl,pp512_tokens_per_second,ttft_ms,tg128_tokens_per_second,tpot_ms_per_token\n' > "$CSV_OUTPUT"
 
 FAILURES=0
 
@@ -331,8 +331,8 @@ for env_file in "${ENV_FILES[@]}"; do
     continue
   fi
 
-  PP512_LINE=$(awk -F'|' '/^\|/ { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $6); if ($6 == "pp512") { print; exit } }' "$RAW_OUTPUT_FILE")
-  TG128_LINE=$(awk -F'|' '/^\|/ { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $6); if ($6 == "tg128") { print; exit } }' "$RAW_OUTPUT_FILE")
+  PP512_LINE=$(awk -F'|' '/^\|/ { field=$(NF-2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", field); if (field == "pp512") { print; exit } }' "$RAW_OUTPUT_FILE")
+  TG128_LINE=$(awk -F'|' '/^\|/ { field=$(NF-2); gsub(/^[[:space:]]+|[[:space:]]+$/, "", field); if (field == "tg128") { print; exit } }' "$RAW_OUTPUT_FILE")
 
   if [ -z "$PP512_LINE" ] || [ -z "$TG128_LINE" ]; then
     {
@@ -344,10 +344,10 @@ for env_file in "${ENV_FILES[@]}"; do
     continue
   fi
 
-  backend=$(printf '%s\n' "$PP512_LINE" | awk -F'|' '{ gsub(/^[[:space:]]+|[[:space:]]+$/, "", $4); print $4 }')
-  threads=$(printf '%s\n' "$PP512_LINE" | awk -F'|' '{ gsub(/^[[:space:]]+|[[:space:]]+$/, "", $5); print $5 }')
-  pp512_raw=$(printf '%s\n' "$PP512_LINE" | awk -F'|' '{ gsub(/^[[:space:]]+|[[:space:]]+$/, "", $7); print $7 }')
-  tg128_raw=$(printf '%s\n' "$TG128_LINE" | awk -F'|' '{ gsub(/^[[:space:]]+|[[:space:]]+$/, "", $7); print $7 }')
+  backend=$(printf '%s\n' "$PP512_LINE" | awk -F'|' '{ field=$5; gsub(/^[[:space:]]+|[[:space:]]+$/, "", field); print field }')
+  ngl=$(printf '%s\n' "$PP512_LINE" | awk -F'|' '{ field=$6; gsub(/^[[:space:]]+|[[:space:]]+$/, "", field); print field }')
+  pp512_raw=$(printf '%s\n' "$PP512_LINE" | awk -F'|' '{ field=$(NF-1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", field); print field }')
+  tg128_raw=$(printf '%s\n' "$TG128_LINE" | awk -F'|' '{ field=$(NF-1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", field); print field }')
 
   pp512=$(parse_bench_value "$pp512_raw")
   tg128=$(parse_bench_value "$tg128_raw")
@@ -356,7 +356,7 @@ for env_file in "${ENV_FILES[@]}"; do
   tpot_ms=$(awk -v value="$tg128" 'BEGIN { printf "%.2f", 1000 / value }')
 
   append_markdown_row "$setup_name" "$model_name" "$quantization" "$ctx_size" "$batch_size" "$ubatch_size" "$pp512" "$ttft_ms" "$tg128" "$tpot_ms"
-  append_csv_row "$setup_name" "$model_name" "$quantization" "$ctx_size" "$batch_size" "$ubatch_size" "$backend" "$threads" "$pp512" "$ttft_ms" "$tg128" "$tpot_ms"
+  append_csv_row "$setup_name" "$model_name" "$quantization" "$ctx_size" "$batch_size" "$ubatch_size" "$backend" "$ngl" "$pp512" "$ttft_ms" "$tg128" "$tpot_ms"
 
   if [ "$KEEP_RAW" != true ]; then
     rm -f "$RAW_OUTPUT_FILE"
