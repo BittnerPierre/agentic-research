@@ -15,12 +15,15 @@ from scripts.llama_bench_instruct import (
 
 def test_parse_env_value_strips_inline_comments():
     assert parse_env_value("256 # 512") == "256"
-    assert parse_env_value('"--parallel 2 --flash-attn on" # comment') == "--parallel 2 --flash-attn on"
+    assert (
+        parse_env_value('"--parallel 2 --flash-attn on" # comment')
+        == "--parallel 2 --flash-attn on"
+    )
 
 
 def test_filter_bench_extra_args_keeps_only_bench_relevant_flags():
     extra_args = filter_bench_extra_args(
-        '--parallel 2 --flash-attn on --temp 0.15 --top-k -1 --top-p 1.0 --mlock'
+        "--parallel 2 --flash-attn on --temp 0.15 --top-k -1 --top-p 1.0 --mlock"
     )
 
     assert extra_args == ["-fa", "--mlock"]
