@@ -377,7 +377,6 @@ for env_file in "${ENV_FILES[@]}"; do
     -p 512
     -n 128
     -r "$RUNS"
-    -c "$ctx_size"
     -b "$batch_size"
     -ub "$ubatch_size"
     -ngl "$n_gpu_layers"
