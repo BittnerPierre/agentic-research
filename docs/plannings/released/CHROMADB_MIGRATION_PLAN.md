@@ -1,8 +1,38 @@
 # ChromaDB Migration Plan - Remove OpenAI file_search Dependency
 
+**Status**: Largely completed as of 2026-04-09
+**Document role**: Historical architecture plan with updated status notes
+
+## Current Status
+
+The architecture described by this plan has been implemented far enough to be
+considered shipped:
+
+- ChromaDB retrieval is supported in production code.
+- OpenAI file_search remains supported.
+- A local mode exists for local testing.
+- DataPrep cleanly separates retrieval/indexing concerns from the manager/agent
+  orchestration layer.
+- DGX Spark deployment is done.
+
+The original goal of fully removing OpenAI file_search is **not** completed and
+is no longer treated as a current roadmap item. The current architecture is a
+dual-provider design: OpenAI and Chroma are both supported, with enough
+decoupling to operate without making full removal a priority.
+
+## Remaining Follow-up
+
+- Keep dual support for OpenAI and Chroma.
+- Revisit full OpenAI file_search removal only if it creates maintenance cost
+  or blocks future work.
+- Continue architectural cleanup incrementally rather than as a dedicated
+  migration program.
+
 ## Goal
 
-Remove dependency on OpenAI Response API file_search to enable operation without OpenAI platform. Prepare for deployment on DGX Spark with multi-agent services running in Docker containers.
+Original goal: remove dependency on OpenAI Response API file_search to enable
+operation without OpenAI platform. Prepare for deployment on DGX Spark with
+multi-agent services running in Docker containers.
 
 ## Motivation
 

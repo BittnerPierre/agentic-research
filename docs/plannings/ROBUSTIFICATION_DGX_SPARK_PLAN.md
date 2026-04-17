@@ -1,10 +1,25 @@
 # Plan de robustification du système agentic-research sur DGX Spark
 
-**Version**: 2.3.2 DRAFT  
+**Version**: 2.3.2  
 **Date**: 6 février 2026  
 **Objectif**: Fiabiliser le workflow en 1 journée (UAT inclus)
+**Status**: Terminé au niveau recherché, avec certaines pistes volontairement différées
+**Document role**: Plan historique de robustification, conservé comme référence
 
-**⚠️ DRAFT v2.3.2** : Simplification YAGNI/KISS, focus tests et contrats stables.
+## Statut actuel
+
+La robustification ciblée par ce plan est considérée comme suffisante pour
+l'état actuel du projet :
+
+- durcissement DGX Spark effectué ;
+- robustesse jugée suffisante en test ;
+- tout le plan n'a pas été exécuté, car les objectifs opérationnels ont été
+  atteints avant d'aller au bout de toutes les pistes listées.
+
+Les éléments non réalisés restent des options d'amélioration futures, mais ne
+doivent pas être lus comme du travail encore prévu au roadmap court terme.
+
+**Référence v2.3.2** : Simplification YAGNI/KISS, focus tests et contrats stables.
 
 **Amendements V2.3.2 (Simplification et tests)** :
 
@@ -395,3 +410,9 @@ Cette v2.3.2 remet la **simplicité et les tests** au centre :
 - Chainage de stratégies
 - Framework métriques complet
 - Grammars llama.cpp
+
+## Note de clôture
+
+Le projet a atteint un niveau de robustesse suffisant sans exécuter
+intégralement toutes les sous-étapes du plan. Les éléments ci-dessus restent
+des pistes futures, pas des engagements roadmap en cours.
