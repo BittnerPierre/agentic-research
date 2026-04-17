@@ -1,0 +1,110 @@
+# vLLM mono-model overlay for DGX Spark (WS1).
+#
+# Composition: single vLLM service serving one large instruct+reasoning model
+# (default: gpt-oss-120B). Embeddings stay on llama.cpp. This is one of several
+# possible (backend × topology) compositions — see docs/ws1/WS1_STUDY_NOTES.md.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dgx-vllm-mono.yml \
+#     --env-file models/models.vllm-gptoss120b-mono.env up -d \
+#     chromadb dataprep embeddings-gpu llm
+#
+# TODO(spark-spike): confirm vLLM image + flags for aarch64 / GB10 Blackwell.
+# Reference build: https://github.com/eugr/spark-vllm-docker
+x-llama-build: &llama-build
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.llamacpp
+  image: local/llama.cpp:server-cuda
+
+services:
+  dataprep:
+    command: ["dataprep_server", "--config", "configs/config-docker-dgx-vllm-mono.yaml"]
+    volumes:
+      - ./test_files:/app/test_files
+
+  agentic-research:
+    command: ["agentic-research", "--config", "configs/config-docker-dgx-vllm-mono.yaml"]
+    depends_on:
+      - dataprep
+      - chromadb
+      - llm
+    volumes:
+      - ./test_files:/app/test_files
+      - ./models:/app/models:ro
+      - ./benchmarks:/app/benchmarks
+
+  chromadb:
+    image: chromadb/chroma:1.4.1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chromadb:/data
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+
+  embeddings-gpu:
+    <<: *llama-build
+    volumes:
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
+    environment:
+      EXTRA_PARAMS: "${EMBEDDINGS_EXTRA_PARAMS-}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    entrypoint: ["/app/llama-server-entrypoint.sh"]
+    command:
+      - "-m"
+      - "${EMBEDDINGS_MODEL_PATH:-/mnt/models/models--Qwen--Qwen3-Embedding-4B-GGUF/snapshots/REPLACE_WITH_SNAPSHOT/Qwen3-Embedding-4B-Q8_0.gguf}"
+      - "--port"
+      - "${EMBEDDINGS_PORT:-8003}"
+      - "--host"
+      - "0.0.0.0"
+      - "--jinja"
+      - "--embeddings"
+    ports:
+      - "${EMBEDDINGS_PORT:-8003}:${EMBEDDINGS_PORT:-8003}"
+
+  # Single vLLM service serving instruct + reasoning from one large model.
+  # Reasoning effort is controlled at the agent level via extra_body, not here.
+  llm:
+    image: "${VLLM_IMAGE:-vllm/vllm-openai:latest}"
+    # TODO(spark-spike): on aarch64/GB10 the published image may not work.
+    # Likely need a custom build from https://github.com/eugr/spark-vllm-docker
+    ipc: host
+    volumes:
+      - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
+      - ${HF_HOME:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      HUGGING_FACE_HUB_TOKEN: "${HUGGING_FACE_HUB_TOKEN-}"
+      VLLM_EXTRA_PARAMS: "${VLLM_EXTRA_PARAMS-}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-openai/gpt-oss-120b}"
+      - "--served-model-name"
+      - "${VLLM_SERVED_MODEL_NAME:-gpt-oss-120b}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "${VLLM_PORT:-8002}"
+      - "--max-model-len"
+      - "${VLLM_MAX_MODEL_LEN:-32768}"
+      - "--gpu-memory-utilization"
+      - "${VLLM_GPU_MEMORY_UTILIZATION:-0.90}"
+      # TODO(spark-spike): validate reasoning parser name for gpt-oss in vLLM.
+      # Candidates: "openai_gptoss", "gptoss", or none (handled by chat template).
+      - "--reasoning-parser"
+      - "${VLLM_REASONING_PARSER:-openai_gptoss}"
+    ports:
+      - "${VLLM_PORT:-8002}:${VLLM_PORT:-8002}"
