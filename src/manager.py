@@ -13,6 +13,7 @@ from .agents.schemas import ReportData, ResearchInfo
 from .agents.search_agent import search_agent
 from .agents.utils import coerce_report_data
 from .agents.writer_agent import writer_agent
+from .gates import check_search_results_gate
 from .printer import Printer
 
 
@@ -45,6 +46,10 @@ class StandardResearchManager:
             )
             search_plan = await self._plan_searches(query)
             search_results = await self._perform_searches(search_plan)
+
+            # Gate: block report if no exploitable source was produced
+            check_search_results_gate(search_results)
+
             report = await self._write_report(query, search_results)
 
             final_report = f"Report summary\n\n{report.short_summary}"

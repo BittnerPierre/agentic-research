@@ -24,6 +24,7 @@ from .agents.schemas import (
 )
 from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
+from .gates import check_search_results_gate
 from .printer import Printer
 
 
@@ -150,6 +151,9 @@ class DeepResearchManager:
             search_start = time.time()
             search_results = await self._perform_file_searches(search_plan)
             self.timings["search"] = time.time() - search_start
+
+            # Gate: block report if no exploitable source was produced
+            check_search_results_gate(search_results)
 
             # Phase 4: Writing
             write_start = time.time()
