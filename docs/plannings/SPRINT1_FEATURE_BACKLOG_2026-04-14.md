@@ -53,6 +53,12 @@ suivants :
 - produire soit de la valeur directe, soit un enabler clair ;
 - pouvoir être portée par un workstream relativement autonome.
 
+### Critère transverse de test
+
+Chaque feature du Sprint 1 doit inclure au minimum un test d'intégration du
+happy path. Le TDD s'applique aux bugs (test qui échoue d'abord), mais les
+features doivent aussi livrer une couverture de test minimale vérifiable.
+
 ---
 
 ## 3. Vue d'ensemble du backlog Sprint 1
@@ -91,6 +97,18 @@ Features :
 - `S1-03`
 - `S1-04`
 
+**Règle d'indépendance** : WS1 est **totalement indépendant** de WS4 (workflow
+agentique coeur). Il doit :
+
+- fonctionner sur le **workflow tel qu'il est aujourd'hui**, sans dépendre des
+  changements de WS4 (isolation writer, contrat NORMALIZED, HITL, etc.) ;
+- être **livrable et mergeable de façon autonome** ;
+- utiliser une **branche de workstream** (ex: `ws1/inference-platform`) pour
+  accumuler les features S1-02, S1-03, S1-04 avant de merger dans main.
+
+**Contexte** : ce workstream est lié à un **engagement client ASUS / NVIDIA**.
+C'est une contrainte externe de livraison, pas seulement un exercice technique.
+
 Pourquoi ce stream est parallélisable :
 
 - impact surtout config, benchmark, compose, scripts ;
@@ -127,12 +145,19 @@ Pourquoi ce stream est parallélisable :
 
 ## WS4 - Workflow agentique coeur
 
-Features :
+Features minimum viable :
 
-- `S1-05`
-- `S1-06`
-- `S1-07`
-- `S1-08`
+- `S1-05` (gate bloquant si aucune source)
+- `S1-06` (isolation writer)
+
+Features stretch :
+
+- `S1-07` (contrat RAW -> NORMALIZED)
+- `S1-08` (validation humaine agenda)
+
+`S1-05` et `S1-06` constituent le **noyau dur** de WS4 pour ce sprint. `S1-07`
+et `S1-08` sont des stretch goals : souhaitables, mais le sprint est considéré
+comme réussi sans eux.
 
 Pourquoi ce stream doit être plus coordonné :
 
@@ -140,6 +165,14 @@ Pourquoi ce stream doit être plus coordonné :
 - risque de conflits si plusieurs agents touchent les mêmes contrats en même
   temps ;
 - nécessite un ordre d'intégration plus strict.
+
+### Issues facilitatrices
+
+- `#96` (éviter mutations globales de config) peut faciliter `S1-06` — à
+  traiter en opportunité si rencontrée.
+- `#101` (missing sources non-fatal) couvre un périmètre très proche de
+  `S1-05` — vérifier si elle peut être adressée en même temps ou devient
+  redondante.
 
 ---
 
@@ -300,6 +333,27 @@ Nouvelle issue à créer.
 - comparer vs setup actuel multi-modèles si utile ;
 - documenter forces / limites / décision.
 
+### Sous-tâche : étude reasoning effort par famille de modèles
+
+Le déplacement du reasoning effort au niveau agent est plus complexe qu'un
+simple flag config. Chaque famille de modèles a son propre mécanisme :
+
+| Modèle | Mécanisme moteur d'inférence | Mécanisme côté prompt / API |
+|--------|------------------------------|-----------------------------|
+| OpenAI natif | `reasoning_effort` param | natif dans l'API |
+| Nemotron | `--reasoning-parser nemotron_v3` | `extra_body={"chat_template_kwargs": {"enable_thinking": True}}` |
+| Qwen 3 | `--enable-reasoning --reasoning-parser deepseek_r1` | `/think` dans le user input |
+
+Ref: https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
+
+**Action requise avant implémentation** : produire une note d'étude couvrant :
+
+1. les mécanismes de reasoning par famille de modèles cible ;
+2. le niveau d'abstraction pertinent (config agent ? paramètre d'appel ?
+   template ?) ;
+3. la compatibilité avec le workflow multi-modèles existant, pour que le
+   résultat soit mergeable aussi dans WS4 à terme.
+
 ### Stretch goals
 
 - `nvidia/Qwen3.5-397B-A17B-NVFP4`
@@ -320,6 +374,7 @@ Moyen.
   mono-modèle ;
 - le `reasoning effort` est piloté côté agent et non plus uniquement côté
   moteur ;
+- note d'étude reasoning effort produite et validée ;
 - note de décision technique produite ;
 - résultats comparatifs exploitables si comparaison effectuée ;
 - recommandation explicite pour la suite.
@@ -426,8 +481,22 @@ Nouvelle issue à créer.
 - prépare `E3` et `E7` ;
 - évite de mélanger report neutre et livrable stylisé.
 
+### Pré-requis bloquant
+
+**Ne pas commencer l'implémentation tant que le contrat cible n'est pas
+défini et validé.**
+
+Ordre des tâches :
+
+1. **Définir le contrat** (schéma, frontières, formats) — bloquant
+2. Review / validation du contrat
+3. Implémenter les adaptations prompts / orchestration
+4. Tests
+
 ### Périmètre recommandé
 
+- définir le schéma minimal de l'output NORMALIZED (ex: title, sections[],
+  sources[], metadata) ;
 - formaliser l'entrée du writer neutre ;
 - formaliser sa sortie attendue ;
 - documenter la séparation `RAW -> NORMALIZED -> USAGE` ;
@@ -443,7 +512,7 @@ Moyen.
 
 ### Critère de done
 
-- contrat explicite documenté ;
+- contrat explicite documenté avec schéma cible ;
 - output neutre mieux défini ;
 - base claire pour le lifecycle de connaissance.
 

@@ -120,6 +120,12 @@ Cela implique un changement de contrat important :
   d'inférence dans la configuration ;
 - il doit être remonté au niveau agent / orchestration / appel modèle.
 
+**Attention** : le mécanisme de reasoning varie par famille de modèles
+(OpenAI natif via `reasoning_effort`, Nemotron via `--reasoning-parser` +
+`chat_template_kwargs`, Qwen 3 via `--enable-reasoning` + `/think` dans le
+prompt). Une note d'étude est requise avant implémentation pour identifier
+le bon niveau d'abstraction.
+
 **Nature du travail**
 
 - principalement config, Docker, benchmark, scripts ;
@@ -421,6 +427,13 @@ Inclut :
 
 - `E1`
 - éventuellement une partie de `E4`
+
+**Règle d'indépendance** : WS1 est **totalement indépendant** de WS4. Il doit
+fonctionner sur le workflow actuel, être livrable et mergeable de façon
+autonome, et utiliser une branche de workstream dédiée
+(ex: `ws1/inference-platform`).
+
+**Contexte** : ce workstream est lié à un engagement client ASUS / NVIDIA.
 
 Caractéristiques :
 

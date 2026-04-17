@@ -556,6 +556,14 @@ Contenu :
 - `E1`
 - `E4` minimal
 
+**Règle d'indépendance** : WS1 est **totalement indépendant** de WS4. Il doit
+fonctionner sur le workflow actuel, être livrable et mergeable de façon
+autonome, et utiliser une branche de workstream dédiée
+(ex: `ws1/inference-platform`).
+
+**Contexte** : ce workstream est lié à un engagement client ASUS / NVIDIA.
+C'est une contrainte externe de livraison.
+
 Pourquoi c'est parallélisable :
 
 - changements surtout infra / compose / benchmark ;
@@ -635,9 +643,14 @@ Créer un premier incrément combinant :
 
 ### Stream A - Writer / workflow qualité
 
-- `E8` isolation du writer du prompt utilisateur
-- `E8` contrat `RAW -> NORMALIZED -> USAGE`
+Noyau dur :
+
 - `E6` gate bloquant si aucune source n'a été produite
+- `E8` isolation du writer du prompt utilisateur
+
+Stretch :
+
+- `E8` contrat `RAW -> NORMALIZED -> USAGE`
 - `E5` validation humaine de l'agenda en V1 simple
 
 ### Stream B - Ingestion / classification
