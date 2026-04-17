@@ -43,7 +43,7 @@ mcp:
 
 models:
   research_model: "openai/gpt-4.1-mini"
-  planning_model: "openai/o3-mini"
+  planning_model: "openai/gpt-4.1-mini"
   search_model: "openai/gpt-4.1-mini"
   writer_model: "openai/gpt-4.1-mini"
   knowledge_preparation_model: "openai/gpt-4.1-mini"

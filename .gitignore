@@ -70,6 +70,7 @@ evaluations/sav_file/
 .env.local
 models.env
 # models*.env
+.benchmark_last_setup
 
 # Ruff cache
 .ruff_cache/
