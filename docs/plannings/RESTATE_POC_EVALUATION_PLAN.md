@@ -5,6 +5,21 @@
 **Objectif**: Évaluer la pertinence de Restate pour la robustification du système agentic-research  
 **Scope**: Writer agent uniquement (fin de chaîne)  
 **Timeline**: En parallèle du plan de robustification principal
+**Status**: Option future, non engagée dans le roadmap actuel
+**Document role**: Piste de POC conservée pour discussion produit / architecture
+
+## Statut actuel
+
+Ce document ne doit plus être lu comme un plan d'exécution actif.
+
+- La robustification principale a été atteinte sans Restate.
+- Restate reste une option de feature future.
+- Le sujet est davantage aligné avec des prochaines étapes produit /
+  architecture (HITL, service, multi-user, orchestration durable) qu'avec le
+  plan de stabilisation déjà réalisé.
+
+En conséquence, ce POC est conservé comme référence d'exploration et non comme
+travail engagé à court terme.
 
 ---
 
