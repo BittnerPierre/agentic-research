@@ -19,8 +19,9 @@ from pathlib import Path
 
 from agentic_research.agents.schemas import ResearchInfo
 from agentic_research.config import get_config
-from agents import Agent, Runner
 from agents.mcp import MCPServerSse, MCPServerStdio
+
+from agents import Agent, Runner
 
 from .benchmark_config import load_benchmark_config
 from .benchmark_trace_processor import BenchmarkTraceProcessor
@@ -123,20 +124,20 @@ class BenchmarkRunner:
         # 4. Run N evaluations
         runs = []
         for i in range(num_runs):
-            print(f"\n{'='*60}")
-            print(f"📊 Run {i+1}/{num_runs}")
-            print(f"{'='*60}")
+            print(f"\n{'=' * 60}")
+            print(f"📊 Run {i + 1}/{num_runs}")
+            print(f"{'=' * 60}")
 
             run_result = await self._run_single_evaluation(
                 config_file=config_file,
                 syllabus=syllabus,
-                run_dir=run_dir / f"run_{i+1}",
+                run_dir=run_dir / f"run_{i + 1}",
                 vector_store_name=vector_store_name,
                 timeout_seconds=timeout_seconds,
             )
             runs.append(run_result)
 
-            print(f"\n✅ Run {i+1} completed:")
+            print(f"\n✅ Run {i + 1} completed:")
             print(f"   - Timing: {run_result['timing']['total_seconds']:.1f}s")
             print(
                 "   - Quality: "
@@ -726,7 +727,7 @@ async def main():
 
 
 def cli_main():
-    """Synchronous CLI entry point (for poetry scripts)."""
+    """Synchronous CLI entry point (for project scripts)."""
     asyncio.run(main())
 
 

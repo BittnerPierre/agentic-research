@@ -85,7 +85,7 @@ def create_server():
             for i, item in enumerate(response.data):
                 # Extract file_id, filename, and content from the VectorStoreSearchResponse
                 item_id = getattr(item, "file_id", f"vs_{i}")
-                item_filename = getattr(item, "filename", f"Document {i+1}")
+                item_filename = getattr(item, "filename", f"Document {i + 1}")
 
                 # Extract text content from the content array
                 content_list = getattr(item, "content", [])

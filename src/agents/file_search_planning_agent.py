@@ -1,7 +1,8 @@
-from agents import Agent, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
+
+from agents import Agent, RunContextWrapper
 
 from ..config import get_config
 from .schemas import FileSearchPlan, ResearchInfo

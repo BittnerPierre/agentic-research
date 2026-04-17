@@ -33,7 +33,7 @@ class _NameRewriteFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         original_name = record.name
         if original_name.startswith(self._prefix_to_strip):
-            record.name = f"{self._replacement}{original_name[len(self._prefix_to_strip):]}"
+            record.name = f"{self._replacement}{original_name[len(self._prefix_to_strip) :]}"
         try:
             return super().format(record)
         finally:

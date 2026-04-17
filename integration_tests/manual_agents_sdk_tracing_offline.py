@@ -7,7 +7,7 @@ Why it's manual:
 - Not suitable for CI / unit test suite
 
 Run manually:
-  poetry run python integration_tests/manual_agents_sdk_tracing_offline.py
+  uv run python integration_tests/manual_agents_sdk_tracing_offline.py
 """
 
 import json
@@ -17,8 +17,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from agents import Agent, Runner, Span, Trace, TracingProcessor, set_trace_processors
 from agents.extensions.models.litellm_model import LitellmModel
+
+from agents import Agent, Runner, Span, Trace, TracingProcessor, set_trace_processors
 
 
 def check_internet_connection() -> bool:

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from agents.mcp import MCPServer
 from rich.console import Console
 
 from agents import Runner, gen_trace_id, trace
-from agents.mcp import MCPServer
 
 from .agents.agentic_research_agent import create_research_supervisor_agent
 from .agents.file_search_agent import create_file_search_agent

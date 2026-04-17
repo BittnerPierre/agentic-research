@@ -109,87 +109,87 @@ Environment variable overrides:
 
 ### Setup
 ```bash
-# Install dependencies
-poetry install
+# Install dependencies (including dev tools: pytest, ruff, etc.)
+uv sync --extra dev
 
 # Start the DataPrep MCP server (required for research workflows)
-poetry run dataprep_server
+uv run dataprep_server
 ```
 
 ### Running Research
 ```bash
 # Interactive mode with default manager (agentic_manager)
-poetry run agentic-research
+uv run agentic-research
 
 # With specific manager
-poetry run agentic-research --manager deep_manager
-poetry run agentic-research --manager manager
+uv run agentic-research --manager deep_manager
+uv run agentic-research --manager manager
 
 # With query from command line
-poetry run agentic-research --query "Retrieval Augmented Generation"
+uv run agentic-research --query "Retrieval Augmented Generation"
 
 # With syllabus file
-poetry run agentic-research --syllabus syllabus.md
+uv run agentic-research --syllabus syllabus.md
 
 # With custom configuration
-poetry run agentic-research --config configs/config-gpt-4.1-mini.yaml
+uv run agentic-research --config configs/config-gpt-4.1-mini.yaml
 
 # With custom vector store name
-poetry run agentic-research --vector-store "my-research-session"
+uv run agentic-research --vector-store "my-research-session"
 
 # With custom output directory
-poetry run agentic-research --output-dir "output/my-session/"
+uv run agentic-research --output-dir "output/my-session/"
 
 # Debug mode (keeps temporary files)
-poetry run agentic-research --debug
+uv run agentic-research --debug
 ```
 
 ### Data Preparation
 ```bash
 # Run dataprep workflow (dynamic references from syllabus)
-poetry run mcp-dataprep-workflow
+uv run mcp-dataprep-workflow
 
 # Legacy dataprep command
-poetry run dataprep
+uv run dataprep
 ```
 
 ### Testing
 ```bash
 # Run all tests
-poetry run pytest
+uv run pytest
 
 # Run specific test file
-poetry run pytest tests/test_file_search.py
+uv run pytest tests/test_file_search.py
 
 # Run integration tests
-poetry run pytest integration_tests/
+uv run pytest integration_tests/
 
 # Verbose output
-poetry run pytest -v
+uv run pytest -v
 
 # With warnings
-poetry run pytest -v --disable-warnings=false
+uv run pytest -v --disable-warnings=false
 ```
 
 ### Evaluation
 ```bash
 # Evaluate writer agent
-poetry run evaluate_writer
+uv run evaluate_writer
 
 # Test trajectory
-poetry run test_trajectory
+uv run test_trajectory
 ```
 
 ### Code Quality
 ```bash
 # Run ruff linter
-poetry run ruff check .
+uv run ruff check .
 
 # Run ruff formatter
-poetry run ruff format .
+uv run ruff format .
 
 # Fix auto-fixable issues
-poetry run ruff check --fix .
+uv run ruff check --fix .
 ```
 
 ## Git Workflow
@@ -236,18 +236,18 @@ poetry run ruff check --fix .
    # Example: tests/test_vector_store_expiration.py
 
    # 2. Run the test to confirm it fails
-   poetry run pytest tests/test_your_bug.py -v
+   uv run pytest tests/test_your_bug.py -v
    # Expected: Test FAILS, reproducing the bug
 
    # 3. Implement the fix
    # Make your code changes
 
    # 4. Run the test again to confirm it passes
-   poetry run pytest tests/test_your_bug.py -v
+   uv run pytest tests/test_your_bug.py -v
    # Expected: Test PASSES, bug is fixed
 
    # 5. Run all tests to ensure no regression
-   poetry run pytest
+   uv run pytest
    ```
 
    **Example (Issue #3 - Parallel Upload)**:
@@ -343,9 +343,9 @@ Branch protection is enabled on `main`:
 Run these locally before pushing to match CI:
 
 ```bash
-poetry run ruff check .
-poetry run ruff format .
-poetry run pytest
+uv run ruff check .
+uv run ruff format .
+uv run pytest
 ```
 
 ## Important Implementation Details

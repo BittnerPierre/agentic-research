@@ -4,7 +4,7 @@ Manual script: offline tracing experiments (framework-agnostic JSONL logger).
 Not a unit test: it's for interactive experimentation.
 
 Run manually:
-  poetry run python integration_tests/manual_offline_tracing.py
+  uv run python integration_tests/manual_offline_tracing.py
 """
 
 import json

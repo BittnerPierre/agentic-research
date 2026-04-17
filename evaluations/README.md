@@ -35,7 +35,7 @@ Runs the writer-only evaluation using YAML test cases (agenda + search results).
 
 **CLI Usage:**
 ```bash
-poetry run evaluate_writer \
+uv run evaluate_writer \
     --test-case trivial_research \
     --config configs/config-default.yaml
 ```
@@ -49,13 +49,13 @@ Runs complete research workflow and evaluates:
 **CLI Usage:**
 ```bash
 # Run evaluation (requires MCP servers running)
-poetry run eval-workflow \
+uv run eval-workflow \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --config configs/config-default.yaml
 
 # Or provide a custom syllabus directly
-poetry run eval-workflow \
+uv run eval-workflow \
     --syllabus "Python basics" \
     --vector-store-name "agentic_research_data" \
     --config configs/config-gpt-4.1-mini.yaml
@@ -68,14 +68,14 @@ Executes evaluations against test cases and manages baselines.
 **CLI Usage:**
 ```bash
 # Run and save new baseline
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --config configs/config-default.yaml \
     --save-baseline
 
 # Compare against previous baseline
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --config configs/config-gpt-4.1-mini.yaml \
@@ -136,14 +136,14 @@ export OPENAI_API_KEY="your-api-key"
 
 ```bash
 # Run baseline evaluation with your vector store name
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --config configs/config-default.yaml \
     --save-baseline
 
 # Or specify a specific vector store ID for testing with specific data
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --vector-store-id vs_abc123 \
@@ -173,7 +173,7 @@ Overall: ✅ PASS
 
 ```bash
 # After making changes, run evaluation again and compare
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --config configs/config-default.yaml \
@@ -239,7 +239,7 @@ baseline:
 
 Then run:
 ```bash
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case my_custom_test \
     --vector-store-name "agentic_research_data" \
     --save-baseline
@@ -253,7 +253,7 @@ Add to your CI pipeline:
 # .github/workflows/evaluation.yml
 - name: Run Baseline Evaluation
   run: |
-    poetry run baseline-eval \
+    uv run baseline-eval \
       --test-case trivial_research \
       --vector-store-name "agentic_research_data" \
       --compare-baseline evaluations/baselines/baseline_main.json
@@ -319,13 +319,13 @@ You need a vector store with content. Create one using the normal workflow:
 
 ```bash
 # Use dataprep workflow to create and populate vector store
-poetry run mcp-dataprep-workflow \
+uv run mcp-dataprep-workflow \
     --syllabus "Python basics" \
     --input-files data/*.md
 
 # This creates a vector store with the name from configs/config-default.yaml
 # Then use that same name in evaluation:
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --save-baseline
@@ -346,7 +346,7 @@ This is expected if your changes affected quality. Review:
 
 To accept new behavior as baseline:
 ```bash
-poetry run baseline-eval \
+uv run baseline-eval \
     --test-case trivial_research \
     --vector-store-name "agentic_research_data" \
     --save-baseline

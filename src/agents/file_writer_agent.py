@@ -1,12 +1,12 @@
 # Agent used to synthesize a final report from the individual summaries.
 from typing import Any, ClassVar
 
-from pydantic import BaseModel
-
-from agents import Agent, RunContextWrapper
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
+from pydantic import BaseModel
+
+from agents import Agent, RunContextWrapper
 
 from ..config import get_config
 from .schemas import ResearchInfo

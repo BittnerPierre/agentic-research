@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 import time
 
+from agents.mcp import MCPServer
 from rich.console import Console
 
 from agents import Runner, custom_span, gen_trace_id, trace
-from agents.mcp import MCPServer
 
 from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
 from .agents.schemas import ReportData, ResearchInfo

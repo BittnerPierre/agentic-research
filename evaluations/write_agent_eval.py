@@ -7,9 +7,6 @@ import tempfile
 import time
 from pathlib import Path
 
-from langsmith.wrappers import OpenAIAgentsTracingProcessor
-from rich.console import Console
-
 from agentic_research.agents.file_writer_agent import create_writer_agent
 from agentic_research.agents.schemas import ReportData, ResearchInfo
 from agentic_research.agents.utils import (
@@ -20,6 +17,10 @@ from agentic_research.agents.utils import (
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
 from agentic_research.tracing.trace_processor import FileTraceProcessor
+from agents.mcp import MCPServer, MCPServerStdio
+from langsmith.wrappers import OpenAIAgentsTracingProcessor
+from rich.console import Console
+
 from agents import (
     Agent,
     RunConfig,
@@ -29,7 +30,6 @@ from agents import (
     gen_trace_id,
     trace,
 )
-from agents.mcp import MCPServer, MCPServerStdio
 
 from .eval_utils import (
     build_fs_server_params,
@@ -365,7 +365,7 @@ async def main(
 
 def eval_main():
     """
-    Point d'entrée synchrone pour les scripts Poetry.
+    Point d'entrée synchrone pour les scripts projet.
     Parse les arguments CLI et passe le modèle à main().
     """
     parser = argparse.ArgumentParser(description="Évaluation de l'agent writer")
@@ -390,7 +390,7 @@ def eval_main():
     )
 
     # Parse seulement les arguments connus pour éviter les erreurs avec d'autres arguments
-    args, unknown = parser.parse_known_args()
+    args, _unknown = parser.parse_known_args()
 
     asyncio.run(
         main(
@@ -404,17 +404,17 @@ def eval_main():
 def test_main():
     """
     🚀 Point d'entrée pour tester la trajectoire et la qualité du rapport sur des fichiers existants
-    Usage: poetry run test_trajectory <file_prefix>
+    Usage: uv run test_trajectory <file_prefix>
 
     Args:
         file_prefix: Préfixe du fichier (ex: "evaluations/output/agent_engineer_fondations_course_final_report_20250715_161950")
                     Le script cherchera automatiquement les fichiers _messages.json et _final_report.md correspondants
     """
     if len(sys.argv) != 2:
-        print("Usage: poetry run test_trajectory <file_prefix>")
+        print("Usage: uv run test_trajectory <file_prefix>")
         print("\nExemple:")
         print(
-            "poetry run test_trajectory evaluations/output/agent_engineer_fondations_course_final_report_20250715_161950"
+            "uv run test_trajectory evaluations/output/agent_engineer_fondations_course_final_report_20250715_161950"
         )
         print("\nLe script cherchera automatiquement:")
         print("- <file_prefix>_messages.json (pour la trajectoire)")

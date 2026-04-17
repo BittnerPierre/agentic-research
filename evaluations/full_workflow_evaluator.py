@@ -16,8 +16,6 @@ import asyncio
 import os
 from pathlib import Path
 
-from rich.console import Console
-
 from agentic_research.agents.agentic_research_agent import create_research_supervisor_agent
 from agentic_research.agents.file_search_agent import create_file_search_agent
 from agentic_research.agents.file_search_planning_agent import create_file_planner_agent
@@ -26,8 +24,10 @@ from agentic_research.agents.schemas import ReportData, ResearchInfo
 from agentic_research.agents.utils import model_spec_to_string
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
-from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
 from agents.mcp import MCPServer
+from rich.console import Console
+
+from agents import Agent, Runner, TResponseInputItem, gen_trace_id, trace
 
 from .eval_utils import (
     build_fs_server_params,
@@ -320,7 +320,7 @@ async def main():
     CLI entry point for full workflow evaluation.
 
     Usage:
-        poetry run python evaluations/full_workflow_evaluator.py --syllabus "Python basics"
+        uv run python evaluations/full_workflow_evaluator.py --syllabus "Python basics"
     """
     import argparse
     import tempfile
@@ -463,7 +463,7 @@ async def main():
 
 def cli_main():
     """
-    Synchronous CLI entry point (for poetry scripts).
+    Synchronous CLI entry point (for project scripts).
     """
     asyncio.run(main())
 

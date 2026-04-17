@@ -251,9 +251,9 @@ def test_all_checkpoints_have_descriptions():
     for spec in all_specs:
         for checkpoint in spec["trajectory_spec"]:
             assert "description" in checkpoint, f"Checkpoint {checkpoint['id']} missing description"
-            assert (
-                len(checkpoint["description"]) > 0
-            ), f"Checkpoint {checkpoint['id']} has empty description"
+            assert len(checkpoint["description"]) > 0, (
+                f"Checkpoint {checkpoint['id']} has empty description"
+            )
 
 
 if __name__ == "__main__":

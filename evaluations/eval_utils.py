@@ -23,9 +23,7 @@ def load_test_case(test_case_name: str, test_cases_dir: str = "evaluations/test_
 
     if not test_case_file.exists():
         available = list(Path(test_cases_dir).glob("*.yaml"))
-        raise FileNotFoundError(
-            f"Test case not found: {test_case_file}\n" f"Available: {available}"
-        )
+        raise FileNotFoundError(f"Test case not found: {test_case_file}\nAvailable: {available}")
 
     with open(test_case_file, encoding="utf-8") as f:
         return yaml.safe_load(f)

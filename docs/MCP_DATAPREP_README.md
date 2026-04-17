@@ -28,7 +28,7 @@ Système de gestion de base de connaissances locale avec upload optimisé vers O
 
 ```bash
 cd experiments/agentic-research
-poetry install
+uv sync --extra dev
 ```
 
 ### Dépendances ajoutées
@@ -52,14 +52,14 @@ data:
 
 ```bash
 # Reproduit dataprep.core:main avec les nouvelles fonctionnalités
-poetry run mcp-dataprep-workflow
+uv run mcp-dataprep-workflow
 ```
 
 ### 2. Serveur MCP
 
 ```bash
 # Démarrer le serveur MCP DataPrep
-poetry run dataprep_server
+uv run dataprep_server
 ```
 
 Le serveur sera accessible sur `http://localhost:8001` avec transport SSE.
@@ -265,17 +265,17 @@ logger.info("Document téléchargé", extra={
 Le module est **100% compatible** avec l'existant :
 
 - `src.dataprep.core` : **Inchangé**
-- `poetry run dataprep` : **Fonctionne toujours**
+- `uv run dataprep` : **Fonctionne toujours**
 - Nouvelles fonctionnalités : **Additives uniquement**
 
 ### Script de Migration
 
 ```bash
 # Ancien workflow
-poetry run dataprep
+uv run dataprep
 
 # Nouveau workflow avec optimisations
-poetry run mcp-dataprep-workflow
+uv run mcp-dataprep-workflow
 ```
 
 ## 📈 Métriques et Monitoring
