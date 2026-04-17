@@ -7,6 +7,7 @@ from agents import Agent, RunContextWrapper, RunResult, ToolCallOutputItem, hand
 
 from ..config import get_config
 from ..dataprep.vector_backends import get_vector_backend
+from ..gates import check_search_results_gate
 from .file_writer_agent import WriterDirective
 from .schemas import ReportData, ResearchInfo
 from .utils import (
@@ -52,6 +53,7 @@ def create_research_supervisor_agent(
 ):
     def on_handoff(ctx: RunContextWrapper[ResearchInfo], directive: WriterDirective):
         print(f"Writer agent called with directive: {directive}")
+        check_search_results_gate(directive.search_results)
         ctx.context.search_results = directive.search_results
 
     config = get_config()
