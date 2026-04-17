@@ -96,38 +96,74 @@ le reasoning :
 | Famille | Mécanisme serveur | Mécanisme prompt/API |
 |---------|-------------------|---------------------|
 | **GPT-OSS** (llama.cpp) | `--chat-template-kwargs {"reasoning_effort":"medium"}` | Non disponible côté API |
-| **GPT-OSS** (vLLM) | À étudier | À étudier |
+| **GPT-OSS** (vLLM) | `--reasoning-parser openai_gptoss` | `reasoning_effort` au top-level du payload ✅ (validé spike 2026-04-17) |
 | **OpenAI cloud** | N/A | `reasoning_effort` param natif |
 | **Nemotron** | `--reasoning-parser nemotron_v3` | `extra_body={"chat_template_kwargs": {"enable_thinking": True}}` |
 | **Qwen 3** | `--enable-reasoning --reasoning-parser deepseek_r1` | `/think` dans le user input |
 | **Mistral** | Pas de mode reasoning explicite | Sampling params uniquement |
 
-### Questions ouvertes
+### Résultats du spike (2026-04-17, gpt-oss-20b sur vLLM solo, GB10 Spark)
 
-1. **vLLM + gpt-oss-120B** : comment passer le reasoning effort ?
-   - vLLM supporte-t-il `chat_template_kwargs` ?
-   - Faut-il un `--reasoning-parser` spécifique ?
-   - Ou est-ce géré par le chat template du modèle ?
+**Setup validé** : image standard `vllm-node` (build eugr sans `--exp-mxfp4`),
+lancée via `./launch-cluster.sh --solo`, port 8010, sans
+`VLLM_USE_FLASHINFER_MOE_MXFP4_MXFP8=1` (voir pièges ci-dessous).
 
-2. **Abstraction côté agent** : quel contrat ?
-   - Option A : champ `reasoning_effort` dans `ModelEndpointConfig` (config YAML)
-   - Option B : paramètre dans `ModelSettings` des agents SDK
-   - Option C : injection dans le prompt (comme Qwen `/think`)
-   - Recommandation probable : **Option A** car plus propre et compatible avec
-     le pattern existant de config par agent
+**Mesures reasoning_effort** (même prompt, `max_tokens=2048`, `temperature=0`) :
 
-3. **Compatibilité** : le mécanisme choisi doit fonctionner avec :
-   - le workflow multi-modèles actuel (WS4 le merge ensuite)
-   - les benchmarks existants
-   - les modèles stretch (Nemotron, Qwen 3)
+| `reasoning_effort` | completion_tokens | reasoning_chars | content_chars |
+|--------------------|-------------------|-----------------|---------------|
+| low                | 881               | 703             | 1536          |
+| medium             | 1334              | 1737            | 1670          |
+| high               | 2048 **(cap)**    | 7028            | **0** ⚠️     |
 
-### Action : spike sur le Spark
+- Impact monotone, très fort : low → medium ≈ ×2,5 ; medium → high ≈ ×4
+- `reasoning_effort=high` avec un `max_tokens` trop bas **cape avant la
+  réponse finale** → `content` vide. Provisionner large (≥ 8k pour high).
+- Le parser `openai_gptoss` sépare bien `message.reasoning` de
+  `message.content` dans la réponse JSON.
 
-Tester directement sur le DGX Spark :
-1. Lancer vLLM avec gpt-oss-120B
-2. Vérifier l'API de reasoning (params supportés)
-3. Documenter le mécanisme effectif
-4. Proposer l'abstraction
+**Pièges rencontrés (à retenir pour tout run vLLM sur GB10/sm_121)** :
+
+1. `VLLM_USE_FLASHINFER_MOE_MXFP4_MXFP8=1` fait lever :
+   > `Mxfp4 MoE backend 'FLASHINFER_TRTLLM_MXFP4_MXFP8' does not support the deployment configuration since kernel does not support current device cuda.`
+   Ce backend est incompatible avec sm_121. **Ne pas forcer cet env var** —
+   vLLM auto-sélectionne un backend compatible (Triton) sans.
+   Cet env var reste pertinent sur le build `--exp-mxfp4` (optimisé CUTLASS).
+
+2. L'exemple `examples/vllm-openai-gpt-oss-120b.sh` d'eugr contient cet
+   env var — il a été écrit pour le build optimisé et le cluster dual-Spark,
+   pas pour un setup solo + image standard.
+
+### Contrat agent (décidé)
+
+Champ `reasoning_effort` à ajouter dans `ModelEndpointConfig`
+(`src/config.py`), valeurs `low | medium | high | null`.
+Passé tel quel au top-level du payload OpenAI-compatible (pas dans
+`extra_body`). Compatible avec les autres familles via un mapping à faire
+dans les agents (Nemotron → `chat_template_kwargs`, Qwen → injection prompt).
+
+### Taille de contexte et réserve output
+
+vLLM n'a pas d'équivalent direct à `--n-predict` (llama.cpp) qui garantit
+côté serveur une réserve de tokens pour la génération. Le découpage
+prompt/output est piloté **côté client** via `max_tokens`. Implication :
+pour un agent avec `reasoning_effort=high`, il faut provisionner
+`max_tokens` large (8k+) sinon la réponse finale est tronquée après le
+reasoning.
+
+| llama.cpp | vLLM | Rôle |
+|-----------|------|------|
+| `--ctx-size` | `--max-model-len` | Contexte total (prompt + output) côté serveur |
+| `--n-predict` | *(pas d'équivalent serveur)* | Réserve output — côté client via `max_tokens` |
+
+### Spike réalisé le 2026-04-17 ✅
+
+Spike effectué avec gpt-oss-**20b** (pas 120B) sur le Spark solo, image vLLM
+standard eugr. Questions ouvertes résolues :
+- Mécanisme reasoning gpt-oss vLLM → `reasoning_effort` top-level + parser
+  `openai_gptoss`
+- Abstraction côté agent → Option A confirmée (`ModelEndpointConfig`)
+- Build à utiliser pour multi-modèles → image standard (pas `--exp-mxfp4`)
 
 ---
 
