@@ -103,8 +103,10 @@ agentique coeur). Il doit :
 - fonctionner sur le **workflow tel qu'il est aujourd'hui**, sans dépendre des
   changements de WS4 (isolation writer, contrat NORMALIZED, HITL, etc.) ;
 - être **livrable et mergeable de façon autonome** ;
-- utiliser une **branche de workstream** (ex: `ws1/inference-platform`) pour
-  accumuler les features S1-02, S1-03, S1-04 avant de merger dans main.
+- utiliser une **branche d'intégration de workstream** (ex:
+  `ws1/inference-platform`) : chaque feature garde sa propre branche, puis est
+  intégrée dans cette branche de workstream sans intégration immédiate dans la
+  branche principale du dépôt, afin de ne pas bloquer les autres workstreams.
 
 **Contexte** : ce workstream est lié à un **engagement client ASUS / NVIDIA**.
 C'est une contrainte externe de livraison, pas seulement un exercice technique.

@@ -558,8 +558,10 @@ Contenu :
 
 **Règle d'indépendance** : WS1 est **totalement indépendant** de WS4. Il doit
 fonctionner sur le workflow actuel, être livrable et mergeable de façon
-autonome, et utiliser une branche de workstream dédiée
-(ex: `ws1/inference-platform`).
+autonome, et utiliser une branche d'intégration de workstream dédiée
+(ex: `ws1/inference-platform`) : chaque feature garde sa propre branche, puis
+est intégrée dans cette branche de workstream sans intégration immédiate dans
+la branche principale du dépôt, afin de ne pas bloquer les autres workstreams.
 
 **Contexte** : ce workstream est lié à un engagement client ASUS / NVIDIA.
 C'est une contrainte externe de livraison.
