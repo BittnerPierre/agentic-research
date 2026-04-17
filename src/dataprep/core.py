@@ -64,8 +64,8 @@ def save_docs_to_markdown(docs_list: list[WebDocument], temp_dir: Path) -> list[
 
     for i, doc in enumerate(docs_list):
         # Générer un nom de fichier à partir du titre ou de l'URL
-        title = doc.metadata.get("title", f"document_{i+1}")
-        filename = f"{i+1:02d}_{title[:50]}.md"
+        title = doc.metadata.get("title", f"document_{i + 1}")
+        filename = f"{i + 1:02d}_{title[:50]}.md"
 
         # Nettoyer le nom de fichier
         filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", filename)
@@ -173,7 +173,7 @@ def create_processing_report(
 
     report_content = f"""# Rapport de Traitement des Documents
 
-**Date de traitement:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Date de traitement:** {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
 ## Résumé
 

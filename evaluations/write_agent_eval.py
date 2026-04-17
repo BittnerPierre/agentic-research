@@ -7,9 +7,6 @@ import tempfile
 import time
 from pathlib import Path
 
-from langsmith.wrappers import OpenAIAgentsTracingProcessor
-from rich.console import Console
-
 from agentic_research.agents.file_writer_agent import create_writer_agent
 from agentic_research.agents.schemas import ReportData, ResearchInfo
 from agentic_research.agents.utils import (
@@ -20,6 +17,10 @@ from agentic_research.agents.utils import (
 from agentic_research.config import get_config
 from agentic_research.printer import Printer
 from agentic_research.tracing.trace_processor import FileTraceProcessor
+from agents.mcp import MCPServer, MCPServerStdio
+from langsmith.wrappers import OpenAIAgentsTracingProcessor
+from rich.console import Console
+
 from agents import (
     Agent,
     RunConfig,
@@ -29,7 +30,6 @@ from agents import (
     gen_trace_id,
     trace,
 )
-from agents.mcp import MCPServer, MCPServerStdio
 
 from .eval_utils import (
     build_fs_server_params,
@@ -390,7 +390,7 @@ def eval_main():
     )
 
     # Parse seulement les arguments connus pour éviter les erreurs avec d'autres arguments
-    args, unknown = parser.parse_known_args()
+    args, _unknown = parser.parse_known_args()
 
     asyncio.run(
         main(

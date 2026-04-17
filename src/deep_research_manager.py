@@ -6,10 +6,10 @@ import re
 import time
 from pathlib import Path
 
+from agents.mcp import MCPServer
 from rich.console import Console
 
 from agents import Runner, custom_span, gen_trace_id, trace
-from agents.mcp import MCPServer
 
 from .agents.file_search_agent import create_file_search_agent
 from .agents.file_search_planning_agent import create_file_planner_agent

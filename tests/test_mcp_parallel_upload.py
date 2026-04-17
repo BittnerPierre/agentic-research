@@ -63,9 +63,9 @@ def test_parallel_file_attachment_timing():
     # Parallel should be at least 3x faster (5 files / ~2 tolerance)
     # Sequential: 5 files x 100ms = 500ms
     # Parallel: max(100ms) = ~100ms
-    assert (
-        parallel_time < sequential_time / 3
-    ), f"Parallel ({parallel_time:.2f}s) should be at least 3x faster than sequential ({sequential_time:.2f}s)"
+    assert parallel_time < sequential_time / 3, (
+        f"Parallel ({parallel_time:.2f}s) should be at least 3x faster than sequential ({sequential_time:.2f}s)"
+    )
 
     print("\n✅ Timing validation:")
     print(f"   Sequential: {sequential_time:.3f}s (5 files x ~100ms)")
@@ -188,9 +188,9 @@ def test_parallel_attachment_max_workers():
 
     # Assertions
     assert len(results) == 10
-    assert (
-        max_concurrent[0] <= max_workers
-    ), f"Max concurrent ({max_concurrent[0]}) should not exceed max_workers ({max_workers})"
+    assert max_concurrent[0] <= max_workers, (
+        f"Max concurrent ({max_concurrent[0]}) should not exceed max_workers ({max_workers})"
+    )
 
     print("\n✅ Max workers validation:")
     print(f"   Max workers:    {max_workers}")

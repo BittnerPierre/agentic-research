@@ -17,8 +17,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from agents import Agent, Runner, Span, Trace, TracingProcessor, set_trace_processors
 from agents.extensions.models.litellm_model import LitellmModel
+
+from agents import Agent, Runner, Span, Trace, TracingProcessor, set_trace_processors
 
 
 def check_internet_connection() -> bool:

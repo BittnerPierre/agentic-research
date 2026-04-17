@@ -56,7 +56,7 @@ def test_vector_backend_factory_unknown_provider():
     snapshot = _snapshot_config(config)
     config.vector_search.provider = "invalid"
 
-    with pytest.raises(ValueError, match="Unknown vector_search.provider"):
+    with pytest.raises(ValueError, match=r"Unknown vector_search\.provider"):
         get_vector_backend(config)
 
     _restore_config(config, snapshot)

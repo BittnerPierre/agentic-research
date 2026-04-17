@@ -213,9 +213,7 @@ def get_spec_by_agent_name(agent_name: str) -> dict:
     }
 
     if agent_name not in specs:
-        raise ValueError(
-            f"Unknown agent name: {agent_name}. " f"Valid options: {list(specs.keys())}"
-        )
+        raise ValueError(f"Unknown agent name: {agent_name}. Valid options: {list(specs.keys())}")
 
     return specs[agent_name]
 

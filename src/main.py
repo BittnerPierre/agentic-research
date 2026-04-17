@@ -8,11 +8,12 @@ import tempfile
 from contextlib import AsyncExitStack
 from pathlib import Path
 
+from agents.mcp import MCPServerSse, MCPServerStdio
+
 # LangSmith tracing support
 from langsmith.wrappers import OpenAIAgentsTracingProcessor
 
 from agents import add_trace_processor
-from agents.mcp import MCPServerSse, MCPServerStdio
 
 from .agents.schemas import ResearchInfo
 from .agents.utils import context_aware_filter
@@ -149,7 +150,7 @@ async def main() -> None:
         query = f"<research_request>\n{args.query}\n</research_request>"
     else:
         query = (
-            f"<research_request>\n{input("What would you like to research? ")}\n</research_request>"
+            f"<research_request>\n{input('What would you like to research? ')}\n</research_request>"
         )
 
     add_trace_processor(OpenAIAgentsTracingProcessor())

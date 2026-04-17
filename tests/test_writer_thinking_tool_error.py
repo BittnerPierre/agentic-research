@@ -1,9 +1,9 @@
 import os
 
 import pytest
+from agents.models import get_default_model_settings
 
 from agents import Agent, Runner, function_tool
-from agents.models import get_default_model_settings
 from src.agents.file_writer_agent import dynamic_instructions
 from src.agents.schemas import ResearchInfo
 from src.agents.utils import coerce_report_data, extract_model_name, get_writer_output_type

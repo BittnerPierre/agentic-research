@@ -15,7 +15,7 @@ class SearchItem(BaseModel):
 T = TypeVar("T", bound=SearchItem)
 
 
-class SearchPlan(BaseModel, Generic[T]):
+class SearchPlan(BaseModel, Generic[T]):  # noqa: UP046
     searches: list[T]
     """Une liste de recherches à effectuer pour mieux répondre à la requête."""
 

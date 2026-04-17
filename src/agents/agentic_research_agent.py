@@ -1,8 +1,9 @@
-from agents import Agent, RunContextWrapper, RunResult, ToolCallOutputItem, handoff
 from agents.extensions import handoff_filters
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
+
+from agents import Agent, RunContextWrapper, RunResult, ToolCallOutputItem, handoff
 
 from ..config import get_config
 from ..dataprep.vector_backends import get_vector_backend
@@ -29,7 +30,7 @@ ORCHESTRATOR_PROMPT = load_prompt_from_file("prompts", prompt_file)
 if ORCHESTRATOR_PROMPT is None:
     raise ValueError(f"{prompt_file} is None")
 
-INSTRUCTIONS = f"{RECOMMENDED_PROMPT_PREFIX}" f"{ORCHESTRATOR_PROMPT}"
+INSTRUCTIONS = f"{RECOMMENDED_PROMPT_PREFIX}{ORCHESTRATOR_PROMPT}"
 
 
 async def extract_json_payload(run_result: RunResult) -> str:

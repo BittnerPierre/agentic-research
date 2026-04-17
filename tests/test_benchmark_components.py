@@ -55,7 +55,7 @@ class TestSetupDetector:
         models_dir.mkdir()
         test_file = models_dir / "models.test.env"
         test_file.write_text(
-            "LLM_INSTRUCT_MODEL_PATH=/path/to/model-Q4_K_M.gguf\n" "LLM_INSTRUCT_CTX_SIZE=32768\n"
+            "LLM_INSTRUCT_MODEL_PATH=/path/to/model-Q4_K_M.gguf\nLLM_INSTRUCT_CTX_SIZE=32768\n"
         )
 
         # Set env var and working directory

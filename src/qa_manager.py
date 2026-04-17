@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from agents import Runner
 from agents.mcp import MCPServer
+
+from agents import Runner
 
 from .agents.qa_agent import create_qa_agent
 from .agents.schemas import ResearchInfo

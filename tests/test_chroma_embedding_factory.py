@@ -78,7 +78,7 @@ def test_openai_embedding_function_calls_openai_compatible_endpoint(monkeypatch)
     response_payload = {}
 
     class _EmbeddingHandler(BaseHTTPRequestHandler):
-        def do_POST(self):  # noqa: N802 - http.server API uses camelcase
+        def do_POST(self):
             if not self.path.endswith("/embeddings"):
                 self.send_response(404)
                 self.end_headers()
