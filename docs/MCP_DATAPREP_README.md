@@ -28,7 +28,7 @@ Système de gestion de base de connaissances locale avec upload optimisé vers O
 
 ```bash
 cd experiments/agentic-research
-uv sync
+uv sync --extra dev
 ```
 
 ### Dépendances ajoutées

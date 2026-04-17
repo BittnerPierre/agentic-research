@@ -109,8 +109,8 @@ Environment variable overrides:
 
 ### Setup
 ```bash
-# Install dependencies
-uv sync
+# Install dependencies (including dev tools: pytest, ruff, etc.)
+uv sync --extra dev
 
 # Start the DataPrep MCP server (required for research workflows)
 uv run dataprep_server

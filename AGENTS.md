@@ -16,7 +16,7 @@
 - `docs/` and `external-references/` collect supporting documentation and references.
 
 ## Build, Test, and Development Commands
-- `uv sync` installs dependencies.
+- `uv sync --extra dev` installs all dependencies (including dev tools).
 - `uv run agentic-research` runs the interactive CLI.
 - `uv run agentic-research --query "..."` runs a non-interactive query.
 - `uv run dataprep_server` starts the MCP dataprep server used by the agents.

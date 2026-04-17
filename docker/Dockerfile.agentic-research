@@ -34,13 +34,13 @@ ENV MCP_FS_COMMAND=node
 ENV MCP_FS_ARGS=/usr/local/lib/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js
 
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --no-dev --no-install-project
+RUN uv sync --no-dev --frozen --no-install-project --frozen
 COPY agentic_research ./agentic_research
 COPY src ./src
 COPY evaluations ./evaluations
 COPY scripts ./scripts
 COPY configs ./configs
-RUN uv sync --no-dev
+RUN uv sync --no-dev --frozen
 RUN mkdir -p data output debug_output logs
 
 ENTRYPOINT ["uv", "run"]

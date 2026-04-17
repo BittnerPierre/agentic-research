@@ -5,7 +5,7 @@
 This is a simple example of a multi-agent research assistant with local MCP. To run it:
 
 ```bash
-uv sync
+uv sync --extra dev
 uv run dataprep_server
 uv run agentic-research
 ```

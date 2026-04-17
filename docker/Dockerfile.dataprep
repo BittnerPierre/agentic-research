@@ -19,11 +19,11 @@ RUN apt-get update \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --no-dev --no-install-project
+RUN uv sync --no-dev --frozen --no-install-project --frozen
 COPY src ./src
 COPY evaluations ./evaluations
 COPY configs ./configs
-RUN uv sync --no-dev
+RUN uv sync --no-dev --frozen
 RUN mkdir -p data output debug_output logs
 
 ENTRYPOINT ["uv", "run"]
