@@ -17,8 +17,6 @@ Références :
 
 - `docs/plannings/ROADMAP_TECH_ANALYSIS_2026-04-14.md`
 - `docs/plannings/PRODUCT_VISION_REFERENCE_2026-04-14.md`
-- `Roadmap agentic research 13-04-2026.pdf`
-- `Questions globales - reponses.md`
 
 ---
 
@@ -63,20 +61,20 @@ features doivent aussi livrer une couverture de test minimale vérifiable.
 
 ## 3. Vue d'ensemble du backlog Sprint 1
 
-| Ordre | Code | Epic | Titre de feature | Type | Workstream | Statut backlog |
-|---|---|---|---|---|---|---|
-| 1 | S1-01 | E9 | Evaluer puis migrer de Poetry vers uv | Enabler | WS2 | Réutiliser issue existante |
-| 2 | S1-02 | E4 | Ajouter le hash du syllabus dans les artefacts benchmark | Enabler | WS1 | Réutiliser issue existante |
-| 3 | S1-03 | E1 | Rendre le backend d'inférence sélectionnable au démarrage avec priorité vLLM | Feature | WS1 | Nouvelle issue |
-| 4 | S1-04 | E1 | Valider un mode mono gros modèle sur dual DGX avec gpt-oss-120B | Spike | WS1 | Nouvelle issue |
-| 5 | S1-05 | E6 | Bloquer la génération de report si aucune source exploitable n'a été produite | Feature | WS4 | Réutiliser issue existante |
-| 6 | S1-06 | E8 | Isoler le writer du prompt utilisateur et de la conversation longue | Feature | WS4 | Nouvelle issue |
-| 7 | S1-07 | E8 | Formaliser le contrat writer RAW -> NORMALIZED | Feature | WS4 | Nouvelle issue |
-| 8 | S1-08 | E5 | Ajouter une validation humaine de l'agenda en V1 simple | Feature | WS4 | Nouvelle issue |
-| 9 | S1-09 | E2 | Ajouter l'ingestion PDF texte natif côté dataprep | Feature | WS3 | Réutiliser issue existante |
-| 10 | S1-10 | E2 | Rendre le chunking PDF gros fichier sûr et déterministe | Feature | WS3 | Nouvelle issue ou extension de S1-09 |
-| 11 | S1-11 | E12 | Générer les métadonnées de classification pour l'ingestion locale | Feature | WS3 | Réutiliser issue existante |
-| 12 | S1-12 | E12 | Exposer la classification documentaire comme capacité réutilisable | Feature | WS3 | Nouvelle issue |
+| Ordre | Code  | Epic | Titre de feature                                                              | Type    | Workstream | Statut backlog                       |
+| ----- | ----- | ---- | ----------------------------------------------------------------------------- | ------- | ---------- | ------------------------------------ |
+| 1     | S1-01 | E9   | Evaluer puis migrer de Poetry vers uv                                         | Enabler | WS2        | Réutiliser issue existante           |
+| 2     | S1-02 | E4   | Ajouter le hash du syllabus dans les artefacts benchmark                      | Enabler | WS1        | Réutiliser issue existante           |
+| 3     | S1-03 | E1   | Rendre le backend d'inférence sélectionnable au démarrage avec priorité vLLM  | Feature | WS1        | Nouvelle issue                       |
+| 4     | S1-04 | E1   | Valider un mode mono gros modèle sur dual DGX avec gpt-oss-120B               | Spike   | WS1        | Nouvelle issue                       |
+| 5     | S1-05 | E6   | Bloquer la génération de report si aucune source exploitable n'a été produite | Feature | WS4        | Réutiliser issue existante           |
+| 6     | S1-06 | E8   | Isoler le writer du prompt utilisateur et de la conversation longue           | Feature | WS4        | Nouvelle issue                       |
+| 7     | S1-07 | E8   | Formaliser le contrat writer RAW -> NORMALIZED                                | Feature | WS4        | Nouvelle issue                       |
+| 8     | S1-08 | E5   | Ajouter une validation humaine de l'agenda en V1 simple                       | Feature | WS4        | Nouvelle issue                       |
+| 9     | S1-09 | E2   | Ajouter l'ingestion PDF texte natif côté dataprep                             | Feature | WS3        | Réutiliser issue existante           |
+| 10    | S1-10 | E2   | Rendre le chunking PDF gros fichier sûr et déterministe                       | Feature | WS3        | Nouvelle issue ou extension de S1-09 |
+| 11    | S1-11 | E12  | Générer les métadonnées de classification pour l'ingestion locale             | Feature | WS3        | Réutiliser issue existante           |
+| 12    | S1-12 | E12  | Exposer la classification documentaire comme capacité réutilisable            | Feature | WS3        | Nouvelle issue                       |
 
 Remarque :
 
@@ -340,11 +338,11 @@ Nouvelle issue à créer.
 Le déplacement du reasoning effort au niveau agent est plus complexe qu'un
 simple flag config. Chaque famille de modèles a son propre mécanisme :
 
-| Modèle | Mécanisme moteur d'inférence | Mécanisme côté prompt / API |
-|--------|------------------------------|-----------------------------|
-| OpenAI natif | `reasoning_effort` param | natif dans l'API |
-| Nemotron | `--reasoning-parser nemotron_v3` | `extra_body={"chat_template_kwargs": {"enable_thinking": True}}` |
-| Qwen 3 | `--enable-reasoning --reasoning-parser deepseek_r1` | `/think` dans le user input |
+| Modèle       | Mécanisme moteur d'inférence                        | Mécanisme côté prompt / API                                      |
+| ------------ | --------------------------------------------------- | ---------------------------------------------------------------- |
+| OpenAI natif | `reasoning_effort` param                            | natif dans l'API                                                 |
+| Nemotron     | `--reasoning-parser nemotron_v3`                    | `extra_body={"chat_template_kwargs": {"enable_thinking": True}}` |
+| Qwen 3       | `--enable-reasoning --reasoning-parser deepseek_r1` | `/think` dans le user input                                      |
 
 Ref: https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
 
