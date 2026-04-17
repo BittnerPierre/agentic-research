@@ -5,9 +5,9 @@
 This is a simple example of a multi-agent research assistant with local MCP. To run it:
 
 ```bash
-poetry install
-poetry run dataprep_server
-poetry run agentic-research
+uv sync
+uv run dataprep_server
+uv run agentic-research
 ```
 
 ## Docker / Containers
@@ -26,7 +26,7 @@ The flow is:
 
 ## CLI Usage
 
-The `agentic-research` tool can be used via Poetry with different options:
+The `agentic-research` tool can be used via uv with different options:
 
 ### Available Options
 
@@ -40,25 +40,25 @@ The `agentic-research` tool can be used via Poetry with different options:
 
 ```bash
 # Interactive mode with the default manager
-poetry run agentic-research
+uv run agentic-research
 
 # Use a syllabus file as the query
-poetry run agentic-research --syllabus test_files/syllabus.md
+uv run agentic-research --syllabus test_files/syllabus.md
 
 # Specify a particular manager
-poetry run agentic-research --syllabus test_files/syllabus.md --manager manager
+uv run agentic-research --syllabus test_files/syllabus.md --manager manager
 
 # Specify a custom manager
-poetry run agentic-research --manager custom_module.CustomManager
+uv run agentic-research --manager custom_module.CustomManager
 
 # Pass a query directly on the command line
-poetry run agentic-research --query "Retrieval Augmented Generation"
+uv run agentic-research --query "Retrieval Augmented Generation"
 
 # Combine multiple options
-poetry run agentic-research --query "Agents in LLM" --manager agentic_manager
+uv run agentic-research --query "Agents in LLM" --manager agentic_manager
 
 # Utiliser un serveur dataprep sur un autre port
-poetry run agentic-research --dataprep-host 127.0.0.1 --dataprep-port 8010
+uv run agentic-research --dataprep-host 127.0.0.1 --dataprep-port 8010
 ```
 
 ## Dataprep server
@@ -66,7 +66,7 @@ poetry run agentic-research --dataprep-host 127.0.0.1 --dataprep-port 8010
 Vous pouvez démarrer le serveur dataprep sur un host/port spécifique :
 
 ```bash
-poetry run dataprep_server --host 127.0.0.1 --port 8010
+uv run dataprep_server --host 127.0.0.1 --port 8010
 ```
 
 ### Configuration

@@ -320,7 +320,7 @@ async def main():
     CLI entry point for full workflow evaluation.
 
     Usage:
-        poetry run python evaluations/full_workflow_evaluator.py --syllabus "Python basics"
+        uv run python evaluations/full_workflow_evaluator.py --syllabus "Python basics"
     """
     import argparse
     import tempfile
@@ -463,7 +463,7 @@ async def main():
 
 def cli_main():
     """
-    Synchronous CLI entry point (for poetry scripts).
+    Synchronous CLI entry point (for project scripts).
     """
     asyncio.run(main())
 

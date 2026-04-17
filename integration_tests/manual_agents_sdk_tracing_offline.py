@@ -7,7 +7,7 @@ Why it's manual:
 - Not suitable for CI / unit test suite
 
 Run manually:
-  poetry run python integration_tests/manual_agents_sdk_tracing_offline.py
+  uv run python integration_tests/manual_agents_sdk_tracing_offline.py
 """
 
 import json

@@ -16,12 +16,12 @@
 - `docs/` and `external-references/` collect supporting documentation and references.
 
 ## Build, Test, and Development Commands
-- `poetry install` installs dependencies.
-- `poetry run agentic-research` runs the interactive CLI.
-- `poetry run agentic-research --query "..."` runs a non-interactive query.
-- `poetry run dataprep_server` starts the MCP dataprep server used by the agents.
-- `poetry run pytest` runs the test suite (pytest is configured in `pyproject.toml`).
-- `poetry run ruff check .` and `poetry run ruff format .` enforce linting and formatting.
+- `uv sync` installs dependencies.
+- `uv run agentic-research` runs the interactive CLI.
+- `uv run agentic-research --query "..."` runs a non-interactive query.
+- `uv run dataprep_server` starts the MCP dataprep server used by the agents.
+- `uv run pytest` runs the test suite (pytest is configured in `pyproject.toml`).
+- `uv run ruff check .` and `uv run ruff format .` enforce linting and formatting.
 - These commands mirror CI checks; run them locally before pushing.
 
 ## Coding Style & Naming Conventions

@@ -7,7 +7,7 @@ NOTE:
 - It requires a correctly configured environment (API keys, MCP servers, etc.).
 
 Run manually:
-  poetry run python integration_tests/manual_file_search_smoke.py
+  uv run python integration_tests/manual_file_search_smoke.py
 """
 
 import asyncio

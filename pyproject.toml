@@ -1,16 +1,43 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "agentic-research"
 version = "0.0.1"
 description = "Experiments with Agentic Research"
-authors = ["BittnerPierre <pierre@bittner.fr>"]
+authors = [{name = "BittnerPierre", email = "pierre@bittner.fr"}]
 readme = "README.md"
-packages = [{include = "src"}, {include = "evaluations"}]
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.0",
+    "openai>=1.74.0",
+    "openai-agents[litellm]>=0.2.1",
+    "python-dotenv>=0.9.9",
+    "fastmcp>=2.14.0",
+    "mcp>=1.9.4",
+    "pyyaml>=6.0.2",
+    "beautifulsoup4>=4.13.4",
+    "html2text>=2025.4.15",
+    "lxml>=6.0.0",
+    "chardet>=5.2.0",
+    "portalocker>=2.8.2",
+    "langsmith>=0.4.4",
+    "litellm~=1.76.3",
+    "chromadb==1.4.1",
+    "sentence-transformers>=5.2.0",
+]
 
-[tool.poetry.scripts]
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "tiktoken>=0.8.0",
+    "requests>=2.32.0",
+]
+
+[project.scripts]
 agentic-research = "src.main:cli_main"
 mcp-dataprep-workflow = "src.dataprep.workflow:run_workflow"
 dataprep_server = "src.mcp.dataprep_server:main"
@@ -21,33 +48,8 @@ test_trajectory = "evaluations.write_agent_eval:test_main"
 benchmark-models = "evaluations.benchmark_runner:cli_main"
 compare-benchmarks = "evaluations.benchmark_comparator:main"
 
-
-[tool.poetry.dependencies]
-python = "^3.12"
-pydantic = "^2.0"
-openai = "^1.74.0"
-openai-agents = {extras = ["litellm"], version = "^0.2.1"}
-dotenv = ">=0.9.9"
-fastmcp = "^2.14.0"
-mcp = "^1.9.4"
-pyyaml = "^6.0.2"
-beautifulsoup4 = "^4.13.4"
-html2text = "^2025.4.15"
-lxml = "^6.0.0"
-chardet = "^5.2.0"
-portalocker = "^2.8.2"
-langsmith = "^0.4.4"
-litellm = "~1.76.3"
-chromadb = "1.4.1"
-sentence-transformers = "^5.2.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0"
-pytest-asyncio = "^0.24.0"
-ruff = "^0.8.0"
-poetry-audit-plugin = "^1.0.0"
-tiktoken = "^0.8.0"
-requests = "^2.32.0"
+[tool.hatch.build.targets.wheel]
+packages = ["src", "evaluations"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -726,7 +726,7 @@ async def main():
 
 
 def cli_main():
-    """Synchronous CLI entry point (for poetry scripts)."""
+    """Synchronous CLI entry point (for project scripts)."""
     asyncio.run(main())
 
 

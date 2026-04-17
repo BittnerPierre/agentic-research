@@ -6,16 +6,16 @@ Supports regression testing by comparing against previous baselines.
 
 Usage:
     # Run and save new baseline
-    poetry run baseline-eval --test-case trivial_research --save-baseline
+    uv run baseline-eval --test-case trivial_research --save-baseline
 
     # Compare against baseline
-    poetry run baseline-eval --test-case trivial_research --compare-baseline baseline_trivial_<commit>.json
+    uv run baseline-eval --test-case trivial_research --compare-baseline baseline_trivial_<commit>.json
 
     # Run without saving
-    poetry run baseline-eval --test-case trivial_research
+    uv run baseline-eval --test-case trivial_research
 
     # Use a specific config
-    poetry run baseline-eval --test-case trivial_research --config configs/config-gpt-4.1-mini.yaml
+    uv run baseline-eval --test-case trivial_research --config configs/config-gpt-4.1-mini.yaml
 """
 
 import argparse
@@ -642,7 +642,7 @@ async def main():
 
 def cli_main():
     """
-    Synchronous CLI entry point (for poetry scripts).
+    Synchronous CLI entry point (for project scripts).
     """
     asyncio.run(main())
 

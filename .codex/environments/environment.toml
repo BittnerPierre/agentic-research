@@ -3,4 +3,4 @@ version = 1
 name = "agentic-research"
 
 [setup]
-script = "poetry install"
+script = "uv sync --all-extras"

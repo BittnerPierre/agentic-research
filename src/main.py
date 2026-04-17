@@ -233,7 +233,7 @@ async def main() -> None:
 
 
 def cli_main():
-    """Sync entrypoint for Poetry scripts."""
+    """Sync entrypoint for project scripts."""
     asyncio.run(main())
 
 

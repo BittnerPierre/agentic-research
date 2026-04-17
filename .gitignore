@@ -26,7 +26,7 @@ ENV/
 env/
 .venv/
 
-# Poetry
+# uv
 
 # Testing
 .pytest_cache/

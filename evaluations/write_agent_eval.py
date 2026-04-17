@@ -365,7 +365,7 @@ async def main(
 
 def eval_main():
     """
-    Point d'entrée synchrone pour les scripts Poetry.
+    Point d'entrée synchrone pour les scripts projet.
     Parse les arguments CLI et passe le modèle à main().
     """
     parser = argparse.ArgumentParser(description="Évaluation de l'agent writer")
@@ -404,17 +404,17 @@ def eval_main():
 def test_main():
     """
     🚀 Point d'entrée pour tester la trajectoire et la qualité du rapport sur des fichiers existants
-    Usage: poetry run test_trajectory <file_prefix>
+    Usage: uv run test_trajectory <file_prefix>
 
     Args:
         file_prefix: Préfixe du fichier (ex: "evaluations/output/agent_engineer_fondations_course_final_report_20250715_161950")
                     Le script cherchera automatiquement les fichiers _messages.json et _final_report.md correspondants
     """
     if len(sys.argv) != 2:
-        print("Usage: poetry run test_trajectory <file_prefix>")
+        print("Usage: uv run test_trajectory <file_prefix>")
         print("\nExemple:")
         print(
-            "poetry run test_trajectory evaluations/output/agent_engineer_fondations_course_final_report_20250715_161950"
+            "uv run test_trajectory evaluations/output/agent_engineer_fondations_course_final_report_20250715_161950"
         )
         print("\nLe script cherchera automatiquement:")
         print("- <file_prefix>_messages.json (pour la trajectoire)")
