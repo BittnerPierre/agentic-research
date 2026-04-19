@@ -70,8 +70,13 @@ un triplet **compose + env + config**.
 | Combo | compose | env | config | Statut |
 |-------|---------|-----|--------|--------|
 | llama.cpp split (existant) | `docker-compose.dgx.yml` | `models/models.openai.env` | `config-docker-dgx.yaml` | ✅ en place |
-| **vLLM split, gpt-oss-20b** (cible immédiate) | `docker-compose.dgx-vllm-split.yml` | `models/models.vllm-gptoss20b-split.env` | `config-docker-dgx-vllm-split.yaml` | ⏳ à créer |
-| vLLM mono, gpt-oss-120B | `docker-compose.dgx-vllm-mono.yml` | `models/models.vllm-gptoss120b-mono.env` | `config-docker-dgx-vllm-mono.yaml` | 🟡 scaffoldé |
+| **vLLM mono, gpt-oss-20b** (cible immédiate) | `docker-compose.dgx-vllm-gptoss20b-mono.yml` | `models/models.vllm-gptoss20b-mono.env` | `config-docker-dgx-vllm-gptoss20b-mono.yaml` | 🟡 scaffoldé (step 4') |
+| vLLM mono, gpt-oss-120B (scale-up) | `docker-compose.dgx-vllm-gptoss120b-mono.yml` | `models/models.vllm-gptoss120b-mono.env` | `config-docker-dgx-vllm-gptoss120b-mono.yaml` | 🟡 scaffoldé |
+
+**Topologie split vLLM abandonnée** (décision 2026-04-17) : tous les modèles
+shortlistés (gpt-oss, Nemotron, Mistral Small 4, Qwen 3) intègrent
+instruct+reasoning via l'API `reasoning_effort`. Le split était un workaround
+llama.cpp (reasoning figé serveur) qu'on n'a plus besoin de reproduire.
 
 Autres compositions possibles à l'avenir : SGLang, vision+voice+llm, etc.
 Le pattern de nommage `<host>-<backend>-<topologie>` reste extensible.
@@ -169,40 +174,36 @@ standard eugr. Questions ouvertes résolues :
 
 ## 4. Plan de travail WS1
 
-### Stratégie : split-first, mono ensuite
+### Stratégie révisée (2026-04-17) : mono direct, pas de split intermédiaire
 
-On change **une variable à la fois** :
+Décision : le split vLLM intermédiaire (étapes 3-6 initiales) est **abandonné**.
+Tous les modèles shortlistés intègrent reasoning+instruct via
+`reasoning_effort` API → reproduire la topologie split n'apporte rien.
 
-1. D'abord le backend d'inférence (llama.cpp → vLLM) **sans** toucher à la
-   topologie ni au modèle → on valide vLLM isolément avec gpt-oss-20b dans
-   le split actuel (2 services `llm-instruct` + `llm-reasoning`).
-2. Ensuite seulement, on passe à la topologie mono-modèle avec gpt-oss-120B
-   → changement de topologie + changement de modèle + reasoning par agent.
-
-Bénéfice : en cas de régression on sait quelle variable incriminer, et on
-peut comparer split vLLM vs split llama.cpp à iso-modèle/iso-topologie.
+On change **une variable à la fois** en passant par un modèle petit :
+d'abord **vLLM mono gpt-oss-20b** (valide la chaîne), ensuite scale-up sur
+gpt-oss-120B ou autre.
 
 ### Baby steps (validation à chaque étape)
 
-| # | Étape | Livrable | Critère de succès |
-|---|-------|----------|-------------------|
-| 0 | Doc : trajectoire, référence eugr, schéma de nommage | Ce document | Relu et validé |
-| 1 | Spike vLLM standalone (hors compose) : image pour GB10/aarch64, `curl /v1/models` + chat/completions avec gpt-oss-20b | Commandes + image fonctionnelle | API vLLM répond |
-| 2 | Spike reasoning : découvrir le mécanisme vLLM pour gpt-oss (parser ? `extra_body` ? `chat_template_kwargs` ?) | Section "reasoning vLLM gpt-oss" ajoutée à ce doc | Paramètre identifié |
-| 3 | Combo **vLLM split gpt-oss-20b** : `docker-compose.dgx-vllm-split.yml` + `models/models.vllm-gptoss20b-split.env` | Compose + env | `docker compose up` OK, les 2 endpoints répondent |
-| 4 | Config agentic : `configs/config-docker-dgx-vllm-split.yaml` (copie de `config-docker-dgx.yaml`, pas de code agent modifié) | Config | — |
-| 5 | Run end-to-end `agentic-research` sur le combo split vLLM | Trace + rapport | Workflow termine sans erreur |
-| 6 | Benchmark split vLLM vs split llama.cpp (iso config agentic) | Chiffres comparatifs | Résultats publiés |
-| 7 | **Point de décision** : on attaque le mono-modèle ? | Go/No-Go | — |
-| 8 | Refactor agent : `reasoning_effort` par agent dans `ModelEndpointConfig` | PR code + tests | Tests passent |
-| 9 | Combo **vLLM mono gpt-oss-120B** (scaffolding déjà en place) : validation end-to-end | Run complet | Workflow OK |
-
-Stretch (après step 9) : Nemotron, Qwen 3, Gemma 4, éventuellement SGLang.
+| # | Étape | Livrable | Statut |
+|---|-------|----------|--------|
+| 0 | Doc : trajectoire, principe compositions, référence eugr | `docs/ws1/WS1_STUDY_NOTES.md` | ✅ |
+| 1 | Spike vLLM standalone : build image eugr, `curl /v1/models` + chat avec gpt-oss-20b | Image `vllm-node:latest` (18 Go, 6 min build) | ✅ |
+| 2 | Spike reasoning : mécanisme `reasoning_effort` avec `--reasoning-parser openai_gptoss` | §3 de ce doc, mesures low/medium/high | ✅ |
+| 3' | **Fix #158 (prereq)** — `resolve_model()` doit dispatcher selon prefix : LiteLLM ne sert que pour `litellm/...`, `openai/...` doit utiliser `OpenAIChatCompletionsModel` natif. PR séparée depuis `main` | PR `fix/resolve-model-openai-native` | ⏳ à faire |
+| 4' | Combo **vLLM mono gpt-oss-20b** (infra + config, sans reasoning_effort) : compose + env + config YAML | 4 fichiers `*gptoss20b-mono*` | 🟡 scaffoldé |
+| 5' | Run end-to-end `agentic-research` sur mono 20b (tous agents même endpoint) | Trace + rapport | ⏳ |
+| 6' | Benchmark vs baseline llama.cpp split (2 variables changent — cadré comme comparaison idiomatique) | Chiffres | ⏳ |
+| 7' | Agent refactor v0 `reasoning_effort` (débloqué par #158) | PR code + tests sur `ws1/inference-platform` | ⏳ |
+| 8' | Scale-up : gpt-oss-120B OU Nemotron Super 120B | Combo actif + run end-to-end | ⏳ |
+| 9' | Matrice stretch : Nemotron Nano, Qwen 3, Gemma 4 (Mistral Small 4 différé — besoin image vLLM dédiée) | Tableau comparatif | ⏳ |
 
 ### Mapping issues GitHub
 
-- **S1-03 #152** (Setup vLLM) couvre les steps 1-5
-- **S1-04 #149** (Validation mono-modèle) couvre les steps 6-9
+- **#158** (fix resolve_model) — prérequis au step 7'
+- **S1-03 #152** (Setup vLLM) couvre les steps 1, 4', 5'
+- **S1-04 #149** (Validation mono-modèle) couvre les steps 6', 7', 8'
 - **S1-02 #95** (Hash syllabus) indépendant, à caler quand souhaité
 
 ### Contraintes
@@ -215,24 +216,31 @@ Stretch (après step 9) : Nemotron, Qwen 3, Gemma 4, éventuellement SGLang.
 
 ## 5. Fichiers clés à modifier
 
-### Combo vLLM split gpt-oss-20b (steps 3-5)
-
-| Fichier | Changement |
-|---------|------------|
-| `docker-compose.dgx-vllm-split.yml` | Nouveau : 2 services vLLM (instruct + reasoning) |
-| `configs/config-docker-dgx-vllm-split.yaml` | Nouveau : copie du split llama.cpp existant |
-| `models/models.vllm-gptoss20b-split.env` | Nouveau : env vLLM split gpt-oss-20b |
-
-### Combo vLLM mono gpt-oss-120B (steps 8-9, scaffoldé)
+### Combo vLLM mono gpt-oss-20b (cible step 4'-6', scaffoldé)
 
 | Fichier | État |
 |---------|------|
-| `docker-compose.dgx-vllm-mono.yml` | 🟡 scaffoldé, TODOs à lever au step 9 |
-| `configs/config-docker-dgx-vllm-mono.yaml` | 🟡 scaffoldé |
+| `docker-compose.dgx-vllm-gptoss20b-mono.yml` | 🟡 scaffoldé |
+| `configs/config-docker-dgx-vllm-gptoss20b-mono.yaml` | 🟡 scaffoldé (sans reasoning_effort) |
+| `models/models.vllm-gptoss20b-mono.env` | 🟡 scaffoldé (params spike-validés) |
+| `scripts/start-docker-dgx-vllm-gptoss20b-mono.sh` | 🟡 scaffoldé |
+
+### Combo vLLM mono gpt-oss-120B (cible step 8', scaffoldé)
+
+| Fichier | État |
+|---------|------|
+| `docker-compose.dgx-vllm-gptoss120b-mono.yml` | 🟡 scaffoldé |
+| `configs/config-docker-dgx-vllm-gptoss120b-mono.yaml` | 🟡 scaffoldé |
 | `models/models.vllm-gptoss120b-mono.env` | 🟡 scaffoldé |
-| `scripts/start-docker-dgx-vllm-mono.sh` | 🟡 scaffoldé |
-| `src/config.py` | `ModelEndpointConfig.reasoning_effort` (step 8) |
-| `src/agents/utils.py` | Passer `reasoning_effort` aux `model_settings` (step 8) |
+| `scripts/start-docker-dgx-vllm-gptoss120b-mono.sh` | 🟡 scaffoldé |
+
+### Code (débloqué par fix #158)
+
+| Fichier | Changement |
+|---------|------------|
+| `src/agents/utils.py` | Refactor `resolve_model()` pour dispatcher selon prefix (cf. issue #158) |
+| `src/config.py` | Ajouter `reasoning_effort: Literal["low","medium","high"] \| None` à `ModelEndpointConfig` (step 7') |
+| `src/agents/utils.py` (v0) | Nouvelle fonction `apply_reasoning_effort()` — gpt-oss uniquement, généralisation dans une feature dédiée |
 
 ### Inchangé
 
@@ -247,8 +255,9 @@ Stretch (après step 9) : Nemotron, Qwen 3, Gemma 4, éventuellement SGLang.
 
 - **vLLM Docker pour Spark (référence build GB10/aarch64)** :
   https://github.com/eugr/spark-vllm-docker
-- gpt-oss-20b (modèle étapes 1-6) : https://huggingface.co/openai/gpt-oss-20b
-- gpt-oss-120b (modèle étape 9) : https://huggingface.co/openai/gpt-oss-120b
+- gpt-oss-20b (modèle steps 1-6') : https://huggingface.co/openai/gpt-oss-20b
+- gpt-oss-120b (modèle step 8') : https://huggingface.co/openai/gpt-oss-120b
+- Fix `resolve_model()` prérequis step 7' : https://github.com/BittnerPierre/agentic-research/issues/158
 - Nemotron reasoning (stretch) :
   https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
 - Config DGX actuelle (baseline llama.cpp split) :

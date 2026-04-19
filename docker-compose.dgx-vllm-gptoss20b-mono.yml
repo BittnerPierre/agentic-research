@@ -1,16 +1,16 @@
 # vLLM mono-model overlay for DGX Spark (WS1).
 #
 # Composition: single vLLM service serving one large instruct+reasoning model
-# (default: gpt-oss-120B). Embeddings stay on llama.cpp. This is one of several
+# (default: gpt-oss-20b). Embeddings stay on llama.cpp. This is one of several
 # possible (backend × topology) compositions — see docs/ws1/WS1_STUDY_NOTES.md.
 #
 # Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.dgx-vllm-mono.yml \
-#     --env-file models/models.vllm-gptoss120b-mono.env up -d \
+#   docker compose -f docker-compose.yml -f docker-compose.dgx-vllm-gptoss20b-mono.yml \
+#     --env-file models/models.vllm-gptoss20b-mono.env up -d \
 #     chromadb dataprep embeddings-gpu llm
 #
-# TODO(spark-spike): confirm vLLM image + flags for aarch64 / GB10 Blackwell.
-# Reference build: https://github.com/eugr/spark-vllm-docker
+# Spike validated standalone (single vLLM container) on 2026-04-17;
+# docker-compose stack integration not yet validated end-to-end.
 x-llama-build: &llama-build
   build:
     context: .
@@ -19,12 +19,12 @@ x-llama-build: &llama-build
 
 services:
   dataprep:
-    command: ["dataprep_server", "--config", "configs/config-docker-dgx-vllm-mono.yaml"]
+    command: ["dataprep_server", "--config", "configs/config-docker-dgx-vllm-gptoss20b-mono.yaml"]
     volumes:
       - ./test_files:/app/test_files
 
   agentic-research:
-    command: ["agentic-research", "--config", "configs/config-docker-dgx-vllm-mono.yaml"]
+    command: ["agentic-research", "--config", "configs/config-docker-dgx-vllm-gptoss20b-mono.yaml"]
     depends_on:
       - dataprep
       - chromadb
@@ -72,9 +72,9 @@ services:
   # Single vLLM service serving instruct + reasoning from one large model.
   # Reasoning effort is controlled at the agent level via extra_body, not here.
   llm:
-    image: "${VLLM_IMAGE:-vllm/vllm-openai:latest}"
-    # TODO(spark-spike): on aarch64/GB10 the published image may not work.
-    # Likely need a custom build from https://github.com/eugr/spark-vllm-docker
+    image: "${VLLM_IMAGE:-vllm-node:latest}"
+    # Default: local eugr build (vllm-node:latest, ~/spark-vllm-docker).
+    # Official vllm/vllm-openai:latest does NOT work on GB10 / CUDA 13.
     ipc: host
     volumes:
       - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
@@ -91,9 +91,9 @@ services:
               capabilities: [gpu]
     command:
       - "--model"
-      - "${VLLM_MODEL:-openai/gpt-oss-120b}"
+      - "${VLLM_MODEL:-openai/gpt-oss-20b}"
       - "--served-model-name"
-      - "${VLLM_SERVED_MODEL_NAME:-gpt-oss-120b}"
+      - "${VLLM_SERVED_MODEL_NAME:-openai/gpt-oss-20b}"
       - "--host"
       - "0.0.0.0"
       - "--port"
@@ -102,8 +102,8 @@ services:
       - "${VLLM_MAX_MODEL_LEN:-32768}"
       - "--gpu-memory-utilization"
       - "${VLLM_GPU_MEMORY_UTILIZATION:-0.90}"
-      # TODO(spark-spike): validate reasoning parser name for gpt-oss in vLLM.
-      # Candidates: "openai_gptoss", "gptoss", or none (handled by chat template).
+      # Validated 2026-04-17: openai_gptoss is the correct parser for gpt-oss.
+      # Docker-compose end-to-end not yet validated (spike was standalone).
       - "--reasoning-parser"
       - "${VLLM_REASONING_PARSER:-openai_gptoss}"
     ports:

@@ -1,0 +1,94 @@
+# Configuration pour agentic-research (Docker DGX, vLLM mono-modèle, WS1).
+# Composition: vLLM mono-modèle (voir docker-compose.dgx-vllm-gptoss20b-mono.yml).
+# Tous les agents pointent sur un seul service vLLM (`llm:8002`).
+# Reasoning effort par agent : champ `reasoning_effort` à ajouter à ModelEndpointConfig
+config_name: "docker-dgx-vllm-gptoss20b-mono"
+
+vector_store:
+  name: "agentic-research-dgx-vllm-gptoss20b-mono"
+  description: "Vector store for DGX vLLM mono-model stack"
+  expires_after_days: 30
+
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx-vllm-gptoss20b-mono"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "chromadb"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://embeddings-gpu:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 5
+  score_threshold: null
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+dataprep:
+  llm:
+    enabled: true
+    model:
+      name: "openai/gpt-oss-20b"
+      base_url: "http://llm:8002/v1"
+      api_key: "dummy"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "0.0.0.0"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+# Mono-modèle : tous les agents pointent sur le même endpoint vLLM.
+# Le `served-model-name` côté vLLM doit matcher le suffixe après `openai/`.
+# (bloqué par fix #158 resolve_model — cf. docs/ws1/WS1_STUDY_NOTES.md).
+models:
+  research_model:
+    name: "openai/gpt-oss-20b"
+    base_url: "http://llm:8002"
+    api_key: "dummy"
+  planning_model:
+    name: "openai/gpt-oss-20b"
+    base_url: "http://llm:8002"
+    api_key: "dummy"
+  search_model:
+    name: "openai/gpt-oss-20b"
+    base_url: "http://llm:8002"
+    api_key: "dummy"
+  writer_model:
+    name: "openai/gpt-oss-20b"
+    base_url: "http://llm:8002"
+    api_key: "dummy"
+  knowledge_preparation_model:
+    name: "openai/gpt-oss-20b"
+    base_url: "http://llm:8002"
+    api_key: "dummy"
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "3-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"
+  file_search_rewrite_mode: "none"
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null

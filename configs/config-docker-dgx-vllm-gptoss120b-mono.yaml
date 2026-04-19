@@ -1,17 +1,17 @@
 # Configuration pour agentic-research (Docker DGX, vLLM mono-modèle, WS1).
-# Composition: vLLM mono-modèle (voir docker-compose.dgx-vllm-mono.yml).
+# Composition: vLLM mono-modèle (voir docker-compose.dgx-vllm-gptoss120b-mono.yml).
 # Tous les agents pointent sur un seul service vLLM (`llm:8002`).
-# Reasoning effort contrôlé par agent via `reasoning_effort` (TODO: à brancher).
-config_name: "docker-dgx-vllm-mono"
+# Reasoning effort par agent : champ `reasoning_effort` à ajouter à ModelEndpointConfig
+config_name: "docker-dgx-vllm-gptoss120b-mono"
 
 vector_store:
-  name: "agentic-research-dgx-vllm-mono"
+  name: "agentic-research-dgx-vllm-gptoss120b-mono"
   description: "Vector store for DGX vLLM mono-model stack"
   expires_after_days: 30
 
 vector_search:
   provider: "chroma"
-  index_name: "agentic-research-dgx-vllm-mono"
+  index_name: "agentic-research-dgx-vllm-gptoss120b-mono"
   chunk_size: 800
   chunk_overlap: 120
   chroma_host: "chromadb"
@@ -58,7 +58,7 @@ mcp:
 
 # Mono-modèle : tous les agents pointent sur le même endpoint vLLM.
 # Le `served-model-name` côté vLLM doit matcher le suffixe après `openai/`.
-# TODO(spark-spike): ajouter reasoning_effort par agent une fois l'API vLLM validée.
+# (bloqué par fix #158 resolve_model — cf. docs/ws1/WS1_STUDY_NOTES.md).
 models:
   research_model:
     name: "openai/gpt-oss-120b"

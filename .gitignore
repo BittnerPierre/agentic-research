@@ -71,5 +71,8 @@ evaluations/sav_file/
 models.env
 # models*.env
 
+# Local benchmark state (written by switch-models-dgx.sh)
+.benchmark_last_setup
+
 # Ruff cache
 .ruff_cache/
