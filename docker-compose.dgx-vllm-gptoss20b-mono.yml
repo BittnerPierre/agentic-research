@@ -106,5 +106,15 @@ services:
       # Docker-compose end-to-end not yet validated (spike was standalone).
       - "--reasoning-parser"
       - "${VLLM_REASONING_PARSER:-openai_gptoss}"
+      # Tool calling — required for agentic-research (agents heavily use tools).
+      - "--tool-call-parser"
+      - "openai"
+      - "--enable-auto-tool-choice"
+      # Perf / memory — spike-validated defaults.
+      - "--kv-cache-dtype"
+      - "fp8"
+      - "--max-num-batched-tokens"
+      - "${VLLM_MAX_NUM_BATCHED_TOKENS:-4096}"
+      - "--enable-prefix-caching"
     ports:
       - "${VLLM_PORT:-8002}:${VLLM_PORT:-8002}"
