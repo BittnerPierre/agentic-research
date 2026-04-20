@@ -12,9 +12,9 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from agents import OpenAIChatCompletionsModel
 from agents.extensions.models.litellm_model import LitellmModel
 
+from agents import OpenAIChatCompletionsModel
 from src.config import Config, ModelEndpointConfig, VectorStoreConfig
 
 

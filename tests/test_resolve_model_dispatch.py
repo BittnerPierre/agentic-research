@@ -16,11 +16,11 @@ tests fail until the dispatch is rewritten.
 from __future__ import annotations
 
 import pytest
-from agents import OpenAIChatCompletionsModel
 from agents.extensions.models.litellm_model import LitellmModel
 from agents.model_settings import ModelSettings
 from openai import AsyncOpenAI
 
+from agents import OpenAIChatCompletionsModel
 from src.agents.utils import adjust_model_settings_for_base_url, resolve_model
 from src.config import ModelEndpointConfig
 
@@ -160,9 +160,9 @@ class TestAdjustModelSettingsScope:
             "openai/+base_url no longer goes through LiteLLM (issue #158); "
             "drop_params is a LiteLLM-specific hack and must not be set."
         )
-        assert not (
-            settings.extra_args and settings.extra_args.get("additional_drop_params")
-        ), "additional_drop_params is LiteLLM-specific and must not be set for openai/."
+        assert not (settings.extra_args and settings.extra_args.get("additional_drop_params")), (
+            "additional_drop_params is LiteLLM-specific and must not be set for openai/."
+        )
 
     def test_litellm_with_local_base_url_still_applies_hack(self):
         """Sanity: the LiteLLM-only hack must still fire on the litellm/ path
@@ -178,9 +178,7 @@ class TestAdjustModelSettingsScope:
 
         assert settings.extra_args is not None
         assert settings.extra_args.get("drop_params") is True
-        assert "response_format" in settings.extra_args.get(
-            "additional_drop_params", []
-        )
+        assert "response_format" in settings.extra_args.get("additional_drop_params", [])
 
 
 class TestResolveModelIdempotency:
