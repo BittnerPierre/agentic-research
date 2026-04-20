@@ -62,23 +62,23 @@ mcp:
 models:
   research_model:
     name: "openai/gpt-oss-20b"
-    base_url: "http://llm:8002"
+    base_url: "http://llm:8002/v1"
     api_key: "dummy"
   planning_model:
     name: "openai/gpt-oss-20b"
-    base_url: "http://llm:8002"
+    base_url: "http://llm:8002/v1"
     api_key: "dummy"
   search_model:
     name: "openai/gpt-oss-20b"
-    base_url: "http://llm:8002"
+    base_url: "http://llm:8002/v1"
     api_key: "dummy"
   writer_model:
     name: "openai/gpt-oss-20b"
-    base_url: "http://llm:8002"
+    base_url: "http://llm:8002/v1"
     api_key: "dummy"
   knowledge_preparation_model:
     name: "openai/gpt-oss-20b"
-    base_url: "http://llm:8002"
+    base_url: "http://llm:8002/v1"
     api_key: "dummy"
 
 manager:

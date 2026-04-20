@@ -89,11 +89,15 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    # eugr image has no default CMD (designed for `docker exec` after sleep
+    # infinity). We invoke `vllm serve` directly via the nvidia entrypoint.
     command:
+      - "vllm"
+      - "serve"
       - "--model"
       - "${VLLM_MODEL:-openai/gpt-oss-120b}"
       - "--served-model-name"
-      - "${VLLM_SERVED_MODEL_NAME:-openai/gpt-oss-120b}"
+      - "${VLLM_SERVED_MODEL_NAME:-gpt-oss-120b}"
       - "--host"
       - "0.0.0.0"
       - "--port"
