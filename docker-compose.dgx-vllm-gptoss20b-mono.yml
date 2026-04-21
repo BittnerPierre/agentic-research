@@ -91,10 +91,17 @@ services:
               capabilities: [gpu]
     # eugr image has no default CMD (designed for `docker exec` after sleep
     # infinity). We invoke `vllm serve` directly via the nvidia entrypoint.
+    #
+    # Canonical gpt-oss flag combo for vLLM (community-sourced, validated
+    # end-to-end on DGX Spark 2026-04-20 with agentic-research WS1 step 5'):
+    #   --async-scheduling --enable-auto-tool-choice
+    #   --tool-call-parser openai --reasoning-parser openai_gptoss
+    # plus reasoning_effort=low via --default-chat-template-kwargs to match
+    # the effective instruct behavior of llama.cpp (short actionable
+    # reasoning → commits to tool calls, instead of overthinking).
     command:
       - "vllm"
       - "serve"
-      - "--model"
       - "${VLLM_MODEL:-openai/gpt-oss-20b}"
       - "--served-model-name"
       - "${VLLM_SERVED_MODEL_NAME:-gpt-oss-20b}"
@@ -106,19 +113,18 @@ services:
       - "${VLLM_MAX_MODEL_LEN:-32768}"
       - "--gpu-memory-utilization"
       - "${VLLM_GPU_MEMORY_UTILIZATION:-0.90}"
-      # Validated 2026-04-17: openai_gptoss is the correct parser for gpt-oss.
-      # Docker-compose end-to-end not yet validated (spike was standalone).
-      - "--reasoning-parser"
-      - "${VLLM_REASONING_PARSER:-openai_gptoss}"
-      # Tool calling — required for agentic-research (agents heavily use tools).
+      # gpt-oss tool-calling canonical combo (from community forums / GitHub
+      # issues): all four of these flags together are needed for reliable
+      # tool-call emission + harmony-format handling on vLLM.
+      - "--async-scheduling"
+      - "--enable-auto-tool-choice"
       - "--tool-call-parser"
       - "openai"
-      - "--enable-auto-tool-choice"
-      # Perf / memory — spike-validated defaults.
-      - "--kv-cache-dtype"
-      - "fp8"
-      - "--max-num-batched-tokens"
-      - "${VLLM_MAX_NUM_BATCHED_TOKENS:-4096}"
-      - "--enable-prefix-caching"
+      - "--reasoning-parser"
+      - "openai_gptoss"
+      # Reasoning: force "low" to match llama.cpp llm-instruct effective
+      # behavior (short actionable reasoning → commits to tool call).
+      - "--default-chat-template-kwargs"
+      - "${VLLM_DEFAULT_CHAT_TEMPLATE_KWARGS:-{\"reasoning_effort\":\"low\"}}"
     ports:
       - "${VLLM_PORT:-8002}:${VLLM_PORT:-8002}"

@@ -91,10 +91,15 @@ services:
               capabilities: [gpu]
     # eugr image has no default CMD (designed for `docker exec` after sleep
     # infinity). We invoke `vllm serve` directly via the nvidia entrypoint.
+    #
+    # Canonical gpt-oss flag combo for vLLM (community-sourced, validated
+    # on the 20b sibling — same flags apply to 120b, confirm at step 8').
+    # 20b combo: --async-scheduling --enable-auto-tool-choice
+    #   --tool-call-parser openai --reasoning-parser openai_gptoss
+    # plus reasoning_effort=low via --default-chat-template-kwargs.
     command:
       - "vllm"
       - "serve"
-      - "--model"
       - "${VLLM_MODEL:-openai/gpt-oss-120b}"
       - "--served-model-name"
       - "${VLLM_SERVED_MODEL_NAME:-gpt-oss-120b}"
@@ -106,19 +111,14 @@ services:
       - "${VLLM_MAX_MODEL_LEN:-32768}"
       - "--gpu-memory-utilization"
       - "${VLLM_GPU_MEMORY_UTILIZATION:-0.90}"
-      # Validated 2026-04-17: openai_gptoss is the correct parser for gpt-oss.
-      # Docker-compose end-to-end not yet validated (spike was standalone).
-      - "--reasoning-parser"
-      - "${VLLM_REASONING_PARSER:-openai_gptoss}"
-      # Tool calling — required for agentic-research (agents heavily use tools).
+      # gpt-oss tool-calling canonical combo (community-sourced).
+      - "--async-scheduling"
+      - "--enable-auto-tool-choice"
       - "--tool-call-parser"
       - "openai"
-      - "--enable-auto-tool-choice"
-      # Perf / memory — spike-validated defaults.
-      - "--kv-cache-dtype"
-      - "fp8"
-      - "--max-num-batched-tokens"
-      - "${VLLM_MAX_NUM_BATCHED_TOKENS:-4096}"
-      - "--enable-prefix-caching"
+      - "--reasoning-parser"
+      - "openai_gptoss"
+      - "--default-chat-template-kwargs"
+      - "${VLLM_DEFAULT_CHAT_TEMPLATE_KWARGS:-{\"reasoning_effort\":\"low\"}}"
     ports:
       - "${VLLM_PORT:-8002}:${VLLM_PORT:-8002}"
