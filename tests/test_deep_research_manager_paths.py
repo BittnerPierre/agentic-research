@@ -69,6 +69,81 @@ def test_normalize_search_result_path_handles_long_filenames(tmp_path: Path):
 
 
 @pytest.mark.asyncio
+async def test_file_search_returns_normalized_path_for_plain_string_output(
+    monkeypatch, tmp_path: Path
+):
+    """file_search_agent has no output_type (dropped in commit 2f35b47) — its
+    final_output is a plain string containing the filename. _file_search must
+    accept that and resolve it to the absolute path. Previously the manager
+    called result.final_output_as(FileSearchResult).file_name, which raises
+    AttributeError on a str and the `except Exception` silently returned None,
+    making search_results empty and the writer receive "Search results: None".
+    """
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+
+    # Simulate file written by the agent via its MCP write_file tool.
+    summary_file = tmp_path / "mips_vs_rewoo.txt"
+    summary_file.write_text("summary", encoding="utf-8")
+
+    class _FakeResult:
+        def __init__(self, output):
+            self.final_output = output
+
+        def final_output_as(self, cls):
+            from typing import cast
+
+            return cast(cls, self.final_output)
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        # Agent obeys file_search_prompt.md ("return only the name of the file"):
+        # final_output is a plain string, not a FileSearchResult.
+        return _FakeResult("mips_vs_rewoo.txt")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result_path = await manager._file_search(
+        FileSearchItem(query="mips rewoo", reason="comparison")
+    )
+
+    assert result_path == str(summary_file.resolve()), (
+        f"Expected normalized temp path, got {result_path!r}"
+    )
+    assert manager.agent_calls["failures"] == 0
+
+
+@pytest.mark.asyncio
+async def test_file_search_returns_none_for_empty_output(monkeypatch, tmp_path: Path):
+    """When the agent returns an empty / whitespace final_output, _file_search
+    should mark a failure and return None (no silent fake-success)."""
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+
+    class _FakeResult:
+        def __init__(self, output):
+            self.final_output = output
+
+        def final_output_as(self, cls):
+            from typing import cast
+
+            return cast(cls, self.final_output)
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        return _FakeResult("   ")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result_path = await manager._file_search(FileSearchItem(query="foo", reason="bar"))
+
+    assert result_path is None
+    assert manager.agent_calls["failures"] == 1
+
+
+@pytest.mark.asyncio
 async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_path: Path):
     manager = _build_manager(tmp_path)
     manager.file_planner_agent = object()
