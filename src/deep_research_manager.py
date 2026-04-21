@@ -18,7 +18,6 @@ from .agents.knowledge_preparation_agent import create_knowledge_preparation_age
 from .agents.schemas import (
     FileSearchItem,
     FileSearchPlan,
-    FileSearchResult,
     ReportData,
     ResearchInfo,
 )
@@ -281,7 +280,9 @@ class DeepResearchManager:
             self._record_usage(result, phase="search")
             self.agent_calls["file_search_agent"] += 1
             self.agent_calls["total"] += 1
-            raw_file_name = str(result.final_output_as(FileSearchResult).file_name)
+            # file_search_agent has no output_type (dropped in 2f35b47); per
+            # its prompt it returns the bare filename as final_output text.
+            raw_file_name = str(result.final_output or "").strip()
             normalized_path = self._normalize_search_result_path(raw_file_name)
             if normalized_path is None:
                 self.agent_calls["failures"] += 1
