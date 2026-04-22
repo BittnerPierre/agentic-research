@@ -10,9 +10,10 @@ from agents import Runner, custom_span, gen_trace_id, trace
 
 from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
 from .agents.schemas import ReportData, ResearchInfo
-from .agents.search_agent import search_agent
+from .agents.search_agent import create_search_agent
 from .agents.utils import coerce_report_data
 from .agents.writer_agent import writer_agent
+from .config import get_config
 from .gates import check_search_results_gate
 from .printer import Printer
 
@@ -21,6 +22,9 @@ class StandardResearchManager:
     def __init__(self):
         self.console = Console()
         self.printer = Printer(self.console)
+        config = get_config()
+        provider = config.web_search.provider
+        self.search_agent = create_search_agent(provider)
 
     async def run(
         self,
@@ -97,7 +101,7 @@ class StandardResearchManager:
         input = f"Search term: {item.query}\nReason for searching: {item.reason}"
         try:
             result = await Runner.run(
-                search_agent,
+                self.search_agent,
                 input,
             )
             return str(result.final_output)
