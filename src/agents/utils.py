@@ -6,7 +6,12 @@ from agents.extensions.models.litellm_model import LitellmModel
 from agents.mcp import ToolFilterContext
 from openai import AsyncOpenAI
 
-from agents import OpenAIChatCompletionsModel, RunContextWrapper, function_tool
+from agents import (
+    OpenAIChatCompletionsModel,
+    OpenAIResponsesModel,
+    RunContextWrapper,
+    function_tool,
+)
 
 from .schemas import ReportData, ResearchInfo
 
@@ -293,7 +298,7 @@ def context_aware_filter(context: ToolFilterContext, tool) -> bool:
 
 
 def _normalize_model_string(model_spec: Any) -> str:
-    if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel)):
+    if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel, OpenAIResponsesModel)):
         return model_spec.model
     if hasattr(model_spec, "name"):
         return str(getattr(model_spec, "name"))
@@ -374,18 +379,22 @@ def _extract_endpoint_fields(model_spec: Any) -> tuple[str | None, str | None, s
 def resolve_model(model_spec: Any):
     """Dispatch a model spec to the right Agents SDK model class.
 
-    | name prefix       | base_url | resolved type                      |
-    |-------------------|----------|------------------------------------|
-    | openai/<name>     | yes      | OpenAIChatCompletionsModel + client|
-    | openai/<name>     | no       | bare name (SDK Response API)       |
-    | litellm/<prov>/.. | any      | LitellmModel                       |
+    | name prefix       | base_url | api_key | resolved type                       |
+    |-------------------|----------|---------|-------------------------------------|
+    | openai/<name>     | yes      | any     | OpenAIChatCompletionsModel + client |
+    | openai/<name>     | no       | yes     | OpenAIResponsesModel + client       |
+    | openai/<name>     | no       | no      | bare name (SDK default Response API)|
+    | litellm/<prov>/.. | any      | any     | LitellmModel                        |
 
     See issue #158: routing local OpenAI-compatible endpoints (vLLM, llama.cpp)
     through LiteLLM masks native OpenAI parameters. The openai/+base_url path
     must use AsyncOpenAI directly with a per-model client (Option B), so each
-    agent can independently target local infra or third-party APIs.
+    agent can independently target local infra or third-party APIs. When an
+    api_key is provided without a base_url (cloud OpenAI with a per-agent key,
+    e.g. multi-org/multi-project setups), build a Responses model with a custom
+    AsyncOpenAI client so the key is honored instead of falling back to env.
     """
-    if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel)):
+    if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel, OpenAIResponsesModel)):
         return model_spec
 
     name, base_url, api_key = _extract_endpoint_fields(model_spec)
@@ -393,12 +402,13 @@ def resolve_model(model_spec: Any):
         return model_spec
 
     if name.startswith("openai/"):
+        bare = name[len("openai/") :]
         if base_url:
             client = AsyncOpenAI(base_url=base_url, api_key=api_key)
-            return OpenAIChatCompletionsModel(
-                model=name[len("openai/") :],
-                openai_client=client,
-            )
+            return OpenAIChatCompletionsModel(model=bare, openai_client=client)
+        if api_key:
+            client = AsyncOpenAI(api_key=api_key)
+            return OpenAIResponsesModel(model=bare, openai_client=client)
         return name
 
     if name.startswith("litellm/"):

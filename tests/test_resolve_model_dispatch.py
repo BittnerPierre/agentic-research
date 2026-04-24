@@ -20,7 +20,7 @@ from agents.extensions.models.litellm_model import LitellmModel
 from agents.model_settings import ModelSettings
 from openai import AsyncOpenAI
 
-from agents import OpenAIChatCompletionsModel
+from agents import OpenAIChatCompletionsModel, OpenAIResponsesModel
 from src.agents.utils import adjust_model_settings_for_base_url, resolve_model
 from src.config import ModelEndpointConfig
 
@@ -98,6 +98,22 @@ class TestOpenAICloudEndpoint:
             "openai/ without base_url is cloud OpenAI — the SDK handles it via "
             "Response API; LiteLLM must not be in the chain (issue #158)."
         )
+
+    def test_endpoint_config_with_api_key_routes_through_responses_model(self):
+        """Cloud OpenAI with a per-agent api_key (no base_url) must propagate
+        the key instead of silently dropping it. Resolves to OpenAIResponsesModel
+        with a custom AsyncOpenAI client so multi-org/multi-project setups work
+        without relying on the OPENAI_API_KEY env var."""
+        spec = ModelEndpointConfig(name="openai/gpt-4.1-mini", api_key="sk-custom")
+
+        model = resolve_model(spec)
+
+        assert isinstance(model, OpenAIResponsesModel), (
+            f"Expected OpenAIResponsesModel for openai/+api_key (cloud), "
+            f"got {type(model).__name__}. The api_key must not be dropped."
+        )
+        assert model.model == "gpt-4.1-mini"
+        assert model._client.api_key == "sk-custom"
 
 
 class TestLiteLLMEndpoint:
