@@ -120,7 +120,10 @@ class TestApiOverrideOnBareCloud:
     back to the OPENAI_API_KEY env var. Without the override we keep the bare
     string passthrough."""
 
-    def test_chat_completions_override_on_bare_cloud(self):
+    def test_chat_completions_override_on_bare_cloud(self, monkeypatch):
+        # AsyncOpenAI() requires a key from config or env; isolate the test
+        # from the developer's .env so it behaves the same in CI.
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-env-fallback")
         spec = ModelEndpointConfig(
             name="openai/gpt-4.1-mini",
             api="chat_completions",
@@ -135,7 +138,8 @@ class TestApiOverrideOnBareCloud:
         assert isinstance(model._client, AsyncOpenAI)
         assert model.model == "gpt-4.1-mini"
 
-    def test_responses_override_on_bare_cloud(self):
+    def test_responses_override_on_bare_cloud(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-env-fallback")
         spec = ModelEndpointConfig(
             name="openai/gpt-4.1-mini",
             api="responses",
