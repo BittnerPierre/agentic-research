@@ -4,8 +4,14 @@ from typing import Any
 
 from agents.extensions.models.litellm_model import LitellmModel
 from agents.mcp import ToolFilterContext
+from openai import AsyncOpenAI
 
-from agents import RunContextWrapper, function_tool
+from agents import (
+    OpenAIChatCompletionsModel,
+    OpenAIResponsesModel,
+    RunContextWrapper,
+    function_tool,
+)
 
 from .schemas import ReportData, ResearchInfo
 
@@ -292,7 +298,7 @@ def context_aware_filter(context: ToolFilterContext, tool) -> bool:
 
 
 def _normalize_model_string(model_spec: Any) -> str:
-    if isinstance(model_spec, LitellmModel):
+    if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel, OpenAIResponsesModel)):
         return model_spec.model
     if hasattr(model_spec, "name"):
         return str(getattr(model_spec, "name"))
@@ -354,26 +360,73 @@ def extract_model_name(model_string: Any) -> str:
     return model_string
 
 
-def resolve_model(model_spec: Any):
-    if isinstance(model_spec, LitellmModel):
-        return model_spec
+def _extract_endpoint_fields(model_spec: Any) -> tuple[str | None, str | None, str | None]:
     if isinstance(model_spec, dict) and "name" in model_spec:
-        return LitellmModel(
-            model=model_spec["name"],
-            base_url=model_spec.get("base_url"),
-            api_key=model_spec.get("api_key"),
+        return (
+            str(model_spec["name"]),
+            model_spec.get("base_url"),
+            model_spec.get("api_key"),
         )
     if hasattr(model_spec, "name"):
-        return LitellmModel(
-            model=str(getattr(model_spec, "name")),
-            base_url=getattr(model_spec, "base_url", None),
-            api_key=getattr(model_spec, "api_key", None),
+        return (
+            str(getattr(model_spec, "name")),
+            getattr(model_spec, "base_url", None),
+            getattr(model_spec, "api_key", None),
         )
+    return None, None, None
+
+
+def resolve_model(model_spec: Any):
+    """Dispatch a model spec to the right Agents SDK model class.
+
+    | name prefix       | base_url | api_key | resolved type                       |
+    |-------------------|----------|---------|-------------------------------------|
+    | openai/<name>     | yes      | any     | OpenAIChatCompletionsModel + client |
+    | openai/<name>     | no       | yes     | OpenAIResponsesModel + client       |
+    | openai/<name>     | no       | no      | bare name (SDK default Response API)|
+    | litellm/<prov>/.. | any      | any     | LitellmModel                        |
+
+    See issue #158: routing local OpenAI-compatible endpoints (vLLM, llama.cpp)
+    through LiteLLM masks native OpenAI parameters. The openai/+base_url path
+    must use AsyncOpenAI directly with a per-model client (Option B), so each
+    agent can independently target local infra or third-party APIs. When an
+    api_key is provided without a base_url (cloud OpenAI with a per-agent key,
+    e.g. multi-org/multi-project setups), build a Responses model with a custom
+    AsyncOpenAI client so the key is honored instead of falling back to env.
+    """
+    if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel, OpenAIResponsesModel)):
+        return model_spec
+
+    name, base_url, api_key = _extract_endpoint_fields(model_spec)
+    if name is None:
+        return model_spec
+
+    if name.startswith("openai/"):
+        bare = name[len("openai/") :]
+        if base_url:
+            client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+            return OpenAIChatCompletionsModel(model=bare, openai_client=client)
+        if api_key:
+            client = AsyncOpenAI(api_key=api_key)
+            return OpenAIResponsesModel(model=bare, openai_client=client)
+        return name
+
+    if name.startswith("litellm/"):
+        return LitellmModel(model=name, base_url=base_url, api_key=api_key)
+
     return model_spec
 
 
 def adjust_model_settings_for_base_url(model_spec: Any, model_settings) -> None:
-    """Apply compatibility settings for self-hosted OpenAI-compatible servers."""
+    """Apply LiteLLM-only compatibility settings for self-hosted endpoints.
+
+    Scoped to the litellm/ path: openai/+base_url goes through native AsyncOpenAI
+    (issue #158) and does not need LiteLLM's drop_params hacks.
+    """
+    name = model_spec_to_string(model_spec)
+    if not name.startswith("litellm/"):
+        return
+
     base_url = None
     if isinstance(model_spec, dict):
         base_url = model_spec.get("base_url")
