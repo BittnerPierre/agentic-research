@@ -360,24 +360,45 @@ def extract_model_name(model_string: Any) -> str:
     return model_string
 
 
-def _extract_endpoint_fields(model_spec: Any) -> tuple[str | None, str | None, str | None]:
+def _extract_endpoint_fields(
+    model_spec: Any,
+) -> tuple[str | None, str | None, str | None, str | None]:
     if isinstance(model_spec, dict) and "name" in model_spec:
         return (
             str(model_spec["name"]),
             model_spec.get("base_url"),
             model_spec.get("api_key"),
+            model_spec.get("api"),
         )
     if hasattr(model_spec, "name"):
         return (
             str(getattr(model_spec, "name")),
             getattr(model_spec, "base_url", None),
             getattr(model_spec, "api_key", None),
+            getattr(model_spec, "api", None),
         )
-    return None, None, None
+    return None, None, None, None
+
+
+def _default_openai_api(base_url: str | None, api_key: str | None) -> str | None:
+    """Pick the default API for an openai/ spec when no explicit override is set.
+
+    - base_url present → Chat Completions (issue #158: most local OpenAI-compatible
+      servers historically only spoke /v1/chat/completions).
+    - api_key present, no base_url → Responses (cloud OpenAI default).
+    - Neither → None, signaling "fall through to bare-string passthrough".
+    """
+    if base_url:
+        return "chat_completions"
+    if api_key:
+        return "responses"
+    return None
 
 
 def resolve_model(model_spec: Any):
     """Dispatch a model spec to the right Agents SDK model class.
+
+    Default dispatch (when ModelEndpointConfig.api is None):
 
     | name prefix       | base_url | api_key | resolved type                       |
     |-------------------|----------|---------|-------------------------------------|
@@ -386,33 +407,39 @@ def resolve_model(model_spec: Any):
     | openai/<name>     | no       | no      | bare name (SDK default Response API)|
     | litellm/<prov>/.. | any      | any     | LitellmModel                        |
 
-    See issue #158: routing local OpenAI-compatible endpoints (vLLM, llama.cpp)
-    through LiteLLM masks native OpenAI parameters. The openai/+base_url path
-    must use AsyncOpenAI directly with a per-model client (Option B), so each
-    agent can independently target local infra or third-party APIs. When an
-    api_key is provided without a base_url (cloud OpenAI with a per-agent key,
-    e.g. multi-org/multi-project setups), build a Responses model with a custom
-    AsyncOpenAI client so the key is honored instead of falling back to env.
+    Issue #164 — explicit `api: "chat_completions" | "responses"` on the spec
+    overrides the default for the openai/ path. Required for vLLM serving
+    gpt-oss, which exposes /v1/responses and needs Responses API to surface
+    the `reasoning` field cleanly. Override on the openai/ alone case forces
+    a concrete class wrapping AsyncOpenAI() (env-only api key).
+
+    The override is ignored on the litellm/ path — LiteLLM handles its own
+    routing.
+
+    Issue #158 background: routing local OpenAI-compatible endpoints (vLLM,
+    llama.cpp) through LiteLLM masks native OpenAI parameters. Each agent
+    gets its own AsyncOpenAI client (Option B) so research_model can target
+    local infra while writer_model targets a third-party API in parallel.
     """
     if isinstance(model_spec, (LitellmModel, OpenAIChatCompletionsModel, OpenAIResponsesModel)):
         return model_spec
 
-    name, base_url, api_key = _extract_endpoint_fields(model_spec)
+    name, base_url, api_key, api_override = _extract_endpoint_fields(model_spec)
     if name is None:
         return model_spec
 
-    if name.startswith("openai/"):
-        bare = name[len("openai/") :]
-        if base_url:
-            client = AsyncOpenAI(base_url=base_url, api_key=api_key)
-            return OpenAIChatCompletionsModel(model=bare, openai_client=client)
-        if api_key:
-            client = AsyncOpenAI(api_key=api_key)
-            return OpenAIResponsesModel(model=bare, openai_client=client)
-        return name
-
     if name.startswith("litellm/"):
         return LitellmModel(model=name, base_url=base_url, api_key=api_key)
+
+    if name.startswith("openai/"):
+        bare = name[len("openai/") :]
+        chosen_api = api_override or _default_openai_api(base_url, api_key)
+        if chosen_api is None:
+            return name
+        client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        if chosen_api == "responses":
+            return OpenAIResponsesModel(model=bare, openai_client=client)
+        return OpenAIChatCompletionsModel(model=bare, openai_client=client)
 
     return model_spec
 
