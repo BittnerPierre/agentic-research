@@ -125,6 +125,7 @@ class ModelEndpointConfig(BaseModel):
     name: str
     base_url: str | None = None
     api_key: str | None = None
+    api: Literal["chat_completions", "responses"] | None = None
 
 
 ModelSpec = str | ModelEndpointConfig
