@@ -137,3 +137,18 @@ services:
       - "${VLLM_DEFAULT_CHAT_TEMPLATE_KWARGS:-{\"reasoning_effort\":\"low\"}}"
     ports:
       - "${VLLM_PORT:-8002}:${VLLM_PORT:-8002}"
+    # vLLM exposes /health once the model is fully loaded into the runner.
+    # Without a healthcheck, compose marks the service Healthy in ~1s
+    # (no check defined = healthy by default), and `compose up --wait`
+    # returns before vLLM is actually serving — clients then hit
+    # ConnectError. start_period=300s covers gpt-oss-20b mxfp4 model load.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${VLLM_PORT:-8002}/health').status==200 else 1)\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s

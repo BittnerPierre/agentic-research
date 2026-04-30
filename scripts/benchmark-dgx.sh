@@ -252,7 +252,7 @@ restart_stack() {
   # hold their published ports (port 8002 collision observed in #169).
   docker compose "${COMPOSE_ARGS[@]}" down --remove-orphans
   # shellcheck disable=SC2086
-  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --wait-timeout 600 $services
+  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --wait-timeout 900 $services
 }
 
 LAST_SETUP_FILE=".benchmark_last_setup"
