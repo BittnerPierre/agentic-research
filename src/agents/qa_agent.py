@@ -8,7 +8,12 @@ from agents import Agent, RunContextWrapper
 
 from ..config import get_config
 from .schemas import ResearchInfo
-from .utils import adjust_model_settings_for_base_url, extract_model_name, resolve_model
+from .utils import (
+    adjust_model_settings_for_base_url,
+    apply_endpoint_model_settings,
+    extract_model_name,
+    resolve_model,
+)
 from .vector_search_tool import vector_search
 
 
@@ -27,6 +32,7 @@ def create_qa_agent():
     model_name = extract_model_name(model_spec)
     model_settings = get_default_model_settings(model_name)
     adjust_model_settings_for_base_url(model_spec, model_settings)
+    apply_endpoint_model_settings(model_spec, model_settings)
 
     return Agent(
         name="qa_agent",

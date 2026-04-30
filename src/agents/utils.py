@@ -444,6 +444,37 @@ def resolve_model(model_spec: Any):
     return model_spec
 
 
+def _extract_reasoning_and_verbosity(
+    model_spec: Any,
+) -> tuple[str | None, str | None]:
+    if isinstance(model_spec, dict):
+        return model_spec.get("reasoning_effort"), model_spec.get("verbosity")
+    if hasattr(model_spec, "name"):
+        return (
+            getattr(model_spec, "reasoning_effort", None),
+            getattr(model_spec, "verbosity", None),
+        )
+    return None, None
+
+
+def apply_endpoint_model_settings(model_spec: Any, model_settings) -> None:
+    """Graft per-endpoint reasoning_effort/verbosity onto a ModelSettings.
+
+    Issue #170 — agents need per-endpoint reasoning controls (gpt-oss on vLLM,
+    o-series, gpt-5). Each is forwarded as-is by the SDK; no family detection
+    or clamping here (YAGNI — the YAML pins one endpoint per agent).
+    """
+    reasoning_effort, verbosity = _extract_reasoning_and_verbosity(model_spec)
+
+    if reasoning_effort is not None:
+        from openai.types.shared.reasoning import Reasoning
+
+        model_settings.reasoning = Reasoning(effort=reasoning_effort)
+
+    if verbosity is not None:
+        model_settings.verbosity = verbosity
+
+
 def adjust_model_settings_for_base_url(model_spec: Any, model_settings) -> None:
     """Apply LiteLLM-only compatibility settings for self-hosted endpoints.
 

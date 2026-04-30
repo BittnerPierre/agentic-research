@@ -12,6 +12,7 @@ from ..config import get_config
 from .schemas import ResearchInfo
 from .utils import (
     adjust_model_settings_for_base_url,
+    apply_endpoint_model_settings,
     enable_usage_for_litellm,
     extract_model_name,
     get_writer_output_formatting,
@@ -105,6 +106,7 @@ def create_writer_agent(mcp_servers: list[MCPServer] | None = None, do_save_repo
     model_settings = get_default_model_settings(model_name)
     adjust_model_settings_for_base_url(model_spec, model_settings)
     enable_usage_for_litellm(model_spec, model_settings)
+    apply_endpoint_model_settings(model_spec, model_settings)
 
     writer_agent = Agent(
         name="writer_agent",
