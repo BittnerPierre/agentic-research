@@ -122,6 +122,36 @@ class TestApplyEndpointModelSettings:
         assert ms.reasoning is None
         assert ms.verbosity is None
 
+    def test_minimal_effort_grafted(self):
+        """`minimal` is supported by the SDK Reasoning enum (gpt-5.x families).
+        Config must accept it and the helper must forward it as-is."""
+        spec = ModelEndpointConfig(
+            name="openai/gpt-5-mini",
+            api_key="sk-test",
+            reasoning_effort="minimal",
+        )
+        ms = ModelSettings()
+
+        apply_endpoint_model_settings(spec, ms)
+
+        assert ms.reasoning is not None
+        assert ms.reasoning.effort == "minimal"
+
+    def test_xhigh_effort_grafted(self):
+        """`xhigh` is supported by the SDK Reasoning enum (post gpt-5.1-codex-max).
+        Config must accept it and the helper must forward it as-is."""
+        spec = ModelEndpointConfig(
+            name="openai/gpt-5-1-codex-max",
+            api_key="sk-test",
+            reasoning_effort="xhigh",
+        )
+        ms = ModelSettings()
+
+        apply_endpoint_model_settings(spec, ms)
+
+        assert ms.reasoning is not None
+        assert ms.reasoning.effort == "xhigh"
+
     def test_none_effort_is_grafted_explicitly(self):
         """`reasoning_effort='none'` is a meaningful value (gpt-5.1 default,
         gpt-oss "no thinking" mode), not the same as omitting the field."""
@@ -160,28 +190,33 @@ class TestApplyEndpointModelSettings:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def docker_dgx_like_config(tmp_path):
+@pytest.fixture(params=["responses", "chat_completions"])
+def docker_dgx_like_config(request, tmp_path):
     """Mirror configs/config-docker-dgx.yaml — every model on a vLLM endpoint
     with reasoning_effort/verbosity set, so we can prove every factory grafts
-    them onto its agent's ModelSettings."""
+    them onto its agent's ModelSettings.
+
+    Parametrized across both API dispatch paths (#164) so we cover the helper
+    against `OpenAIResponsesModel` (vLLM gpt-oss case) and
+    `OpenAIChatCompletionsModel` (legacy / llama.cpp default).
+    """
     config = Config(
-        config_name="test-docker-dgx",
+        config_name=f"test-docker-dgx-{request.param}",
         vector_store=VectorStoreConfig(name="test-vs"),
     )
-    vllm_endpoint = ModelEndpointConfig(
+    endpoint = ModelEndpointConfig(
         name="openai/gpt-oss-20b",
         base_url="http://vllm:8004/v1",
         api_key="dummy",
-        api="responses",
+        api=request.param,
         reasoning_effort="high",
         verbosity="medium",
     )
-    config.models.research_model = vllm_endpoint
-    config.models.planning_model = vllm_endpoint
-    config.models.search_model = vllm_endpoint
-    config.models.writer_model = vllm_endpoint
-    config.models.knowledge_preparation_model = vllm_endpoint
+    config.models.research_model = endpoint
+    config.models.planning_model = endpoint
+    config.models.search_model = endpoint
+    config.models.writer_model = endpoint
+    config.models.knowledge_preparation_model = endpoint
     config.agents.output_dir = str(tmp_path)
     config.agents.writer_output_format = "markdown"
     config.vector_search.provider = "chroma"
@@ -244,3 +279,38 @@ def test_qa_agent_grafts_reasoning_and_verbosity(docker_dgx_like_config):
         agent = mod.create_qa_agent()
 
     _assert_reasoning_and_verbosity_grafted(agent)
+
+
+def test_supervisor_agent_grafts_reasoning_and_verbosity(docker_dgx_like_config):
+    """The supervisor (`ResearchSupervisorAgent`) builds its own ModelSettings
+    from `config.models.research_model` — distinct path from the sub-agents
+    above, must also graft the per-endpoint controls."""
+    from src.agents import (
+        agentic_research_agent as supervisor_mod,
+    )
+    from src.agents import (
+        file_search_agent as search_mod,
+    )
+    from src.agents import (
+        file_search_planning_agent as planner_mod,
+    )
+    from src.agents import (
+        file_writer_agent as writer_mod,
+    )
+
+    with patch.object(planner_mod, "get_config", return_value=docker_dgx_like_config):
+        planner = planner_mod.create_file_planner_agent()
+    with patch.object(search_mod, "get_config", return_value=docker_dgx_like_config):
+        searcher = search_mod.create_file_search_agent(vector_store_id="vs_test")
+    with patch.object(writer_mod, "get_config", return_value=docker_dgx_like_config):
+        writer = writer_mod.create_writer_agent()
+
+    with patch.object(supervisor_mod, "get_config", return_value=docker_dgx_like_config):
+        supervisor = supervisor_mod.create_research_supervisor_agent(
+            mcp_servers=[],
+            file_planner_agent=planner,
+            file_search_agent=searcher,
+            writer_agent=writer,
+        )
+
+    _assert_reasoning_and_verbosity_grafted(supervisor)
