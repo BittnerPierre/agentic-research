@@ -126,6 +126,8 @@ class ModelEndpointConfig(BaseModel):
     base_url: str | None = None
     api_key: str | None = None
     api: Literal["chat_completions", "responses"] | None = None
+    reasoning_effort: Literal["none", "low", "medium", "high"] | None = None
+    verbosity: Literal["low", "medium", "high"] | None = None
 
 
 ModelSpec = str | ModelEndpointConfig

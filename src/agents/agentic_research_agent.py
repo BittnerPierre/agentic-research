@@ -12,6 +12,7 @@ from .file_writer_agent import WriterDirective
 from .schemas import ReportData, ResearchInfo
 from .utils import (
     adjust_model_settings_for_base_url,
+    apply_endpoint_model_settings,
     display_agenda,
     enable_usage_for_litellm,
     extract_model_name,
@@ -79,6 +80,7 @@ def create_research_supervisor_agent(
     model_settings = get_default_model_settings(model_name)
     adjust_model_settings_for_base_url(research_model_spec, model_settings)
     enable_usage_for_litellm(research_model_spec, model_settings)
+    apply_endpoint_model_settings(research_model_spec, model_settings)
 
     search_tool_name = get_vector_backend(config).tool_name()
 
