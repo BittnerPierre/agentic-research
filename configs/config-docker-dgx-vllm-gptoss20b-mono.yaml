@@ -35,6 +35,7 @@ dataprep:
       name: "openai/gpt-oss-20b"
       base_url: "http://llm:8002/v1"
       api_key: "dummy"
+      api: "responses"
     api_key_env: "OPENAI_API_KEY"
     temperature: 0.1
     max_tokens: 256
@@ -58,28 +59,35 @@ mcp:
 
 # Mono-modèle : tous les agents pointent sur le même endpoint vLLM.
 # Le `served-model-name` côté vLLM doit matcher le suffixe après `openai/`.
-# (bloqué par fix #158 resolve_model — cf. docs/ws1/WS1_STUDY_NOTES.md).
+# api: "responses" → route via OpenAIResponsesModel (#158 + #164). Path
+# requis pour gpt-oss : /v1/responses gère harmony nativement, /v1/chat/completions
+# remonte des hallucinations de tool name et des JSONDecodeError sur args avec LaTeX.
 models:
   research_model:
     name: "openai/gpt-oss-20b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
+    api: "responses"
   planning_model:
     name: "openai/gpt-oss-20b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
+    api: "responses"
   search_model:
     name: "openai/gpt-oss-20b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
+    api: "responses"
   writer_model:
     name: "openai/gpt-oss-20b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
+    api: "responses"
   knowledge_preparation_model:
     name: "openai/gpt-oss-20b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
+    api: "responses"
 
 manager:
   default_manager: "deep_manager"
