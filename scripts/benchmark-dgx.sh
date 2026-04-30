@@ -187,6 +187,34 @@ else
   EFFECTIVE_CONFIG_FILE="$CONFIG_FILE_DEFAULT"
 fi
 
+# Resolve compose overlay per setup (issue #169). Setups not listed in
+# setup_compose_map fall back to docker-compose.dgx.yml (llama.cpp duo).
+setup_compose_override=""
+if [ -f "$BENCHMARK_CONFIG" ]; then
+  setup_compose_override=$(python3 - "$BENCHMARK_CONFIG" "$SETUP_NAME" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+config_path = Path(sys.argv[1])
+setup = sys.argv[2]
+try:
+    data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+except Exception:
+    sys.exit(0)
+
+bench = data.get("benchmark", data)
+mapping = bench.get("setup_compose_map") or {}
+value = mapping.get(setup)
+if value:
+    print(value)
+PY
+)
+fi
+EFFECTIVE_COMPOSE_FILE="${setup_compose_override:-docker-compose.dgx.yml}"
+COMPOSE_ARGS=(-f docker-compose.yml -f "$EFFECTIVE_COMPOSE_FILE" --env-file models.env)
+
 REPORT_WARMUP_FLAG=""
 if [ "$REPORT_WARMUP" = "true" ]; then
   REPORT_WARMUP_FLAG="--report-warmup"
@@ -209,7 +237,20 @@ echo "========================================"
 echo "🔗 Switching to $MODELS_ENV..."
 ln -sf "$MODELS_ENV" models.env
 
-# 2. Restart Docker
+# 2. Restart Docker stack for the resolved compose overlay (#169).
+# Bring up everything except agentic-research / evaluations (those are run
+# on-demand via `compose run --rm`).
+restart_stack() {
+  echo "   compose: $EFFECTIVE_COMPOSE_FILE"
+  local services
+  services=$(docker compose "${COMPOSE_ARGS[@]}" config --services 2>/dev/null \
+    | grep -v -E '^(agentic-research|evaluations)$' \
+    | tr '\n' ' ')
+  docker compose "${COMPOSE_ARGS[@]}" down
+  # shellcheck disable=SC2086
+  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --wait-timeout 600 $services
+}
+
 LAST_SETUP_FILE=".benchmark_last_setup"
 if [ "$KEEP_SERVICES" = "true" ]; then
   LAST_SETUP=""
@@ -218,51 +259,34 @@ if [ "$KEEP_SERVICES" = "true" ]; then
   fi
   if [ "$LAST_SETUP" != "$SETUP_NAME" ]; then
     echo "🔄 Restarting Docker services (setup changed)..."
-    ./scripts/stop-docker-dgx.sh
-    ./scripts/start-docker-dgx.sh
+    restart_stack
   else
     echo "♻️  Keeping Docker services running for same setup..."
   fi
   echo "$SETUP_NAME" > "$LAST_SETUP_FILE"
 else
   echo "🔄 Restarting Docker services..."
-  ./scripts/stop-docker-dgx.sh
-  ./scripts/start-docker-dgx.sh
+  restart_stack
   echo "$SETUP_NAME" > "$LAST_SETUP_FILE"
 fi
 
-wait_http() {
-  local name="$1"
-  local url="$2"
-  local retries="${3:-3}"
-  local delay="${4:-20}"
-  local service="${5:-}"
-
-  echo "⏳ Waiting for ${name} at ${url}..."
-  for ((i=1; i<=retries; i++)); do
-    if curl -fsS --max-time 3 "$url" >/dev/null 2>&1; then
-      echo "✅ ${name} is up"
-      return 0
-    fi
-    sleep "$delay"
-  done
-
-  echo "❌ ${name} did not become ready: ${url}"
-  if [ -n "$service" ]; then
-    echo "📋 Last logs for service: ${service}"
-    ./scripts/docker_logs_dgx.sh "$service" --tail=100 || true
+# Stack health is enforced by `compose up -d --wait` in restart_stack(),
+# which returns non-zero if any healthcheck fails. ChromaDB heartbeat probe
+# is kept as a final sanity check (its healthcheck cannot exercise the
+# /api/v2 endpoint itself).
+echo "⏳ Final ChromaDB heartbeat check..."
+for i in 1 2 3; do
+  if curl -fsS --max-time 3 "http://127.0.0.1:8000/api/v2/heartbeat" >/dev/null 2>&1; then
+    echo "✅ ChromaDB heartbeat OK"
+    break
   fi
-  return 1
-}
-
-# Wait for critical services to be ready (fail-fast before benchmark).
-echo "⏳ Initial warmup wait..."
-sleep 10
-
-wait_http "ChromaDB" "http://127.0.0.1:8000/api/v2/heartbeat" 3 20 "chromadb"
-wait_http "LLM instruct (llama.cpp)" "http://127.0.0.1:${LLM_INSTRUCT_PORT:-8002}/health" 3 20 "llm-instruct"
-wait_http "LLM reasoning (llama.cpp)" "http://127.0.0.1:${LLM_REASONING_PORT:-8004}/health" 3 20 "llm-reasoning"
-wait_http "Embeddings (llama.cpp)" "http://127.0.0.1:${EMBEDDINGS_PORT:-8003}/health" 3 20 "embeddings-gpu"
+  if [ "$i" -eq 3 ]; then
+    echo "❌ ChromaDB heartbeat failed after 3 attempts"
+    docker compose "${COMPOSE_ARGS[@]}" logs --tail 100 chromadb || true
+    exit 1
+  fi
+  sleep 10
+done
 
 # 3. Run benchmark
 echo "🚀 Running benchmark ($RUNS run(s))..."
@@ -271,7 +295,7 @@ if [ -z "$OUTPUT_DIR" ]; then
   OUTPUT_DIR="${OUTPUT_BASE}/run_${TIMESTAMP}"
 fi
 
-docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm \
+docker compose "${COMPOSE_ARGS[@]}" run --rm \
   -e BENCHMARK_SETUP_NAME="$SETUP_NAME" \
   agentic-research \
   benchmark-models \
