@@ -246,7 +246,11 @@ restart_stack() {
   services=$(docker compose "${COMPOSE_ARGS[@]}" config --services 2>/dev/null \
     | grep -v -E '^(agentic-research|evaluations)$' \
     | tr '\n' ' ')
-  docker compose "${COMPOSE_ARGS[@]}" down
+  # --remove-orphans is essential when switching between overlays (e.g.
+  # llama.cpp duo → vLLM mono): containers from a previous overlay's
+  # services not defined in the current one would otherwise stay up and
+  # hold their published ports (port 8002 collision observed in #169).
+  docker compose "${COMPOSE_ARGS[@]}" down --remove-orphans
   # shellcheck disable=SC2086
   docker compose "${COMPOSE_ARGS[@]}" up -d --wait --wait-timeout 600 $services
 }
