@@ -49,6 +49,15 @@ services:
       - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
     environment:
       EXTRA_PARAMS: "${EMBEDDINGS_EXTRA_PARAMS-}"
+    # Override Dockerfile.llamacpp HEALTHCHECK (hardcoded on :8000); the
+    # service actually serves on EMBEDDINGS_PORT (default 8003).
+    healthcheck:
+      test:
+        ["CMD", "curl", "-f", "http://localhost:${EMBEDDINGS_PORT:-8003}/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         reservations:
