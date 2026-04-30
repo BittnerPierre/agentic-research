@@ -6,6 +6,13 @@ benchmark:
   setup_config_map:
     openai-api: configs/tests/config-dgx-remote-openai-api.yaml
     mistral-api: configs/tests/config-dgx-remote-mistral-api.yaml
+    vllm-gptoss20b-mono: configs/config-docker-dgx-vllm-gptoss20b-mono.yaml
+    vllm-gptoss120b-mono: configs/config-docker-dgx-vllm-gptoss120b-mono.yaml
+  # Compose overlay per setup (relative to repo root). Setups not listed here
+  # fall back to docker-compose.dgx.yml (llama.cpp duo, default WS1 stack).
+  setup_compose_map:
+    vllm-gptoss20b-mono: docker-compose.dgx-vllm-gptoss20b-mono.yml
+    vllm-gptoss120b-mono: docker-compose.dgx-vllm-gptoss120b-mono.yml
   vector_store_name: agentic-research-dgx
   timeout_seconds:
   report_warmup: false

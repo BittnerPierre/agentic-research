@@ -285,9 +285,12 @@ echo "========================================"
 echo "All Benchmarks Completed!"
 echo "========================================"
 
-# Generate comparison table
+# Generate comparison table — agentic-research only reads JSON files on disk,
+# so no inference services are needed. `--no-deps` prevents compose from
+# pulling up the full stack (which may be on a different overlay than
+# docker-compose.dgx.yml after vLLM setups have been benched).
 echo "📊 Generating comparison table..."
-docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm agentic-research \
+docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm --no-deps agentic-research \
   compare-benchmarks --benchmark-dir "/app/$OUTPUT_DIR"
 
 echo ""
