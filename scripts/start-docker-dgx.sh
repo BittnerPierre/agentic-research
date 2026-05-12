@@ -55,4 +55,4 @@ fi
 docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans $SERVICES
 
 echo "Services started. Run research with:"
-echo "docker compose ${COMPOSE_ARGS[*]} run --rm agentic-research agentic-research --query 'your query'"
+echo "docker compose ${COMPOSE_ARGS[*]} run --rm agentic-research agentic-research --config ${RESOLVED_CONFIG} --query 'your query'"

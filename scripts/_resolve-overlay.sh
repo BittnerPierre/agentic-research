@@ -8,10 +8,16 @@
 #   RESOLVED_SETUP    — setup name (e.g. "openai", "vllm-gptoss20b-mono")
 #                       or empty if models.env is not a symlink we recognize.
 #   RESOLVED_OVERLAY  — overlay file (e.g. "docker-compose.dgx.yml" or
-#                       "docker-compose.dgx-vllm-gptoss20b-mono.yml").
+#                       "docker-compose.dgx-vllm-mono.yml").
+#   RESOLVED_CONFIG   — agentic-research/dataprep config YAML for the active
+#                       setup (e.g. "configs/config-docker-dgx.yaml" or
+#                       "configs/config-docker-dgx-vllm-qwen3-27b-mono.yaml").
+#                       Used by scripts that need to print or pass --config
+#                       (e.g. start-docker-dgx.sh helper line).
 
 BENCHMARK_CONFIG="${BENCHMARK_CONFIG:-configs/benchmark-default.yaml}"
 DEFAULT_OVERLAY="docker-compose.dgx.yml"
+DEFAULT_CONFIG="configs/config-docker-dgx.yaml"
 
 RESOLVED_SETUP=""
 if [ -L models.env ]; then
@@ -24,6 +30,7 @@ if [ -L models.env ]; then
 fi
 
 RESOLVED_OVERLAY="$DEFAULT_OVERLAY"
+RESOLVED_CONFIG="$DEFAULT_CONFIG"
 if [ -n "$RESOLVED_SETUP" ] && [ -f "$BENCHMARK_CONFIG" ]; then
   # Use `uv run python3` so the parser inherits the project's pyyaml
   # dependency (declared in pyproject.toml). Using system python3 directly
@@ -42,7 +49,11 @@ if [ -n "$RESOLVED_SETUP" ] && [ -f "$BENCHMARK_CONFIG" ]; then
     PY_CMD=(python3)
   fi
 
-  override=$("${PY_CMD[@]}" - "$BENCHMARK_CONFIG" "$RESOLVED_SETUP" <<'PY' || true
+  # Read both setup_compose_map and setup_config_map in one Python call
+  # to avoid invoking uv twice. Output is "<overlay>\n<config>" — empty
+  # lines mean "use default" (preserves the legacy llama.cpp duo fallback
+  # for setups not listed in the bench config, e.g. openai/ministral/...).
+  resolved=$("${PY_CMD[@]}" - "$BENCHMARK_CONFIG" "$RESOLVED_SETUP" <<'PY' || true
 import sys
 from pathlib import Path
 
@@ -53,15 +64,23 @@ setup = sys.argv[2]
 data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
 bench = data.get("benchmark", data)
-mapping = bench.get("setup_compose_map") or {}
-value = mapping.get(setup)
-if value:
-    print(value)
+compose_map = bench.get("setup_compose_map") or {}
+config_map = bench.get("setup_config_map") or {}
+
+print(compose_map.get(setup) or "")
+print(config_map.get(setup) or "")
 PY
 )
-  if [ -n "$override" ]; then
-    RESOLVED_OVERLAY="$override"
+  if [ -n "$resolved" ]; then
+    overlay_line=$(printf '%s\n' "$resolved" | sed -n '1p')
+    config_line=$(printf '%s\n' "$resolved" | sed -n '2p')
+    if [ -n "$overlay_line" ]; then
+      RESOLVED_OVERLAY="$overlay_line"
+    fi
+    if [ -n "$config_line" ]; then
+      RESOLVED_CONFIG="$config_line"
+    fi
   fi
 fi
 
-export RESOLVED_SETUP RESOLVED_OVERLAY
+export RESOLVED_SETUP RESOLVED_OVERLAY RESOLVED_CONFIG
