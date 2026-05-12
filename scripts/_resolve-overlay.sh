@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Helper sourced by start/stop-docker-dgx.sh. Resolves the active overlay
-# from the current `models.env` symlink + benchmark setup_compose_map,
+# Helper sourced by start/stop/logs/bench scripts. Resolves the active
+# overlay from the current `models.env` symlink + benchmark setup_compose_map,
 # so the standalone scripts work with any backend (llama.cpp duo, vLLM
 # mono, ...) and not just the legacy hardcoded duo overlay (#182).
 #
@@ -25,7 +25,24 @@ fi
 
 RESOLVED_OVERLAY="$DEFAULT_OVERLAY"
 if [ -n "$RESOLVED_SETUP" ] && [ -f "$BENCHMARK_CONFIG" ]; then
-  override=$(python3 - "$BENCHMARK_CONFIG" "$RESOLVED_SETUP" <<'PY' 2>/dev/null || true
+  # Use `uv run python3` so the parser inherits the project's pyyaml
+  # dependency (declared in pyproject.toml). Using system python3 directly
+  # used to fall back silently when pyyaml was missing on the host (codex
+  # review on PR #193 caught this — ModuleNotFoundError was masked by a
+  # 2>/dev/null + || true combo, leaving RESOLVED_OVERLAY on the default
+  # without any warning).
+  #
+  # Stderr is no longer suppressed: any real error (broken YAML, missing
+  # uv, etc.) now surfaces. `|| true` still kept so an empty result
+  # (legitimate "setup not in map" case) does not abort the caller.
+  if command -v uv >/dev/null 2>&1; then
+    PY_CMD=(uv run --quiet python3)
+  else
+    echo "[_resolve-overlay] warning: uv not found, falling back to system python3; pyyaml must be installed in system python or RESOLVED_OVERLAY will stay on default ($DEFAULT_OVERLAY)" >&2
+    PY_CMD=(python3)
+  fi
+
+  override=$("${PY_CMD[@]}" - "$BENCHMARK_CONFIG" "$RESOLVED_SETUP" <<'PY' || true
 import sys
 from pathlib import Path
 
@@ -33,10 +50,7 @@ import yaml
 
 config_path = Path(sys.argv[1])
 setup = sys.argv[2]
-try:
-    data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
-except Exception:
-    sys.exit(0)
+data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
 bench = data.get("benchmark", data)
 mapping = bench.get("setup_compose_map") or {}
