@@ -76,3 +76,7 @@ models.env
 
 # Ruff cache
 .ruff_cache/
+
+# Local-only scratch / notes (convention)
+*.local.md
+nohup.out

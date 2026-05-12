@@ -23,7 +23,15 @@ echo "========================================"
 echo "Directory: $BENCHMARK_DIR"
 echo ""
 
-docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm agentic-research \
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/_resolve-overlay.sh
+. "$SCRIPT_DIR/_resolve-overlay.sh"
+
+# compare-benchmarks only reads JSON files on disk — `--no-deps` avoids
+# spinning up unrelated services (chromadb/embeddings/llm) on the active
+# overlay just for a static comparison.
+docker compose -f docker-compose.yml -f "$RESOLVED_OVERLAY" --env-file models.env \
+  run --rm --no-deps agentic-research \
   compare-benchmarks --benchmark-dir "/app/$BENCHMARK_DIR"
 
 OUTPUT_FILE="${BENCHMARK_DIR}/comparison_table.md"

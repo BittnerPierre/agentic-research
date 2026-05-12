@@ -265,7 +265,17 @@ if [ "$KEEP_SERVICES" = "true" ]; then
     echo "🔄 Restarting Docker services (setup changed)..."
     restart_stack
   else
-    echo "♻️  Keeping Docker services running for same setup..."
+    # #181: idempotent up — if services are already healthy, this returns
+    # immediately. If they died (machine reboot, manual `compose down`, etc.),
+    # this brings them back up without a destructive `down` first. Previous
+    # behavior was a pure no-op that assumed services were running, which
+    # silently broke the rest of the script (ChromaDB heartbeat fails).
+    echo "♻️  Ensuring Docker services are up (keep-services)..."
+    keep_services=$(docker compose "${COMPOSE_ARGS[@]}" config --services 2>/dev/null \
+      | grep -v -E '^(agentic-research|evaluations)$' \
+      | tr '\n' ' ')
+    # shellcheck disable=SC2086
+    docker compose "${COMPOSE_ARGS[@]}" up -d --wait --wait-timeout 900 $keep_services
   fi
   echo "$SETUP_NAME" > "$LAST_SETUP_FILE"
 else

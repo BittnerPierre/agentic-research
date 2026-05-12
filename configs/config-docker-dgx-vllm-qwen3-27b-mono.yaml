@@ -1,0 +1,104 @@
+# Configuration pour agentic-research (Docker DGX, vLLM mono-modèle, WS1).
+# Composition: vLLM mono-modèle Qwen3.6-27B-NVFP4.
+# Control loop vs gpt-oss-20b/120b: isole si les bugs Harmony/channel-leak
+# observés sont gpt-oss-spécifiques ou vLLM-wide sur Responses.
+# Architecture dense (pas MLA) → contourne le bug TRITON_MLA de Mistral.
+config_name: "docker-dgx-vllm-qwen3-27b-mono"
+
+vector_store:
+  name: "agentic-research-dgx-vllm-qwen3-27b-mono"
+  description: "Vector store for DGX vLLM Qwen3.6-27B mono-model stack"
+  expires_after_days: 30
+
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx-vllm-qwen3-27b-mono"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "chromadb"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://embeddings-gpu:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 5
+  score_threshold: null
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+dataprep:
+  llm:
+    enabled: true
+    model:
+      name: "openai/qwen3.6-27b"
+      base_url: "http://llm:8002/v1"
+      api_key: "dummy"
+      api: "responses"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "0.0.0.0"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+# Mono-modèle : tous les agents pointent sur le même endpoint vLLM.
+# Le `served-model-name` côté vLLM doit matcher le suffixe après `openai/`.
+# api: "responses" → route via OpenAIResponsesModel (#158 + #164).
+# Note : à vérifier que vLLM expose /v1/responses pour Qwen3. Si KO,
+# basculer agent par agent en `api: "chat_completions"` (test direct via
+# curl avant lancement).
+models:
+  research_model:
+    name: "openai/qwen3.6-27b"
+    base_url: "http://llm:8002/v1"
+    api_key: "dummy"
+    api: "responses"
+  planning_model:
+    name: "openai/qwen3.6-27b"
+    base_url: "http://llm:8002/v1"
+    api_key: "dummy"
+    api: "responses"
+  search_model:
+    name: "openai/qwen3.6-27b"
+    base_url: "http://llm:8002/v1"
+    api_key: "dummy"
+    api: "responses"
+  writer_model:
+    name: "openai/qwen3.6-27b"
+    base_url: "http://llm:8002/v1"
+    api_key: "dummy"
+    api: "responses"
+  knowledge_preparation_model:
+    name: "openai/qwen3.6-27b"
+    base_url: "http://llm:8002/v1"
+    api_key: "dummy"
+    api: "responses"
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "3-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"
+  file_search_rewrite_mode: "none"
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null

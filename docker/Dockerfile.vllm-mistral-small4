@@ -1,0 +1,30 @@
+# vLLM image rebuild for Mistral-Small-4-119B-NVFP4 on DGX Spark (GB10/sm_121).
+#
+# Why this rebuild exists:
+#   - avarok/dgx-vllm-nvfp4-kernel:v23 is the arm64/sm_121-aware base image
+#     published on the NVIDIA DGX dev forum (see WS1 round-2 gist Finding 10
+#     and https://forums.developer.nvidia.com/t/running-mistral-small-4-119b-nvfp4-on-nvidia-dgx-spark-gb10/363863).
+#   - That base ships with mistral_common < 1.10.0 which does not recognize
+#     tekken.json v15 — the tokenizer format shipped by Mistral-Small-4.
+#     Without this rebuild, vLLM crashes at startup with:
+#       ValueError: Unknown version: v15 in .../tekken.json
+#   - The upgrade brings mistral_common to a version that supports tekken v15.
+#
+# Build:
+#   docker build -t avarok-mistral-small4:v1 -f docker/Dockerfile.vllm-mistral-small4 .
+#
+# The resulting image tag matches VLLM_IMAGE in
+# models/models.vllm-mistral-small4-mono.env.
+#
+# Known limitation: even with this image, Mistral-Small-4 on vLLM Responses
+# API is a dead end for agentic workflows on Spark — vLLM ignores
+# `parallel_tool_calls=false` for the Mistral renderer, causing
+# InvalidMessageStructureException on subsequent turns. See:
+#   - vllm-project/vllm#11097
+#   - vllm-project/vllm#39584
+# The image is kept usable for future retries once those upstream issues
+# are resolved, and for Chat Completions path experiments.
+
+FROM avarok/dgx-vllm-nvfp4-kernel:v23
+
+RUN /opt/venv/bin/pip install --upgrade mistral_common
