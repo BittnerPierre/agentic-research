@@ -13,10 +13,14 @@ benchmark:
   # Compose overlay per setup (relative to repo root). Setups not listed here
   # fall back to docker-compose.dgx.yml (llama.cpp duo, default WS1 stack).
   setup_compose_map:
-    vllm-gptoss20b-mono: docker-compose.dgx-vllm-gptoss20b-mono.yml
-    vllm-gptoss120b-mono: docker-compose.dgx-vllm-gptoss120b-mono.yml
-    vllm-qwen3-27b-mono: docker-compose.dgx-vllm-qwen3-27b-mono.yml
-    vllm-mistral-small4-mono: docker-compose.dgx-vllm-mistral-small4-mono.yml
+    # All vLLM mono-server setups share a single generic overlay
+    # (docker-compose.dgx-vllm-mono.yml). Per-setup variance lives in
+    # models/models.<setup>.env and configs/config-docker-dgx-<setup>.yaml.
+    # See issue #187 for the rationale (model is a parameter, not an overlay).
+    vllm-gptoss20b-mono: docker-compose.dgx-vllm-mono.yml
+    vllm-gptoss120b-mono: docker-compose.dgx-vllm-mono.yml
+    vllm-qwen3-27b-mono: docker-compose.dgx-vllm-mono.yml
+    vllm-mistral-small4-mono: docker-compose.dgx-vllm-mono.yml
   vector_store_name: agentic-research-dgx
   timeout_seconds:
   report_warmup: false
