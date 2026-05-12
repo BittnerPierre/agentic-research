@@ -110,6 +110,12 @@ class BenchmarkTraceProcessor(TracingProcessor):
             ),
             "ended_at": None,
             "metadata": span_metadata,
+            # Full span_data export preserved for debugging. For generation
+            # spans this includes input (conversation history), output (model
+            # response), model, model_config, usage. For function spans:
+            # input args, output. For handoff spans: from_agent/to_agent.
+            # Snapshot at span_start; updated again at span_end for completion.
+            "span_data": span_data_export if isinstance(span_data_export, dict) else None,
         }
 
         # Track error field from exported payload if present.
@@ -136,6 +142,59 @@ class BenchmarkTraceProcessor(TracingProcessor):
                 self.spans[span_id]["metadata"].update(exported.get("metadata", {}))
                 if exported.get("error") is not None:
                     self.spans[span_id]["metadata"]["error"] = exported.get("error")
+                # Re-capture span_data at span_end: SDK populates input/output
+                # once the LLM call completes, so the end snapshot is the rich
+                # one we need for debugging tool-call mismatches etc.
+                end_span_data = exported.get("span_data")
+                if isinstance(end_span_data, dict):
+                    self.spans[span_id]["span_data"] = end_span_data
+
+            # ResponseSpanData (Responses API path) carries `response` and
+            # `input` as Python attributes but exports only `response_id`.
+            # We bypass export() and read the attributes directly — exactly
+            # the hook the SDK docstring points at:
+            #   "not used by the OpenAI trace processors, but is useful for
+            #    other tracing processor implementations".
+            raw_span_data = getattr(span, "span_data", None)
+            if raw_span_data is not None and getattr(raw_span_data, "type", None) == "response":
+                self.spans[span_id]["span_data"] = self._capture_response_span_data(
+                    raw_span_data
+                )
+
+    def _capture_response_span_data(self, raw_span_data: Any) -> dict:
+        """Extract response and input from a ResponseSpanData via attributes.
+
+        Falls back gracefully if model_dump / dict conversion fails — we want
+        the trace to be best-effort, never to crash the bench.
+        """
+        result: dict[str, Any] = {"type": "response"}
+
+        response = getattr(raw_span_data, "response", None)
+        if response is not None:
+            result["response_id"] = getattr(response, "id", None)
+            # Pydantic v2 model on the OpenAI SDK side.
+            for serializer in ("model_dump", "to_dict"):
+                fn = getattr(response, serializer, None)
+                if callable(fn):
+                    try:
+                        result["response"] = fn()
+                        break
+                    except Exception as exc:
+                        result["response_dump_error"] = f"{type(exc).__name__}: {exc}"
+
+        input_value = getattr(raw_span_data, "input", None)
+        if input_value is not None:
+            # input is str | list[ResponseInputItemParam]. The list items are
+            # TypedDicts → JSON-serializable as-is. str passes through.
+            try:
+                # Round-trip through json to verify serializability and to
+                # normalize Pydantic objects nested inside (defensive).
+                result["input"] = json.loads(json.dumps(input_value, default=str))
+            except Exception as exc:
+                result["input_dump_error"] = f"{type(exc).__name__}: {exc}"
+                result["input_repr"] = repr(input_value)[:2000]
+
+        return result
 
     def _as_iso_timestamp(self, value: Any) -> str | None:
         """Normalize timestamp values from agents SDK to ISO string."""
