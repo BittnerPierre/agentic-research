@@ -35,7 +35,7 @@ dataprep:
       name: "openai/mistral-small-4-119b"
       base_url: "http://llm:8002/v1"
       api_key: "dummy"
-      api: "responses"
+      api: "chat_completions"
     api_key_env: "OPENAI_API_KEY"
     temperature: 0.1
     max_tokens: 256
@@ -59,37 +59,41 @@ mcp:
 
 # Mono-modèle : tous les agents pointent sur le même endpoint vLLM.
 # Le `served-model-name` côté vLLM doit matcher le suffixe après `openai/`.
-# api: "responses" → route via OpenAIResponsesModel (#158 + #164).
-# À vérifier sur Mistral-Small-4 : si vLLM ne supporte pas /v1/responses
-# pour cette famille (Responses sur vLLM est implémenté par parser, et
-# le `mistral` reasoning parser peut ne pas être branché sur Responses),
-# bascule en `api: "chat_completions"` agent par agent.
+#
+# api: "chat_completions" pour Mistral-Small-4 — décision WS1 round 2.
+# vLLM Responses path est une impasse pour ce modèle: vLLM ignore
+# `parallel_tool_calls=false` côté serveur (vllm-project/vllm#11097/#39584)
+# et mistral_common valide l'historique en pairing strict, qui rejette les
+# tool_calls parallèles regroupés que le SDK reconstruit. Chat Completions
+# n'a pas ce problème — l'historique est sérialisé en messages séparés
+# (assistant.tool_calls + role:tool avec tool_call_id explicite).
+# Voir issue #188 + WS1 round 2 gist Finding 10.
 models:
   research_model:
     name: "openai/mistral-small-4-119b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
-    api: "responses"
+    api: "chat_completions"
   planning_model:
     name: "openai/mistral-small-4-119b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
-    api: "responses"
+    api: "chat_completions"
   search_model:
     name: "openai/mistral-small-4-119b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
-    api: "responses"
+    api: "chat_completions"
   writer_model:
     name: "openai/mistral-small-4-119b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
-    api: "responses"
+    api: "chat_completions"
   knowledge_preparation_model:
     name: "openai/mistral-small-4-119b"
     base_url: "http://llm:8002/v1"
     api_key: "dummy"
-    api: "responses"
+    api: "chat_completions"
 
 manager:
   default_manager: "deep_manager"
