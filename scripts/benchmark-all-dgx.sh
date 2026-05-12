@@ -287,10 +287,16 @@ echo "========================================"
 
 # Generate comparison table — agentic-research only reads JSON files on disk,
 # so no inference services are needed. `--no-deps` prevents compose from
-# pulling up the full stack (which may be on a different overlay than
-# docker-compose.dgx.yml after vLLM setups have been benched).
+# pulling up the full stack on the active overlay just to run the static
+# comparison. The overlay itself is resolved via the standard helper so the
+# compose project matches whatever was last bench'd.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/_resolve-overlay.sh
+. "$SCRIPT_DIR/_resolve-overlay.sh"
+
 echo "📊 Generating comparison table..."
-docker compose -f docker-compose.yml -f docker-compose.dgx.yml --env-file models.env run --rm --no-deps agentic-research \
+docker compose -f docker-compose.yml -f "$RESOLVED_OVERLAY" --env-file models.env \
+  run --rm --no-deps agentic-research \
   compare-benchmarks --benchmark-dir "/app/$OUTPUT_DIR"
 
 echo ""
