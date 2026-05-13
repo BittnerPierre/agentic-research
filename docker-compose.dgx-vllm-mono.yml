@@ -110,17 +110,24 @@ services:
     volumes:
       - ${MODELS_DIR:-${HOME}/.cache/huggingface/hub}:/mnt/models
       - ${HF_HOME:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
-    # Hardware/runtime env vars. Compose substitutes ${VAR-} from --env-file;
-    # if a var is not declared in the active .env, it ends up as empty string
-    # in the container, which vLLM treats as unset (cf. os.environ.get).
-    # Mistral-Small-4 on Spark needs the four VLLM_*_FP4 / MLA_DISABLE flags;
-    # other setups leave them empty.
+    # Hardware/runtime env vars in list form (pass-through). Compose only
+    # injects a variable into the container if it is actually defined in
+    # --env-file (or the surrounding shell). The dict form `VAR: "${VAR-}"`
+    # was wrong here because vLLM's env validators treat empty string as
+    # "set but invalid" rather than "unset":
+    #   `ValueError: Invalid value '' for VLLM_NVFP4_GEMM_BACKEND.
+    #    Valid options: ['flashinfer-cudnn', ..., 'marlin', 'emulation'].`
+    # which broke setups that legitimately do not set these vars (Qwen,
+    # gpt-oss) after the #187 collapse.
+    #
+    # Mistral-Small-4 on Spark sets all four (see models.vllm-mistral-small4-mono.env);
+    # other setups leave them undefined and the container does not see them.
     environment:
-      HUGGING_FACE_HUB_TOKEN: "${HUGGING_FACE_HUB_TOKEN-}"
-      VLLM_MLA_DISABLE: "${VLLM_MLA_DISABLE-}"
-      VLLM_NVFP4_GEMM_BACKEND: "${VLLM_NVFP4_GEMM_BACKEND-}"
-      VLLM_USE_FLASHINFER_MOE_FP4: "${VLLM_USE_FLASHINFER_MOE_FP4-}"
-      VLLM_TEST_FORCE_FP8_MARLIN: "${VLLM_TEST_FORCE_FP8_MARLIN-}"
+      - HUGGING_FACE_HUB_TOKEN
+      - VLLM_MLA_DISABLE
+      - VLLM_NVFP4_GEMM_BACKEND
+      - VLLM_USE_FLASHINFER_MOE_FP4
+      - VLLM_TEST_FORCE_FP8_MARLIN
     deploy:
       resources:
         reservations:
