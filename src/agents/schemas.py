@@ -42,6 +42,31 @@ class FileSearchResult(BaseModel):
     "Le nom du fichier contenant les résultats de la recherche."
 
 
+class SourceDocument(BaseModel):
+    """A single aggregated research source, built programmatically from a
+    search-result file (no LLM, no MCP).
+
+    Produced by the report_writer aggregation step right after the search phase
+    so the writer never has to load files itself. The stable ``source_id`` is
+    what chapter writers use to cite material inline (e.g. ``[S3]``).
+    """
+
+    source_id: str
+    "Identifiant stable de la source pour les citations inline (ex: `S1`, `S2`)."
+
+    file_name: str
+    "Nom de base du fichier de résultat de recherche."
+
+    topic: str
+    "Sujet lisible dérivé du nom de fichier (= terme de recherche)."
+
+    content: str
+    "Contenu textuel complet du résumé de recherche."
+
+    doc_ids: list[str] = []
+    "Citations `[document_id:chunk_index]` extraites du contenu (peut être vide)."
+
+
 class FileFinalReport(BaseModel):
     absolute_file_path: str
     "Le chemin absolu du fichier contenant le rapport final."
