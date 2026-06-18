@@ -2,7 +2,7 @@ from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.mcp import MCPServer
 from agents.models import get_default_model_settings
 
-from agents import Agent, FileSearchTool, RunContextWrapper
+from agents import Agent, RunContextWrapper
 
 from ..config import get_config
 from .schemas import ResearchInfo
@@ -30,6 +30,8 @@ def dynamic_instructions(
 
     return (
         f"{dynamic_prompt}"
+        "Use ONLY the retrieval tool `vector_search` to access document content.\n"
+        "Never try to open or read the source documents directly from the filesystem.\n"
         f"The absolute path to **temporary filesystem** is `{context.context.temp_dir}`."
         " You MUST use it to write and read temporary data.\n"
         "When calling write_file, always set `path` to "
@@ -54,13 +56,9 @@ def create_file_search_agent(
     adjust_model_settings_for_base_url(model_spec, model_settings)
     enable_usage_for_litellm(model_spec, model_settings)
 
-    if config.vector_search.provider == "openai":
-        tools = [FileSearchTool(vector_store_ids=[vector_store_id])]
-    elif config.vector_search.provider == "local":
-        tools = [vector_search]
-    elif config.vector_search.provider == "chroma":
-        # Route Chroma retrieval through dataprep.vector_search for consistent
-        # payload shape and hygiene (no raw MCP chroma payload in the prompt loop).
+    if config.vector_search.provider in {"openai", "local", "chroma"}:
+        # Keep a single retrieval contract across providers to avoid provider-
+        # specific prompt drift and direct filesystem fallbacks in the agent loop.
         tools = [vector_search]
     else:
         raise ValueError(f"Unknown vector_search.provider: {config.vector_search.provider}")

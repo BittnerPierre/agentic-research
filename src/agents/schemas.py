@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SearchItem(BaseModel):
@@ -79,3 +79,6 @@ class ReportData(BaseModel):
 
     follow_up_questions: list[str]
     """Suggested topics to research further"""
+
+    source_references: list[str] = Field(default_factory=list)
+    """References persisted alongside the report for future reuse."""

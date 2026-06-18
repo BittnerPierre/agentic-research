@@ -18,7 +18,6 @@ from .agents.knowledge_preparation_agent import create_knowledge_preparation_age
 from .agents.schemas import (
     FileSearchItem,
     FileSearchPlan,
-    FileSearchResult,
     ReportData,
     ResearchInfo,
 )
@@ -150,6 +149,8 @@ class DeepResearchManager:
             search_start = time.time()
             search_results = await self._perform_file_searches(search_plan)
             self.timings["search"] = time.time() - search_start
+            if not search_results:
+                raise RuntimeError("No usable search results")
 
             # Phase 4: Writing
             write_start = time.time()
@@ -172,6 +173,7 @@ class DeepResearchManager:
             report.markdown_report,
             report.short_summary,
             report.follow_up_questions,
+            search_results,
         )
         print(f"Report saved: {_new_report.file_name}")
         print("\n\n=====REPORT=====\n\n")
@@ -277,7 +279,8 @@ class DeepResearchManager:
             self._record_usage(result, phase="search")
             self.agent_calls["file_search_agent"] += 1
             self.agent_calls["total"] += 1
-            raw_file_name = str(result.final_output_as(FileSearchResult).file_name)
+            # file_search_agent returns the bare filename as plain text.
+            raw_file_name = str(result.final_output or "").strip()
             normalized_path = self._normalize_search_result_path(raw_file_name)
             if normalized_path is None:
                 self.agent_calls["failures"] += 1

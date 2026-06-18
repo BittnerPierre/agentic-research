@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from typing import Any
@@ -174,6 +175,7 @@ def parse_writer_markdown(markdown_report: str, research_topic: str) -> ReportDa
         short_summary=short_summary or title,
         markdown_report=markdown_report,
         follow_up_questions=follow_up_questions,
+        source_references=[],
     )
 
 
@@ -203,6 +205,7 @@ async def save_report(
         markdown_report,
         short_summary,
         follow_up_questions,
+        wrapper.context.search_results,
     )
 
 
@@ -212,6 +215,7 @@ async def save_final_report_function(
     markdown_report: str,
     short_summary: str,
     follow_up_questions: list[str],
+    source_references: list[str] | None = None,
 ) -> ReportData:
     """
     Écrit le rapport final.
@@ -219,16 +223,25 @@ async def save_final_report_function(
     """
     file_name = generate_final_report_filename(research_topic)
     file_path = os.path.join(output_dir, file_name)
+    os.makedirs(output_dir, exist_ok=True)
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(markdown_report)
-        # Remplacer print par logger si le framework de logging est en place
-        # print(f"File written: {file_path}")
+    references = list(source_references or [])
+    manifest_path = f"{file_path}.references.json"
+    manifest_payload = {
+        "report_file": file_name,
+        "research_topic": research_topic,
+        "source_references": references,
+    }
+    with open(manifest_path, "w", encoding="utf-8") as manifest_file:
+        json.dump(manifest_payload, manifest_file, ensure_ascii=False, indent=2)
     return ReportData(
         file_name=file_name,
         markdown_report=markdown_report,
         research_topic=research_topic,
         short_summary=short_summary,
         follow_up_questions=follow_up_questions,
+        source_references=references,
     )
 
 

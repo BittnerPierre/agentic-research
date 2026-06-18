@@ -101,6 +101,7 @@ class AgenticResearchManager:
             report.markdown_report,
             report.short_summary,
             report.follow_up_questions,
+            report.source_references or research_info.search_results,
         )
         print(f"Report saved: {_new_report.file_name}")
 

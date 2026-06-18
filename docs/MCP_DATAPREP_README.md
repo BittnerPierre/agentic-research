@@ -123,6 +123,9 @@ Upload optimisé vers OpenAI Vector Store.
 - Réutilise les `openai_file_id` existants
 - Upload uniquement les nouveaux fichiers
 - Vector store avec expiration 1 jour
+- Pour les PDF locaux, crée un artefact texte normalisé local pour l'indexation
+- Réutilise cet artefact tant que le fichier source local n'a pas changé
+- Réindexe automatiquement si le PDF local a été modifié
 
 ### `get_knowledge_entries_tool() -> List[Dict]`
 

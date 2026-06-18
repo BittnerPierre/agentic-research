@@ -12,7 +12,7 @@ from .knowledge_db import KnowledgeDBManager
 from .models import KnowledgeEntry, UploadResult
 from .vector_backends import get_vector_backend
 from .vector_search import VectorSearchResult
-from .vector_store_utils import validate_url
+from .vector_store_utils import resolve_entry_artifact_path, validate_url
 from .web_loader_improved import load_documents_from_urls
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,9 @@ def download_and_store_url(url: str, config) -> str:
     if existing_entry:
         logger.info(f"URL found in knowledge base: {existing_entry.filename}")
         # Vérifier que le fichier existe encore
-        local_path = Path(config.data.local_storage_dir) / existing_entry.filename
+        local_path = resolve_entry_artifact_path(
+            existing_entry, Path(config.data.local_storage_dir)
+        )
         if local_path.exists():
             return existing_entry.filename
         else:
@@ -106,6 +108,9 @@ def download_and_store_url(url: str, config) -> str:
     entry = KnowledgeEntry(
         url=url,
         filename=filename,
+        source_type="url",
+        source_path=url,
+        normalized_filename=filename,
         keywords=keywords,
         summary=summary,  # Ajout du résumé
         title=doc.metadata.get("title"),

@@ -11,6 +11,7 @@ import html2text
 from bs4 import BeautifulSoup, Comment
 
 from ..config import get_config
+from .pdf_utils import extract_pdf_text_from_bytes, looks_like_pdf_bytes
 
 # Configuration du logger
 logger = logging.getLogger(__name__)
@@ -528,6 +529,19 @@ def fetch_web_content_improved(url: str, timeout: int = 30) -> WebDocument | Non
 
             # Lire le contenu brut
             raw_data = response.read()
+            content_type = response.headers.get("Content-Type", "")
+
+            if "application/pdf" in content_type.lower() or looks_like_pdf_bytes(raw_data):
+                parsed_pdf = extract_pdf_text_from_bytes(raw_data, source_name=url)
+                title = parsed_pdf.title or SmartWebParser()._extract_title_from_url(url)
+                logger.info(
+                    "PDF extrait avec succès de %s (%s caractères, %s/%s pages)",
+                    url,
+                    parsed_pdf.extracted_chars,
+                    parsed_pdf.extracted_pages,
+                    parsed_pdf.page_count,
+                )
+                return WebDocument(content=parsed_pdf.text, url=url, title=title)
 
             # Vérifier si le contenu est compressé via les headers
             content_encoding = response.headers.get("Content-Encoding", "").lower()
@@ -536,7 +550,6 @@ def fetch_web_content_improved(url: str, timeout: int = 30) -> WebDocument | Non
                 raw_data = decompress_response(raw_data, content_encoding)
 
             # Détecter l'encodage
-            content_type = response.headers.get("Content-Type", "")
             encoding = detect_encoding(raw_data, content_type)
             logger.info(f"Encodage détecté: {encoding}")
 

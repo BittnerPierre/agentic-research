@@ -1,6 +1,7 @@
 """Modèles de données pour la base de connaissances locale."""
 
 from datetime import datetime
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -8,8 +9,23 @@ from pydantic import BaseModel, Field, field_serializer
 class KnowledgeEntry(BaseModel):
     """Entrée dans la base de connaissances."""
 
+    kb_id: str = Field(
+        default_factory=lambda: f"kb_{uuid4().hex}",
+        description="Identifiant interne stable de la ressource dans la knowledge base",
+    )
     url: str = Field(..., description="URL source du document ou chemin local")
     filename: str = Field(..., description="Nom du fichier .md stocké localement")
+    source_type: str | None = Field(None, description="Type de source canonique (url, local_file)")
+    source_path: str | None = Field(None, description="Chemin local canonique si applicable")
+    normalized_filename: str | None = Field(
+        None,
+        description="Nom du fichier texte normalisé utilisé pour l'indexation",
+    )
+    source_last_modified_ns: int | None = Field(
+        None,
+        description="Dernière date de modification nanoseconde de la source locale",
+    )
+    source_size_bytes: int | None = Field(None, description="Taille en octets de la source locale")
     keywords: list[str] = Field(default_factory=list, description="Mots-clés extraits par LLM")
     summary: str | None = Field(None, description="Résumé du document généré par LLM")
     title: str | None = Field(None, description="Titre du document")

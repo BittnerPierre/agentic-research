@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from src.agentic_manager import AgenticResearchManager
 from src.agents.schemas import ReportData, ResearchInfo
+from src.agents.utils import save_final_report_function
 
 
 class DummyServer:
@@ -18,6 +21,7 @@ async def test_agentic_manager_saves_report(monkeypatch, tmp_path):
         short_summary="Short summary",
         markdown_report="# Report",
         follow_up_questions=["Q1"],
+        source_references=["kb://topic/doc-1"],
     )
 
     async def fake_agentic_research(self, _query, _research_info):
@@ -26,10 +30,22 @@ async def test_agentic_manager_saves_report(monkeypatch, tmp_path):
     save_calls: list[tuple] = []
 
     async def fake_save_final_report_function(
-        output_dir, research_topic, markdown_report, short_summary, follow_up_questions
+        output_dir,
+        research_topic,
+        markdown_report,
+        short_summary,
+        follow_up_questions,
+        source_references=None,
     ):
         save_calls.append(
-            (output_dir, research_topic, markdown_report, short_summary, follow_up_questions)
+            (
+                output_dir,
+                research_topic,
+                markdown_report,
+                short_summary,
+                follow_up_questions,
+                source_references,
+            )
         )
         return report
 
@@ -62,4 +78,37 @@ async def test_agentic_manager_saves_report(monkeypatch, tmp_path):
         research_info=research_info,
     )
 
-    assert save_calls == [(str(tmp_path / "out"), "Topic", "# Report", "Short summary", ["Q1"])]
+    assert save_calls == [
+        (
+            str(tmp_path / "out"),
+            "Topic",
+            "# Report",
+            "Short summary",
+            ["Q1"],
+            ["kb://topic/doc-1"],
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_save_final_report_function_writes_reference_manifest(tmp_path):
+    result = await save_final_report_function(
+        output_dir=str(tmp_path / "out"),
+        research_topic="Topic",
+        markdown_report="# Report",
+        short_summary="Short summary",
+        follow_up_questions=["Q1"],
+        source_references=["file:///tmp/doc.pdf", "https://example.com/paper"],
+    )
+
+    report_path = tmp_path / "out" / result.file_name
+    manifest_path = tmp_path / "out" / f"{result.file_name}.references.json"
+
+    assert report_path.exists()
+    assert manifest_path.exists()
+    assert result.source_references == ["file:///tmp/doc.pdf", "https://example.com/paper"]
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["report_file"] == result.file_name
+    assert manifest["research_topic"] == "Topic"
+    assert manifest["source_references"] == ["file:///tmp/doc.pdf", "https://example.com/paper"]

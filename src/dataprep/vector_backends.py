@@ -181,13 +181,15 @@ def _openai_search_results_to_hits(
         document = "\n".join(text_parts).strip()
 
         metadata: dict[str, Any] = {}
+        attributes = item_dict.get("attributes")
         filename = item_dict.get("filename")
+        if not filename and isinstance(attributes, dict):
+            filename = attributes.get("filename")
         if filename:
             metadata["filename"] = filename
         file_id = item_dict.get("file_id")
         if file_id:
             metadata["document_id"] = file_id
-        attributes = item_dict.get("attributes")
         if attributes:
             metadata["attributes"] = attributes
 
@@ -198,6 +200,52 @@ def _openai_search_results_to_hits(
                 score=score if score is not None else 0.0,
             )
         )
+
+    return hits
+
+
+def _expand_filename_aliases(
+    filenames: list[str] | None, db_manager: KnowledgeDBManager
+) -> list[str]:
+    normalized_filenames = normalize_filenames(filenames)
+    if not normalized_filenames:
+        return []
+
+    expanded = {name for filename in normalized_filenames for name in {filename, Path(filename).name}}
+    for entry in db_manager.get_all_entries().entries:
+        entry_aliases = {entry.filename}
+        if entry.normalized_filename:
+            entry_aliases.add(entry.normalized_filename)
+            entry_aliases.add(Path(entry.normalized_filename).name)
+        if expanded.intersection(entry_aliases):
+            expanded.update(entry_aliases)
+
+    return sorted(expanded)
+
+
+def _canonicalize_hit_filenames(
+    hits: list[VectorSearchHit], db_manager: KnowledgeDBManager
+) -> list[VectorSearchHit]:
+    if not hits:
+        return hits
+
+    alias_to_canonical: dict[str, str] = {}
+    for entry in db_manager.get_all_entries().entries:
+        alias_to_canonical[entry.filename] = entry.filename
+        if entry.normalized_filename:
+            alias_to_canonical[entry.normalized_filename] = entry.filename
+            alias_to_canonical[Path(entry.normalized_filename).name] = entry.filename
+
+    for hit in hits:
+        filename = hit.metadata.get("filename")
+        canonical = alias_to_canonical.get(str(filename)) if filename else None
+        if canonical:
+            hit.metadata["filename"] = canonical
+            attributes = hit.metadata.get("attributes")
+            if isinstance(attributes, dict):
+                updated_attributes = dict(attributes)
+                updated_attributes["filename"] = canonical
+                hit.metadata["attributes"] = updated_attributes
 
     return hits
 
@@ -280,8 +328,14 @@ class LocalVectorBackend:
         documents_to_index = []
         entries_indexed = []
 
-        for entry, file_path in entries_to_process:
-            if entry.vector_doc_id and backend.has_document(entry.vector_doc_id):
+        for resolved in entries_to_process:
+            entry = resolved.entry
+            file_path = resolved.file_path
+            if (
+                not resolved.force_reindex
+                and entry.vector_doc_id
+                and backend.has_document(entry.vector_doc_id)
+            ):
                 files_uploaded.append(
                     {"filename": entry.filename, "doc_id": entry.vector_doc_id, "status": "reused"}
                 )
@@ -355,6 +409,8 @@ class LocalVectorBackend:
 class OpenAIVectorBackend:
     provider = "openai"
 
+    _POLL_INTERVAL_SECONDS = 0.5
+
     def resolve_store_id(self, vectorstore_name: str, config) -> str | None:
         cached = VectorStoreRegistry.get(self.provider, vectorstore_name)
         if cached:
@@ -396,8 +452,10 @@ class OpenAIVectorBackend:
         upload_count = 0
         reuse_count = 0
 
-        for entry, file_path in entries_to_process:
-            if entry.openai_file_id:
+        for resolved in entries_to_process:
+            entry = resolved.entry
+            file_path = resolved.file_path
+            if entry.openai_file_id and not resolved.force_reindex:
                 logger.info(
                     f"Reusing existing OpenAI file: {entry.filename} -> {entry.openai_file_id}"
                 )
@@ -440,12 +498,20 @@ class OpenAIVectorBackend:
         logger.debug(
             "[upload_files_to_vectorstore] Step 4: Attaching files to vector store (parallel)"
         )
+        max_wait_seconds = max(float(getattr(config.mcp, "client_timeout_seconds", 30.0)) - 1.0, 1.0)
 
         def attach_single_file(file_id: str, filename: str) -> dict:
             try:
                 vector_store_file = client.vector_stores.files.create(
                     vector_store_id=vector_store_id,
                     file_id=file_id,
+                )
+                vector_store_file = self._wait_for_vector_store_file(
+                    client=client,
+                    vector_store_id=vector_store_id,
+                    file_id=file_id,
+                    initial_status=vector_store_file,
+                    max_wait_seconds=max_wait_seconds,
                 )
                 logger.info(
                     f"File attached to vector store: {filename} (status: {vector_store_file.status})"
@@ -537,10 +603,54 @@ class OpenAIVectorBackend:
         }
         response = client.vector_stores.search(**search_kwargs)
         hits = _openai_search_results_to_hits(response, effective_threshold)
+        db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
+        hits = _canonicalize_hit_filenames(hits, db_manager)
+        normalized_filenames = _expand_filename_aliases(filenames, db_manager)
+        if normalized_filenames:
+            hits = [
+                hit
+                for hit in hits
+                if hit.metadata.get("filename") in normalized_filenames
+                or (
+                    isinstance(hit.metadata.get("attributes"), dict)
+                    and hit.metadata["attributes"].get("filename") in normalized_filenames
+                )
+            ]
         return VectorSearchResult(query=query, results=hits[:effective_top_k])
 
     def tool_name(self) -> str:
         return "vector_search"
+
+    def _wait_for_vector_store_file(
+        self,
+        *,
+        client,
+        vector_store_id: str,
+        file_id: str,
+        initial_status,
+        max_wait_seconds: float,
+    ):
+        vector_store_file = initial_status
+        deadline = time.perf_counter() + max_wait_seconds
+
+        while getattr(vector_store_file, "status", None) == "in_progress":
+            if time.perf_counter() >= deadline:
+                raise TimeoutError(
+                    f"Timed out waiting for vector store file to complete: {file_id}"
+                )
+            time.sleep(self._POLL_INTERVAL_SECONDS)
+            vector_store_file = client.vector_stores.files.retrieve(
+                vector_store_id=vector_store_id,
+                file_id=file_id,
+            )
+
+        if getattr(vector_store_file, "status", None) != "completed":
+            raise RuntimeError(
+                f"Vector store file attachment did not complete for {file_id}: "
+                f"{getattr(vector_store_file, 'status', 'unknown')}"
+            )
+
+        return vector_store_file
 
 
 def get_vector_backend(config) -> VectorBackend:
@@ -599,6 +709,15 @@ class ChromaVectorBackend:
         ids = result.get("ids") if isinstance(result, dict) else None
         return bool(ids)
 
+    def _delete_document(self, collection, doc_id: str) -> None:
+        try:
+            collection.delete(where={"document_id": doc_id})
+        except Exception:
+            logger.warning(
+                "[upload_files_to_vectorstore] Failed to delete collection rows for document_id=%s",
+                doc_id,
+            )
+
     def resolve_store_id(self, vectorstore_name: str, config) -> str | None:
         config.vector_search.index_name = vectorstore_name
         VectorStoreRegistry.set(self.provider, vectorstore_name, vectorstore_name)
@@ -626,9 +745,13 @@ class ChromaVectorBackend:
         upload_count = 0
         reuse_count = 0
 
-        for entry, file_path in entries_to_process:
-            if entry.vector_doc_id and self._collection_has_document(
-                collection, entry.vector_doc_id
+        for resolved in entries_to_process:
+            entry = resolved.entry
+            file_path = resolved.file_path
+            if (
+                not resolved.force_reindex
+                and entry.vector_doc_id
+                and self._collection_has_document(collection, entry.vector_doc_id)
             ):
                 files_uploaded.append(
                     {"filename": entry.filename, "doc_id": entry.vector_doc_id, "status": "reused"}
@@ -660,6 +783,8 @@ class ChromaVectorBackend:
                 continue
 
             doc_id = entry.vector_doc_id or f"doc_{entry.filename}"
+            if resolved.force_reindex and entry.vector_doc_id:
+                self._delete_document(collection, entry.vector_doc_id)
             ids = [f"{doc_id}:{idx}" for idx in range(len(chunks))]
             metadatas = [
                 {
@@ -711,7 +836,8 @@ class ChromaVectorBackend:
             score_threshold if score_threshold is not None else config.vector_search.score_threshold
         )
         collection = self._collection(config, config.vector_search.index_name)
-        normalized_filenames = normalize_filenames(filenames)
+        db_manager = KnowledgeDBManager(config.data.knowledge_db_path)
+        normalized_filenames = _expand_filename_aliases(filenames, db_manager)
         where = None
         if normalized_filenames and self._collection_has_any_filename(
             collection, normalized_filenames

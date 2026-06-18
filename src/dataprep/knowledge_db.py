@@ -3,7 +3,6 @@
 import json
 import logging
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -147,11 +146,7 @@ class KnowledgeDBManager:
             f.truncate()
             f.write(db.model_dump_json(indent=2))
 
-        # Mettre à jour les index
-        self._url_index[str(entry.url)] = entry
-        self._name_index[entry.filename] = entry
-        if entry.openai_file_id:
-            self._openai_file_id_index[entry.openai_file_id] = entry
+        self._build_indexes()
 
         logger.info(f"Entry added to knowledge base: {entry.filename}")
 
@@ -174,11 +169,7 @@ class KnowledgeDBManager:
             f.truncate()
             f.write(db.model_dump_json(indent=2))
 
-        # Mettre à jour l'entrée dans l'index
-        if filename in self._name_index:
-            self._name_index[filename].openai_file_id = openai_file_id
-            self._name_index[filename].last_uploaded_at = datetime.now()
-            self._openai_file_id_index[openai_file_id] = self._name_index[filename]
+        self._build_indexes()
 
         logger.info(f"Updated OpenAI file id for {filename}: {openai_file_id}")
 
@@ -199,8 +190,7 @@ class KnowledgeDBManager:
             f.truncate()
             f.write(db.model_dump_json(indent=2))
 
-        if filename in self._name_index:
-            self._name_index[filename].vector_doc_id = vector_doc_id
+        self._build_indexes()
 
         logger.info(f"Updated vector doc id for {filename}: {vector_doc_id}")
 
@@ -232,8 +222,14 @@ class KnowledgeDBManager:
                 for entry in db.entries:
                     entries_info.append(
                         {
+                            "kb_id": entry.kb_id,
                             "url": str(entry.url),
                             "filename": entry.filename,
+                            "source_type": entry.source_type,
+                            "source_path": entry.source_path,
+                            "normalized_filename": entry.normalized_filename,
+                            "source_last_modified_ns": entry.source_last_modified_ns,
+                            "source_size_bytes": entry.source_size_bytes,
                             "title": entry.title,
                             "keywords": entry.keywords,
                             "summary": entry.summary,

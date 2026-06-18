@@ -324,8 +324,11 @@ async def vector_search(
     wrapper: RunContextWrapper[ResearchInfo],
     query: str,
     domain_hint: str | None = None,
-    filenames: list[str] | None = None,
+    filenames: list[str] | str | None = None,
 ) -> dict:
+    if isinstance(filenames, str):
+        trimmed = filenames.strip()
+        filenames = [trimmed] if trimmed else None
     return await vector_search_impl(
         wrapper=wrapper,
         query=query,

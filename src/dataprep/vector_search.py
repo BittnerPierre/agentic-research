@@ -56,6 +56,7 @@ class LocalVectorSearchBackend:
         new_ids: list[str] = []
 
         for doc in documents:
+            index = [record for record in index if record.get("document_id") != doc.document_id]
             index.append(
                 {
                     "document_id": doc.document_id,

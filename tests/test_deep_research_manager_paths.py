@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -69,6 +70,57 @@ def test_normalize_search_result_path_handles_long_filenames(tmp_path: Path):
 
 
 @pytest.mark.asyncio
+async def test_file_search_returns_normalized_path_for_plain_string_output(
+    monkeypatch, tmp_path: Path
+):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+
+    summary_file = tmp_path / "mips_vs_rewoo.txt"
+    summary_file.write_text("summary", encoding="utf-8")
+
+    class _FakeResult:
+        def __init__(self, output):
+            self.final_output = output
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        return _FakeResult("mips_vs_rewoo.txt")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result_path = await manager._file_search(
+        FileSearchItem(query="mips rewoo", reason="comparison")
+    )
+
+    assert result_path == str(summary_file.resolve())
+    assert manager.agent_calls["failures"] == 0
+
+
+@pytest.mark.asyncio
+async def test_file_search_returns_none_for_empty_output(monkeypatch, tmp_path: Path):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+
+    class _FakeResult:
+        def __init__(self, output):
+            self.final_output = output
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        return _FakeResult("   ")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result_path = await manager._file_search(FileSearchItem(query="foo", reason="bar"))
+
+    assert result_path is None
+    assert manager.agent_calls["failures"] == 1
+
+
+@pytest.mark.asyncio
 async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_path: Path):
     manager = _build_manager(tmp_path)
     manager.file_planner_agent = object()
@@ -101,3 +153,44 @@ async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_
     assert len(plan.searches) == 1
     assert calls["count"] == 2
     assert manager.agent_calls["file_planner_agent"] == 2
+
+
+@pytest.mark.asyncio
+async def test_run_fails_fast_before_writer_when_search_returns_no_usable_results(
+    monkeypatch, tmp_path: Path
+):
+    manager = _build_manager(tmp_path)
+    manager.research_info.vector_store_name = "vs"
+    manager.research_info.vector_store_id = "vs_123"
+
+    monkeypatch.setattr("src.deep_research_manager.create_knowledge_preparation_agent", lambda *_args: object())
+    monkeypatch.setattr("src.deep_research_manager.create_file_planner_agent", lambda *_args: object())
+    monkeypatch.setattr("src.deep_research_manager.create_file_search_agent", lambda *_args: object())
+    monkeypatch.setattr("src.deep_research_manager.create_writer_agent", lambda *_args, **_kwargs: object())
+
+    async def _prepare_knowledge(_query):
+        return "agenda"
+
+    async def _plan_file_searches(_agenda):
+        return FileSearchPlan(
+            searches=[FileSearchItem(query="q1", reason="r1", filenames=["2025.02v3.pdf"])]
+        )
+
+    async def _perform_file_searches(_plan):
+        return []
+
+    async def _write_report(_query, _search_results):
+        raise AssertionError("writer should not run when retrieval returns no usable results")
+
+    monkeypatch.setattr(manager, "_prepare_knowledge", _prepare_knowledge)
+    monkeypatch.setattr(manager, "_plan_file_searches", _plan_file_searches)
+    monkeypatch.setattr(manager, "_perform_file_searches", _perform_file_searches)
+    monkeypatch.setattr(manager, "_write_report", _write_report)
+
+    with pytest.raises(RuntimeError, match="No usable search results"):
+        await manager.run(
+            fs_server=SimpleNamespace(),
+            dataprep_server=SimpleNamespace(),
+            query="Analyse kb://2025.02v3.pdf",
+            research_info=manager.research_info,
+        )

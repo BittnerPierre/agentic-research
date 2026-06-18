@@ -118,9 +118,9 @@ def test_resolve_inputs_supports_openai_file_id(tmp_path):
     )
 
     assert len(resolved) == 1
-    resolved_entry, resolved_path = resolved[0]
-    assert resolved_entry.filename == "doc.md"
-    assert resolved_path == local_dir / "doc.md"
+    assert resolved[0].entry.filename == "doc.md"
+    assert resolved[0].file_path == local_dir / "doc.md"
+    assert resolved[0].force_reindex is False
 
 
 def test_resolve_inputs_rejects_unknown_file_id(tmp_path):
