@@ -67,6 +67,29 @@ class SourceDocument(BaseModel):
     "Citations `[document_id:chunk_index]` extraites du contenu (peut être vide)."
 
 
+class Chapter(BaseModel):
+    """One planned chapter of the report (issue #196, writer décomposé)."""
+
+    title: str
+    "Titre du chapitre."
+
+    objective: str
+    "Objectif du chapitre en 1-2 phrases (ce qu'il doit couvrir)."
+
+    source_ids: list[str] = []
+    "Sources prioritaires (ids `[S#]`) — une INDICATION pour le rédacteur, pas un filtre."
+
+
+class ReportOutline(BaseModel):
+    """Structured report plan produced by the outline step (D1)."""
+
+    title: str
+    "Titre du rapport."
+
+    chapters: list[Chapter]
+    "Chapitres ordonnés à rédiger."
+
+
 class FileFinalReport(BaseModel):
     absolute_file_path: str
     "Le chemin absolu du fichier contenant le rapport final."

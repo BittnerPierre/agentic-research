@@ -25,6 +25,7 @@ from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
 from .gates import check_search_results_gate
 from .printer import Printer
+from .report_writer.pipeline import write_report_decomposed
 
 
 class DeepResearchManager:
@@ -156,7 +157,7 @@ class DeepResearchManager:
 
             # Phase 4: Writing
             write_start = time.time()
-            report = await self._write_report(query, search_results)
+            report = await self._write_report(query, search_results, agenda)
             self.timings["writing"] = time.time() - write_start
 
             final_report = f"Report summary\n\n{report.short_summary}"
@@ -350,7 +351,32 @@ class DeepResearchManager:
         base_max = max_len - txt_ext_len
         return cleaned[:base_max]
 
-    async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
+    async def _write_report(
+        self, query: str, search_results: list[str], agenda: str
+    ) -> ReportData:
+        if self._config.agents.writer_strategy == "decomposed":
+            return await self._write_report_decomposed(query, search_results, agenda)
+        return await self._write_report_monolithic(query, search_results)
+
+    async def _write_report_decomposed(
+        self, query: str, search_results: list[str], agenda: str
+    ) -> ReportData:
+        self.printer.update_item("writing", "Writing report (decomposed)...")
+        report = await write_report_decomposed(
+            query,
+            agenda,
+            search_results,
+            self.research_info,
+            usage_sink=self._record_usage,
+        )
+        self.printer.mark_item_done("writing")
+        self.agent_calls["writer_agent"] += 1
+        self.agent_calls["total"] += 1
+        return report
+
+    async def _write_report_monolithic(
+        self, query: str, search_results: list[str]
+    ) -> ReportData:
         self.printer.update_item("writing", "Thinking about report...")
         # Affichage plus lisible des fichiers de résultats de recherche
         formatted_results = (
