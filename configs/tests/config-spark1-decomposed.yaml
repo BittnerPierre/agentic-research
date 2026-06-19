@@ -11,18 +11,17 @@ vector_store:
   description: "Vector store for spark1 spike"
   expires_after_days: 30
 
-# ⚠️ À CONFIRMER : ces hôtes (chroma + embeddings) viennent de la stack
-# gx10-957b. Ajuste-les si chroma/embeddings tournent ailleurs pour spark1.
+# Chroma + DataPrep tournent en local ; l'embedding (llama.cpp) tourne sur spark1:8003.
 vector_search:
   provider: "chroma"
   index_name: "agentic-research-dgx"
   chunk_size: 800
   chunk_overlap: 120
-  chroma_host: "gx10-957b"
+  chroma_host: "localhost"
   chroma_port: 8000
   chroma_ssl: false
   chroma_embedding_provider: "openai"
-  chroma_embedding_api_base: "http://gx10-957b:8003/v1"
+  chroma_embedding_api_base: "http://spark1:8003/v1"
   chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
   chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
   top_k: 5
@@ -42,9 +41,9 @@ logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-# ⚠️ À CONFIRMER : hôte du serveur DataPrep MCP.
+# DataPrep MCP en local.
 mcp:
-  server_host: "gx10-957b"
+  server_host: "localhost"
   server_port: 8001
   client_timeout_seconds: 60.0
   http_timeout_seconds: 5.0
