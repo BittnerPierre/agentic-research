@@ -5,6 +5,7 @@ from src.report_writer.assemble import (
     assemble_report,
     build_sources_section,
     cited_source_ids,
+    grounding_metrics,
 )
 from src.report_writer.outline import fallback_outline
 
@@ -67,6 +68,34 @@ def test_assemble_report_skips_empty_chapter_bodies():
 
     assert "## Empty" not in report
     assert "## Full" in report
+
+
+def test_assemble_report_strips_chapter_body_that_repeats_its_title():
+    outline = ReportOutline(title="T", chapters=[Chapter(title="HNSW et FAISS", objective="o")])
+    # The model re-emitted its own heading despite the prompt; assembler adds one too.
+    body = "## HNSW et FAISS\n\nHNSW est un graphe navigable [S1]."
+    report = assemble_report(outline, [(outline.chapters[0], body)], [_src("S1", "ann", "ann.txt")])
+
+    # Exactly one occurrence of the heading, not two in a row.
+    assert report.count("## HNSW et FAISS") == 1
+    assert "HNSW est un graphe navigable [S1]." in report
+
+
+def test_grounding_metrics_counts_citations_against_sources():
+    sources = [_src("S1", "a", "a.txt"), _src("S2", "b", "b.txt"), _src("S3", "c", "c.txt")]
+    chapters = [
+        (Chapter(title="C1", objective="o"), "Cite [S1] et [S2]."),
+        (Chapter(title="C2", objective="o"), "Pas de citation ici."),
+        (Chapter(title="C3", objective="o"), "   "),  # empty -> ignored
+    ]
+    m = grounding_metrics(chapters, sources)
+
+    assert m["n_sources"] == 3
+    assert m["n_cited_sources"] == 2  # S1, S2 (S3 never cited)
+    assert m["source_coverage"] == 2 / 3
+    assert m["n_chapters"] == 2  # empty chapter excluded
+    assert m["chapters_with_citation"] == 1
+    assert m["chapter_citation_rate"] == 1 / 2
 
 
 def test_fallback_outline_single_chapter_with_all_sources():

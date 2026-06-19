@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
@@ -70,8 +71,10 @@ async def _write_one_chapter(
     max_revisions: int,
     require_citation: bool,
     usage_sink=None,
-) -> str:
+) -> tuple[str, float]:
+    """Return the chapter body and its wall-clock duration (for concurrency stats)."""
     base = _chapter_prompt(report_title, chapter, corpus)
+    start = time.perf_counter()
     text = ""
     for attempt in range(max_revisions + 1):
         prompt = base
@@ -83,8 +86,8 @@ async def _write_one_chapter(
         text = str(result.final_output or "").strip()
         ok = bool(text) and (not require_citation or _CITATION_RE.search(text) is not None)
         if ok:
-            return text
-    return text  # best effort after exhausting the revision budget
+            break
+    return text, time.perf_counter() - start
 
 
 async def write_chapters(
@@ -93,8 +96,14 @@ async def write_chapters(
     research_info: ResearchInfo,
     require_citation: bool,
     usage_sink=None,
-) -> list[tuple[Chapter, str]]:
-    """Draft every chapter concurrently; return (chapter, body) pairs in order."""
+) -> tuple[list[tuple[Chapter, str]], list[float]]:
+    """Draft every chapter concurrently.
+
+    Returns the (chapter, body) pairs in order plus each chapter's wall-clock
+    duration. Comparing sum(durations) to the gather wall-clock reveals whether
+    the backend actually serves the chapters in parallel (vLLM batching) or
+    serializes them (llama.cpp model switching).
+    """
     config = get_config()
     max_revisions = config.agents.chapter_max_revisions
     agent = create_chapter_writer_agent()
@@ -112,5 +121,7 @@ async def write_chapters(
         )
         for chapter in outline.chapters
     ]
-    bodies = await asyncio.gather(*tasks)
-    return list(zip(outline.chapters, bodies, strict=True))
+    results = await asyncio.gather(*tasks)
+    bodies = [text for text, _ in results]
+    durations = [duration for _, duration in results]
+    return list(zip(outline.chapters, bodies, strict=True)), durations

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import time
@@ -25,6 +26,7 @@ from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
 from .gates import check_search_results_gate
 from .printer import Printer
+from .report_writer.aggregate import aggregate_sources
 from .report_writer.pipeline import write_report_decomposed
 
 
@@ -34,6 +36,7 @@ class DeepResearchManager:
         self.printer = Printer(self.console)
         self._config = get_config()
         self.timings = {}  # Store timing information for benchmarking
+        self.writer_metrics: dict = {}  # Per-step writer stats (decomposed strategy)
         self.agent_calls = {  # Track agent calls for benchmarking
             "knowledge_preparation_agent": 0,
             "file_planner_agent": 0,
@@ -178,6 +181,7 @@ class DeepResearchManager:
             report.follow_up_questions,
         )
         print(f"Report saved: {_new_report.file_name}")
+        self._persist_benchmark_stats(query, _new_report, search_results)
         print("\n\n=====REPORT=====\n\n")
         print(f"Report: {report.markdown_report}")
         print("\n\n=====FOLLOW UP QUESTIONS=====\n\n")
@@ -351,9 +355,7 @@ class DeepResearchManager:
         base_max = max_len - txt_ext_len
         return cleaned[:base_max]
 
-    async def _write_report(
-        self, query: str, search_results: list[str], agenda: str
-    ) -> ReportData:
+    async def _write_report(self, query: str, search_results: list[str], agenda: str) -> ReportData:
         if self._config.agents.writer_strategy == "decomposed":
             return await self._write_report_decomposed(query, search_results, agenda)
         return await self._write_report_monolithic(query, search_results)
@@ -362,21 +364,21 @@ class DeepResearchManager:
         self, query: str, search_results: list[str], agenda: str
     ) -> ReportData:
         self.printer.update_item("writing", "Writing report (decomposed)...")
+        self.writer_metrics = {}
         report = await write_report_decomposed(
             query,
             agenda,
             search_results,
             self.research_info,
             usage_sink=self._record_usage,
+            metrics=self.writer_metrics,
         )
         self.printer.mark_item_done("writing")
         self.agent_calls["writer_agent"] += 1
         self.agent_calls["total"] += 1
         return report
 
-    async def _write_report_monolithic(
-        self, query: str, search_results: list[str]
-    ) -> ReportData:
+    async def _write_report_monolithic(self, query: str, search_results: list[str]) -> ReportData:
         self.printer.update_item("writing", "Thinking about report...")
         # Affichage plus lisible des fichiers de résultats de recherche
         formatted_results = (
@@ -419,6 +421,78 @@ class DeepResearchManager:
         self._record_usage(result, phase="writing")
         output = result.final_output
         return coerce_report_data(output, query)
+
+    def _model_summary(self) -> dict:
+        models = self._config.models
+
+        def describe(spec) -> str | None:
+            if spec is None:
+                return None
+            if isinstance(spec, str):
+                return spec
+            base_url = getattr(spec, "base_url", None)
+            name = getattr(spec, "name", str(spec))
+            return f"{name}@{base_url}" if base_url else name
+
+        roles = [
+            "research",
+            "planning",
+            "search",
+            "writer",
+            "knowledge_preparation",
+            "outline",
+            "chapter_writer",
+        ]
+        return {role: describe(getattr(models, f"{role}_model", None)) for role in roles}
+
+    def _persist_benchmark_stats(self, query: str, report: ReportData, search_results) -> None:
+        """Write a format-agnostic stats sidecar for cross-run comparison.
+
+        Always emits ``sources.json`` (the aggregated *retrieved* corpus) so the
+        grounding eval judges against what search actually returned — not the
+        report — which is the whole point of moving aggregation out of the writer.
+        """
+        try:
+            cfg = self._config
+            strategy = cfg.agents.writer_strategy
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            run_dir = Path("benchmarks") / "runs" / f"{timestamp}_{cfg.config_name}_{strategy}"
+            run_dir.mkdir(parents=True, exist_ok=True)
+
+            sources = aggregate_sources(search_results)
+            (run_dir / "sources.json").write_text(
+                json.dumps([s.model_dump() for s in sources], ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+            writing_usage = self.usage_by_phase.get("writing", {})
+            writing_out = writing_usage.get("output_tokens") or 0
+            writing_time = self.timings.get("writing") or 0
+            stats = {
+                "config_name": cfg.config_name,
+                "writer_strategy": strategy,
+                "manager": "deep_manager",
+                "query": query[:500],
+                "report_file": report.file_name,
+                "success": True,
+                "models": self._model_summary(),
+                "timings": self.timings,
+                "usage_by_phase": self.usage_by_phase,
+                "agent_calls": self.agent_calls,
+                "n_sources": len(sources),
+                "derived": {
+                    "writing_throughput_tok_s": (
+                        writing_out / writing_time if writing_time else None
+                    ),
+                },
+                "writer_metrics": self.writer_metrics,
+            }
+            (run_dir / "stats.json").write_text(
+                json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"Benchmark stats saved: {run_dir / 'stats.json'}")
+        except Exception as exc:  # never let stats persistence break a run
+            print(f"Warning: could not persist benchmark stats: {exc}")
 
     def _record_usage(self, result, phase: str | None = None) -> None:
         usage = getattr(getattr(result, "context_wrapper", None), "usage", None)
