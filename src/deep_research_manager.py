@@ -472,7 +472,7 @@ class DeepResearchManager:
                 "config_name": cfg.config_name,
                 "writer_strategy": strategy,
                 "manager": "deep_manager",
-                "query": query[:500],
+                "query": query,  # full query/syllabus — spec-compliance grading needs it
                 "report_file": report.file_name,
                 "success": True,
                 "models": self._model_summary(),

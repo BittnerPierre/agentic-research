@@ -44,6 +44,22 @@ def test_build_table_handles_missing_fields_gracefully():
     assert "decomposed" in table
 
 
+def test_build_table_renders_quality_columns_from_grade():
+    stats = _stats("decomposed", 90.0, 25.0, 2.4, 0.8)
+    stats["grade"] = {
+        "rag_triad": {"average": 0.83},
+        "quality": {"quality_100": 88.0},
+        "spec": {"score_100": 76.0},
+        "overall_quality_100": 84.0,
+    }
+    row = build_table([stats]).splitlines()[2]
+    assert "| config | strategy |" not in row
+    assert "0.83" in row  # grounded (rag avg)
+    assert "88" in row  # quality
+    assert "76" in row  # spec
+    assert "84" in row  # q_overall
+
+
 def test_find_stats_files_scans_directories(tmp_path):
     run_a = tmp_path / "runs" / "a"
     run_a.mkdir(parents=True)

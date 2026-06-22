@@ -69,7 +69,19 @@ COLUMNS = [
             ((s.get("writer_metrics") or {}).get("grounding") or {}).get("source_coverage"), ".0%"
         ),
     ),
-    ("grounded", lambda s: _fmt((s.get("grounding_eval") or {}).get("average"), ".2f")),
+    # Quality axes from grade.json (written by spike-grade). Kept separate from
+    # speed/efficiency on purpose: quality is judged on its own, never blended
+    # with latency.
+    (
+        "grounded",
+        lambda s: _fmt(((s.get("grade") or {}).get("rag_triad") or {}).get("average"), ".2f"),
+    ),
+    (
+        "quality",
+        lambda s: _fmt(((s.get("grade") or {}).get("quality") or {}).get("quality_100"), ".0f"),
+    ),
+    ("spec", lambda s: _fmt(((s.get("grade") or {}).get("spec") or {}).get("score_100"), ".0f")),
+    ("q_overall", lambda s: _fmt((s.get("grade") or {}).get("overall_quality_100"), ".0f")),
 ]
 
 
@@ -111,10 +123,10 @@ def main() -> None:
     stats_list = []
     for f in files:
         stats = json.loads(f.read_text(encoding="utf-8"))
-        # Merge the grounding scores written by spike-grade, if present.
-        grounding = f.parent / "grounding.json"
-        if grounding.is_file():
-            stats["grounding_eval"] = json.loads(grounding.read_text(encoding="utf-8"))
+        # Merge the quality grades written by spike-grade, if present.
+        grade = f.parent / "grade.json"
+        if grade.is_file():
+            stats["grade"] = json.loads(grade.read_text(encoding="utf-8"))
         stats_list.append(stats)
     print(f"Comparing {len(stats_list)} run(s):\n")
     print(build_table(stats_list))
