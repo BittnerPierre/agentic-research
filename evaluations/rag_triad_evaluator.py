@@ -121,13 +121,16 @@ Answer Relevance measures whether the report actually answers the research query
 async def evaluate_groundedness(
     report_markdown: str,
     raw_notes: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGScore:
     """
-    Evaluate groundedness: Is the report grounded in the Raw Notes?
+    Evaluate groundedness: Is the report grounded in the retrieved context?
 
     Args:
         report_markdown: The generated report
-        raw_notes: The raw notes from sources
+        raw_notes: The retrieved context (pass the aggregated sources corpus, not
+            the report's own RAW section — otherwise the eval can be fooled)
+        judge_model: Model id for the LLM judge (neutral/constant across runs)
 
     Returns:
         RAGScore with score (0-1) and reasoning
@@ -135,7 +138,7 @@ async def evaluate_groundedness(
     judge_agent = Agent(
         name="groundedness_judge",
         instructions=GROUNDEDNESS_PROMPT,
-        model="openai/gpt-4.1-mini",
+        model=judge_model,
         output_type=RAGScore,
     )
 
@@ -153,13 +156,15 @@ async def evaluate_groundedness(
 async def evaluate_context_relevance(
     raw_notes: str,
     query: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGScore:
     """
     Evaluate context relevance: Are the retrieved sources relevant?
 
     Args:
-        raw_notes: The raw notes from retrieved sources
+        raw_notes: The retrieved context (aggregated sources corpus)
         query: The original research query
+        judge_model: Model id for the LLM judge
 
     Returns:
         RAGScore with score (0-1) and reasoning
@@ -167,7 +172,7 @@ async def evaluate_context_relevance(
     judge_agent = Agent(
         name="context_relevance_judge",
         instructions=CONTEXT_RELEVANCE_PROMPT,
-        model="openai/gpt-4.1-mini",
+        model=judge_model,
         output_type=RAGScore,
     )
 
@@ -185,6 +190,7 @@ async def evaluate_context_relevance(
 async def evaluate_answer_relevance(
     report_markdown: str,
     query: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGScore:
     """
     Evaluate answer relevance: Does the report answer the query?
@@ -192,6 +198,7 @@ async def evaluate_answer_relevance(
     Args:
         report_markdown: The generated report
         query: The original research query
+        judge_model: Model id for the LLM judge
 
     Returns:
         RAGScore with score (0-1) and reasoning
@@ -199,7 +206,7 @@ async def evaluate_answer_relevance(
     judge_agent = Agent(
         name="answer_relevance_judge",
         instructions=ANSWER_RELEVANCE_PROMPT,
-        model="openai/gpt-4.1-mini",
+        model=judge_model,
         output_type=RAGScore,
     )
 
@@ -218,22 +225,24 @@ async def evaluate_rag_triad(
     report_markdown: str,
     raw_notes: str,
     query: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGTriadResult:
     """
     Evaluate all three RAG Triad dimensions.
 
     Args:
         report_markdown: The generated report
-        raw_notes: The raw notes from sources
+        raw_notes: The retrieved context (pass the aggregated sources corpus)
         query: The original research query
+        judge_model: Model id for the LLM judge
 
     Returns:
         RAGTriadResult with scores for all 3 dimensions
     """
     # Evaluate all 3 dimensions
-    groundedness = await evaluate_groundedness(report_markdown, raw_notes)
-    context_relevance = await evaluate_context_relevance(raw_notes, query)
-    answer_relevance = await evaluate_answer_relevance(report_markdown, query)
+    groundedness = await evaluate_groundedness(report_markdown, raw_notes, judge_model)
+    context_relevance = await evaluate_context_relevance(raw_notes, query, judge_model)
+    answer_relevance = await evaluate_answer_relevance(report_markdown, query, judge_model)
 
     # Calculate average
     average = (groundedness.score + context_relevance.score + answer_relevance.score) / 3.0

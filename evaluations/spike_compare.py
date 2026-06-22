@@ -69,6 +69,7 @@ COLUMNS = [
             ((s.get("writer_metrics") or {}).get("grounding") or {}).get("source_coverage"), ".0%"
         ),
     ),
+    ("grounded", lambda s: _fmt((s.get("grounding_eval") or {}).get("average"), ".2f")),
 ]
 
 
@@ -107,7 +108,14 @@ def main() -> None:
         print("No stats.json found. Run agentic-research first (it writes benchmarks/runs/...).")
         return
 
-    stats_list = [json.loads(f.read_text(encoding="utf-8")) for f in files]
+    stats_list = []
+    for f in files:
+        stats = json.loads(f.read_text(encoding="utf-8"))
+        # Merge the grounding scores written by spike-grade, if present.
+        grounding = f.parent / "grounding.json"
+        if grounding.is_file():
+            stats["grounding_eval"] = json.loads(grounding.read_text(encoding="utf-8"))
+        stats_list.append(stats)
     print(f"Comparing {len(stats_list)} run(s):\n")
     print(build_table(stats_list))
 
