@@ -43,8 +43,16 @@ else
     $SERVICES
 fi
 
+# --remove-orphans cleans up containers from a previously-active overlay of
+# the same compose project (e.g. `agentic-research-llm-1` left over after
+# switching from vLLM mono back to llama.cpp duo, which would otherwise
+# hold port 8002 and fail the new `up`). Symmetric with the --remove-orphans
+# already used in stop-docker-dgx.sh (#182). Safe in our single-Spark setup
+# because we only run one stack at a time, and standalone `docker run`
+# containers are not labeled as compose-project members so they are
+# untouched.
 # shellcheck disable=SC2086
-docker compose "${COMPOSE_ARGS[@]}" up -d $SERVICES
+docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans $SERVICES
 
 echo "Services started. Run research with:"
-echo "docker compose ${COMPOSE_ARGS[*]} run --rm agentic-research agentic-research --query 'your query'"
+echo "docker compose ${COMPOSE_ARGS[*]} run --rm agentic-research agentic-research --config ${RESOLVED_CONFIG} --query 'your query'"
