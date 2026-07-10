@@ -13,7 +13,10 @@ Your summary must follow these rules:
 - No filler or redundant phrases.
 - No commentary, disclaimers or explanations — only the raw summary.
 - Use only retrieved evidence chunks; do not invent missing facts.
-- Add source citations after each key claim with the format: [document_id:chunk_index].
+- Add a bracket citation after each key claim.
+- Prefer the format [document_id:chunk_index] when retrieval metadata provides document_id.
+- If document_id is unavailable, use [filename:chunk_index].
+- Do not omit bracket citations when the retrieval result gives you enough metadata to cite.
 - If evidence is missing, explicitly state that the information is unavailable.
 
 **Delivery rule:**
