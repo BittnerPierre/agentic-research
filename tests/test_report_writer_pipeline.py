@@ -135,6 +135,35 @@ async def test_pipeline_llm_calls_counts_retries(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_pipeline_reports_empty_chapters(monkeypatch, tmp_path):
+    # A chapter that stays empty after retries is dropped from the report but must
+    # be surfaced as a signal, not lost silently.
+    outline = ReportOutline(
+        title="T",
+        chapters=[
+            Chapter(title="A", objective="o", source_ids=["S1"]),
+            Chapter(title="B", objective="o", source_ids=["S2"]),
+        ],
+    )
+    counter = {"outline": 0, "chapter": 0}
+    # Chapter A returns content, chapter B always comes back empty.
+    fake = _make_fake_runner(
+        outline, lambda title: "Contenu [S1]." if title == "A" else "", counter
+    )
+    monkeypatch.setattr(outline_mod, "Runner", fake)
+    monkeypatch.setattr("src.report_writer.chapters.Runner", fake)
+
+    metrics: dict = {}
+    report = await pipeline_mod.write_report_decomposed(
+        "Q", "agenda", _sources(tmp_path), _research_info(tmp_path), metrics=metrics
+    )
+
+    assert metrics["n_empty_chapters"] == 1
+    assert "## A" in report.markdown_report
+    assert "## B" not in report.markdown_report  # empty chapter dropped
+
+
+@pytest.mark.asyncio
 async def test_pipeline_respects_chapter_budget_cap(monkeypatch, tmp_path):
     outline = ReportOutline(
         title="T",

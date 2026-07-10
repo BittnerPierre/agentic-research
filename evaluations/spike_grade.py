@@ -35,6 +35,8 @@ import os
 from pathlib import Path
 
 from agents import Agent, Runner
+from src.agents.schemas import SourceDocument
+from src.report_writer.aggregate import render_corpus
 
 from .rag_triad_evaluator import evaluate_rag_triad
 from .schemas import EvaluationResult
@@ -98,21 +100,28 @@ def find_run_dirs(paths: list[str]) -> list[Path]:
 
 
 def corpus_from_sources(sources: list[dict]) -> str:
-    """Rebuild the labelled [S#] corpus from a sources.json payload."""
-    blocks = [
-        f"### [{s.get('source_id')}] {s.get('topic')}\n"
-        f"(source: {s.get('file_name')})\n\n{s.get('content', '')}"
-        for s in sources
-    ]
-    return "\n\n".join(blocks)
+    """Rebuild the labelled [S#] corpus from a sources.json payload.
+
+    Reuses the writer-side render_corpus so the judge sees byte-for-byte the same
+    corpus the chapter writers saw — no drift if that format is ever tweaked.
+    """
+    docs = [SourceDocument(**s) for s in sources]
+    return render_corpus(docs)
 
 
 def _locate_report(stats: dict, output_dir: str) -> Path | None:
     name = stats.get("report_file")
     if not name:
         return None
-    candidate = Path(output_dir) / name
-    return candidate if candidate.is_file() else None
+    # Prefer the output dir the run actually used (recorded in stats), so a run
+    # made with a custom --output-dir stays gradable; fall back to the CLI value.
+    for base in (stats.get("output_dir"), output_dir):
+        if not base:
+            continue
+        candidate = Path(base) / name
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 async def evaluate_quality(

@@ -478,6 +478,9 @@ class DeepResearchManager:
                 "manager": "deep_manager",
                 "query": query,  # full query/syllabus — spec-compliance grading needs it
                 "report_file": report.file_name,
+                # Record where the report was written so spike-grade can locate it
+                # even under a custom --output-dir (stats stores only the basename).
+                "output_dir": cfg.agents.output_dir,
                 "success": True,
                 "models": self._model_summary(),
                 "timings": self.timings,

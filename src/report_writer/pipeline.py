@@ -12,6 +12,7 @@ reliable, and the report carries [S#] source traceability.
 
 from __future__ import annotations
 
+import logging
 import time
 
 from ..agents.schemas import ReportData, ResearchInfo
@@ -21,6 +22,8 @@ from .aggregate import aggregate_sources, render_corpus
 from .assemble import assemble_report, grounding_metrics
 from .chapters import write_chapters
 from .outline import build_outline
+
+logger = logging.getLogger(__name__)
 
 
 async def write_report_decomposed(
@@ -71,6 +74,16 @@ async def write_report_decomposed(
     # D3 — deterministic assembly + Sources section.
     markdown = assemble_report(outline, chapters, sources)
 
+    # A chapter that came back empty even after retries is dropped by assembly:
+    # surface it as a signal instead of silently losing a planned section.
+    n_empty_chapters = sum(1 for _, body in chapters if not (body or "").strip())
+    if n_empty_chapters:
+        logger.warning(
+            "Decomposed writer: %d/%d planned chapter(s) came back empty and were dropped.",
+            n_empty_chapters,
+            len(chapters),
+        )
+
     # Honest LLM-call count for the benchmark: 1 outline call + chapter attempts
     # (initial + guardrail retries). The monolithic path is a single call, so
     # this keeps agent_calls comparable across strategies.
@@ -83,6 +96,7 @@ async def write_report_decomposed(
                 "outline_title": outline.title,
                 "outline_seconds": outline_seconds,
                 "n_chapters": len(outline.chapters),
+                "n_empty_chapters": n_empty_chapters,
                 "chapter_seconds": chapter_durations,
                 "chapters_wall_seconds": chapters_wall,
                 # >1 => chapters genuinely overlapped (vLLM batching);

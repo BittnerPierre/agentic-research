@@ -22,14 +22,10 @@ def _find_stats_files(paths: list[str]) -> list[Path]:
     files: list[Path] = []
     for raw in targets:
         p = Path(raw)
-        if p.is_dir():
+        if p.is_dir():  # a run dir or a parent of run dirs
             files.extend(sorted(p.rglob("stats.json")))
         elif p.name == "stats.json" and p.is_file():
             files.append(p)
-        elif p.is_file():  # a run directory passed as a file-ish path
-            candidate = p / "stats.json"
-            if candidate.is_file():
-                files.append(candidate)
     return files
 
 
