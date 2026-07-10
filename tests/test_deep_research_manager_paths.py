@@ -144,9 +144,7 @@ async def test_file_search_returns_none_for_empty_output(monkeypatch, tmp_path: 
 
 
 @pytest.mark.asyncio
-async def test_file_search_retries_once_on_exception_then_succeeds(
-    monkeypatch, tmp_path: Path
-):
+async def test_file_search_retries_once_on_exception_then_succeeds(monkeypatch, tmp_path: Path):
     manager = _build_manager(tmp_path)
     manager.file_search_agent = object()
     summary_file = tmp_path / "mips.txt"
@@ -196,7 +194,9 @@ async def test_file_search_retries_when_first_result_has_no_chunk_citation(
             summary_file.write_text("ReWOO plans without citations.", encoding="utf-8")
             assert "IMPORTANT RETRY INSTRUCTION" not in input_text
         else:
-            summary_file.write_text("ReWOO plans without observation [rewoo.txt:0].", encoding="utf-8")
+            summary_file.write_text(
+                "ReWOO plans without observation [rewoo.txt:0].", encoding="utf-8"
+            )
             assert "IMPORTANT RETRY INSTRUCTION" in input_text
         return _FakeResult()
 
