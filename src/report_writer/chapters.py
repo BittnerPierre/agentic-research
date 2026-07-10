@@ -71,23 +71,29 @@ async def _write_one_chapter(
     max_revisions: int,
     require_citation: bool,
     usage_sink=None,
-) -> tuple[str, float]:
-    """Return the chapter body and its wall-clock duration (for concurrency stats)."""
+) -> tuple[str, float, int]:
+    """Return the chapter body, its wall-clock duration, and the number of LLM calls.
+
+    The call count (initial attempt + guardrail retries) lets the manager report
+    an honest agent-call total for the decomposed writer.
+    """
     base = _chapter_prompt(report_title, chapter, corpus)
     start = time.perf_counter()
     text = ""
+    calls = 0
     for attempt in range(max_revisions + 1):
         prompt = base
         if attempt > 0:
             prompt += "\n\nRAPPEL : ton texte ne doit pas être vide et doit citer au moins une source au format [S#]."
         result = await Runner.run(agent, prompt, context=research_info)
+        calls += 1
         if usage_sink is not None:
             usage_sink(result, "writing")
         text = str(result.final_output or "").strip()
         ok = bool(text) and (not require_citation or _CITATION_RE.search(text) is not None)
         if ok:
             break
-    return text, time.perf_counter() - start
+    return text, time.perf_counter() - start, calls
 
 
 async def write_chapters(
@@ -96,13 +102,14 @@ async def write_chapters(
     research_info: ResearchInfo,
     require_citation: bool,
     usage_sink=None,
-) -> tuple[list[tuple[Chapter, str]], list[float]]:
+) -> tuple[list[tuple[Chapter, str]], list[float], int]:
     """Draft every chapter concurrently.
 
-    Returns the (chapter, body) pairs in order plus each chapter's wall-clock
-    duration. Comparing sum(durations) to the gather wall-clock reveals whether
-    the backend actually serves the chapters in parallel (vLLM batching) or
-    serializes them (llama.cpp model switching).
+    Returns the (chapter, body) pairs in order, each chapter's wall-clock
+    duration, and the total number of LLM calls (attempts + retries). Comparing
+    sum(durations) to the gather wall-clock reveals whether the backend actually
+    serves the chapters in parallel (vLLM batching) or serializes them
+    (llama.cpp model switching).
     """
     config = get_config()
     max_revisions = config.agents.chapter_max_revisions
@@ -122,6 +129,7 @@ async def write_chapters(
         for chapter in outline.chapters
     ]
     results = await asyncio.gather(*tasks)
-    bodies = [text for text, _ in results]
-    durations = [duration for _, duration in results]
-    return list(zip(outline.chapters, bodies, strict=True)), durations
+    bodies = [text for text, _, _ in results]
+    durations = [duration for _, duration, _ in results]
+    total_calls = sum(calls for _, _, calls in results)
+    return list(zip(outline.chapters, bodies, strict=True)), durations, total_calls

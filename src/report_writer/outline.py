@@ -59,6 +59,8 @@ def fallback_outline(query: str, sources: list[SourceDocument]) -> ReportOutline
                 source_ids=[s.source_id for s in sources],
             )
         ],
+        short_summary=f"Synthèse des sources disponibles au sujet de : {title}.",
+        follow_up_questions=[],
     )
 
 

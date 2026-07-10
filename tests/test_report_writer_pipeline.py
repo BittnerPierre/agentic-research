@@ -89,6 +89,52 @@ async def test_pipeline_happy_path_assembles_chapters_and_sources(monkeypatch, t
 
 
 @pytest.mark.asyncio
+async def test_pipeline_propagates_outline_summary_and_followups(monkeypatch, tmp_path):
+    # The decomposed path must fill the same ReportData contract as monolithic:
+    # short_summary and follow_up_questions come from the outline, not scraping.
+    outline = ReportOutline(
+        title="T",
+        chapters=[Chapter(title="A", objective="o", source_ids=["S1"])],
+        short_summary="Résumé exécutif produit par l'outline.",
+        follow_up_questions=["Q1 ?", "Q2 ?"],
+    )
+    counter = {"outline": 0, "chapter": 0}
+    fake = _make_fake_runner(outline, lambda title: f"Body {title} [S1].", counter)
+    monkeypatch.setattr(outline_mod, "Runner", fake)
+    monkeypatch.setattr("src.report_writer.chapters.Runner", fake)
+
+    metrics: dict = {}
+    report = await pipeline_mod.write_report_decomposed(
+        "Q", "agenda", _sources(tmp_path), _research_info(tmp_path), metrics=metrics
+    )
+
+    assert report.short_summary == "Résumé exécutif produit par l'outline."
+    assert report.follow_up_questions == ["Q1 ?", "Q2 ?"]
+    # Honest cost: 1 outline call + 1 chapter call (no retry).
+    assert metrics["llm_calls"] == 2
+
+
+@pytest.mark.asyncio
+async def test_pipeline_llm_calls_counts_retries(monkeypatch, tmp_path):
+    outline = ReportOutline(
+        title="T", chapters=[Chapter(title="A", objective="o", source_ids=["S1"])]
+    )
+    counter = {"outline": 0, "chapter": 0}
+    # No [S#] -> guardrail retries once (chapter_max_revisions=1): 2 chapter calls.
+    fake = _make_fake_runner(outline, lambda title: "Sans citation.", counter)
+    monkeypatch.setattr(outline_mod, "Runner", fake)
+    monkeypatch.setattr("src.report_writer.chapters.Runner", fake)
+    monkeypatch.setattr(get_config().agents, "chapter_max_revisions", 1)
+
+    metrics: dict = {}
+    await pipeline_mod.write_report_decomposed(
+        "Q", "agenda", _sources(tmp_path), _research_info(tmp_path), metrics=metrics
+    )
+
+    assert metrics["llm_calls"] == 3  # 1 outline + 2 chapter attempts
+
+
+@pytest.mark.asyncio
 async def test_pipeline_respects_chapter_budget_cap(monkeypatch, tmp_path):
     outline = ReportOutline(
         title="T",

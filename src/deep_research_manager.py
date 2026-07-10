@@ -374,8 +374,12 @@ class DeepResearchManager:
             metrics=self.writer_metrics,
         )
         self.printer.mark_item_done("writing")
-        self.agent_calls["writer_agent"] += 1
-        self.agent_calls["total"] += 1
+        # Honest cost: the decomposed writer makes 1 outline call + N chapter
+        # calls (+ retries), not one. spike-compare reads agent_calls.total, so
+        # under-counting here would skew the monolithic-vs-decomposed comparison.
+        writer_calls = int(self.writer_metrics.get("llm_calls", 1))
+        self.agent_calls["writer_agent"] += writer_calls
+        self.agent_calls["total"] += writer_calls
         return report
 
     async def _write_report_monolithic(self, query: str, search_results: list[str]) -> ReportData:

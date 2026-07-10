@@ -89,6 +89,12 @@ class ReportOutline(BaseModel):
     chapters: list[Chapter]
     "Chapitres ordonnés à rédiger."
 
+    short_summary: str = ""
+    "Résumé de 2-3 phrases des conclusions attendues (alimente ReportData.short_summary)."
+
+    follow_up_questions: list[str] = []
+    "Questions de suivi suggérées (alimente ReportData.follow_up_questions)."
+
 
 class FileFinalReport(BaseModel):
     absolute_file_path: str

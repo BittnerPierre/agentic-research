@@ -93,9 +93,24 @@ def test_grounding_metrics_counts_citations_against_sources():
     assert m["n_sources"] == 3
     assert m["n_cited_sources"] == 2  # S1, S2 (S3 never cited)
     assert m["source_coverage"] == 2 / 3
+    assert m["n_invalid_citations"] == 0
     assert m["n_chapters"] == 2  # empty chapter excluded
     assert m["chapters_with_citation"] == 1
     assert m["chapter_citation_rate"] == 1 / 2
+
+
+def test_grounding_metrics_ignores_hallucinated_citations():
+    # A model that cites [S99] (not in the retrieved corpus) must not inflate
+    # coverage above 1.0 — the invalid id is dropped and surfaced separately.
+    sources = [_src("S1", "a", "a.txt"), _src("S2", "b", "b.txt")]
+    chapters = [
+        (Chapter(title="C1", objective="o"), "Cite [S1], [S2] et un faux [S99]."),
+    ]
+    m = grounding_metrics(chapters, sources)
+
+    assert m["n_cited_sources"] == 2  # S99 not counted
+    assert m["source_coverage"] == 1.0  # never exceeds 1.0
+    assert m["n_invalid_citations"] == 1  # S99 flagged
 
 
 def test_fallback_outline_single_chapter_with_all_sources():

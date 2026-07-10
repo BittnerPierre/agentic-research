@@ -92,14 +92,22 @@ def grounding_metrics(chapters: list[tuple[Chapter, str]], sources: list[SourceD
     groundedness judge over sources.json is for — but it's a free sanity signal.
     """
     bodies = [body for _, body in chapters if (body or "").strip()]
+    valid_ids = {s.source_id for s in sources}
     cited = cited_source_ids(bodies)
+    # Only count citations that resolve to a real retrieved source. A model that
+    # hallucinates [S99] must not inflate coverage (which could exceed 1.0) — the
+    # Sources section already drops such ids, so the metric must too.
+    valid_cited = [sid for sid in cited if sid in valid_ids]
+    invalid_cited = [sid for sid in cited if sid not in valid_ids]
     n_sources = len(sources)
     n_chapters = len([1 for _, body in chapters if (body or "").strip()])
     chapters_with_citation = sum(1 for body in bodies if _SID_RE.search(body))
     return {
         "n_sources": n_sources,
-        "n_cited_sources": len(cited),
-        "source_coverage": (len(cited) / n_sources) if n_sources else 0.0,
+        "n_cited_sources": len(valid_cited),
+        "source_coverage": (len(valid_cited) / n_sources) if n_sources else 0.0,
+        # Hallucinated [S#] ids that don't exist in the retrieved corpus.
+        "n_invalid_citations": len(invalid_cited),
         "n_chapters": n_chapters,
         "chapters_with_citation": chapters_with_citation,
         "chapter_citation_rate": (chapters_with_citation / n_chapters) if n_chapters else 0.0,

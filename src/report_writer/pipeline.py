@@ -57,7 +57,7 @@ async def write_report_decomposed(
 
     # D2 — parallel chapter drafting. Only require [S#] citations when we have sources.
     chapters_start = time.perf_counter()
-    chapters, chapter_durations = await write_chapters(
+    chapters, chapter_durations, chapter_calls = await write_chapters(
         outline,
         corpus,
         research_info,
@@ -68,6 +68,11 @@ async def write_report_decomposed(
 
     # D3 — deterministic assembly + Sources section.
     markdown = assemble_report(outline, chapters, sources)
+
+    # Honest LLM-call count for the benchmark: 1 outline call + chapter attempts
+    # (initial + guardrail retries). The monolithic path is a single call, so
+    # this keeps agent_calls comparable across strategies.
+    llm_calls = 1 + chapter_calls
 
     if metrics is not None:
         total_chapter_seconds = sum(chapter_durations)
@@ -83,9 +88,18 @@ async def write_report_decomposed(
                 "concurrency_ratio": (
                     total_chapter_seconds / chapters_wall if chapters_wall > 0 else None
                 ),
+                "llm_calls": llm_calls,
                 "grounding": grounding_metrics(chapters, sources),
             }
         )
 
-    # Reuse the existing markdown -> ReportData conversion for a consistent output.
-    return parse_writer_markdown(markdown, query)
+    # Reuse parse_writer_markdown for title/filename/summary fallback, then let
+    # the outline's own summary + follow-up questions win when present, so the
+    # decomposed path fills the same ReportData contract as the monolithic one.
+    report = parse_writer_markdown(markdown, query)
+    updates: dict = {}
+    if outline.short_summary.strip():
+        updates["short_summary"] = outline.short_summary.strip()
+    if outline.follow_up_questions:
+        updates["follow_up_questions"] = list(outline.follow_up_questions)
+    return report.model_copy(update=updates) if updates else report

@@ -344,17 +344,21 @@ def extract_model_name(model_string: Any) -> str:
     if not model_string:
         return model_string
 
-    # Format litellm: "litellm/<provider>/<model_name>"
+    # Format litellm: "litellm/<provider>/<model_name>". Le <model_name> peut
+    # lui-même contenir des slashes (id de repo HF), donc on garde tout ce qui
+    # suit le provider plutôt que le seul segment suivant.
     if model_string.startswith("litellm/"):
-        parts = model_string.split("/")
+        parts = model_string.split("/", 2)
         if len(parts) >= 3:
             return parts[2]  # Récupère la partie après "litellm/<provider>/"
 
-    # Format openai: "openai/<model_name>"
+    # Format openai: "openai/<model_name>". Ici "openai/" est un préfixe de
+    # TRANSPORT (API OpenAI-compatible), pas un vendor : <model_name> peut être
+    # un id de repo HF à plusieurs segments servi par vLLM
+    # (ex: "mistralai/Mistral-Small-4", "Qwen/Qwen3.6-..."). On garde donc tout
+    # ce qui suit "openai/", pas seulement le premier segment.
     elif model_string.startswith("openai/"):
-        parts = model_string.split("/")
-        if len(parts) >= 2:
-            return parts[1]  # Récupère la partie après "openai/"
+        return model_string[len("openai/") :]
 
     # Format direct: "<model_name>" (pas de préfixe)
     return model_string
