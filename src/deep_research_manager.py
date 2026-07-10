@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
 import time
@@ -29,6 +30,9 @@ from .printer import Printer
 from .report_writer.aggregate import aggregate_sources
 from .report_writer.pipeline import write_report_decomposed
 
+logger = logging.getLogger(__name__)
+_CHUNK_CITATION_RE = re.compile(r"\[[^\]\n:]+:[^\]\n]+\]")
+
 
 class DeepResearchManager:
     def __init__(self):
@@ -45,6 +49,7 @@ class DeepResearchManager:
             "total": 0,
             "failures": 0,
         }
+        self.search_failure_breakdown: dict[str, int] = {}
         self.usage_summary = {
             "requests": 0,
             "input_tokens": 0,
@@ -271,30 +276,118 @@ class DeepResearchManager:
             return results
 
     async def _file_search(self, item: FileSearchItem) -> str | None:
-        input_text = f"Terme de recherche: {item.query}\nRaison de la recherche: {item.reason}"
+        base_input = f"Terme de recherche: {item.query}\nRaison de la recherche: {item.reason}"
         if item.filenames:
             filenames = ", ".join(item.filenames)
-            input_text += f"\nFichiers cibles: {filenames}"
+            base_input += f"\nFichiers cibles: {filenames}"
 
+        retry_hint = (
+            "\n\nIMPORTANT RETRY INSTRUCTION:\n"
+            "Write the summary to a file and return ONLY the filename.\n"
+            "Every key claim must include a bracket citation.\n"
+            "Prefer [document_id:chunk_index] when available in retrieval metadata.\n"
+            "If document_id is unavailable, use [filename:chunk_index].\n"
+            "Do not omit bracket citations.\n"
+        )
+        max_attempts = 2
+        best_effort_path: str | None = None
+
+        for attempt in range(1, max_attempts + 1):
+            input_text = base_input if attempt == 1 else base_input + retry_hint
+            try:
+                result = await Runner.run(
+                    self.file_search_agent,
+                    input_text,
+                    context=self.research_info,
+                )
+                self._record_usage(result, phase="search")
+                # file_search_agent has no output_type (dropped in 2f35b47); per
+                # its prompt it returns the bare filename as final_output text.
+                raw_file_name = str(result.final_output or "").strip()
+                normalized_path = self._normalize_search_result_path(raw_file_name)
+                if normalized_path is None:
+                    if attempt < max_attempts:
+                        logger.warning(
+                            "file_search invalid output path on attempt %s/%s for query=%r: %r",
+                            attempt,
+                            max_attempts,
+                            item.query,
+                            raw_file_name,
+                        )
+                        continue
+                    self._record_search_failure("invalid_output_path", item)
+                    return None
+
+                if not self._search_result_has_chunk_citations(normalized_path):
+                    if attempt < max_attempts:
+                        best_effort_path = normalized_path
+                        logger.warning(
+                            "file_search missing chunk citations on attempt %s/%s for query=%r: %s",
+                            attempt,
+                            max_attempts,
+                            item.query,
+                            os.path.basename(normalized_path),
+                        )
+                        continue
+                    logger.warning(
+                        "file_search kept result without chunk citations after retry for query=%r: %s",
+                        item.query,
+                        os.path.basename(normalized_path),
+                    )
+                return normalized_path
+            except Exception as exc:
+                if attempt < max_attempts:
+                    logger.warning(
+                        "file_search exception on attempt %s/%s for query=%r: %s: %s",
+                        attempt,
+                        max_attempts,
+                        item.query,
+                        type(exc).__name__,
+                        exc,
+                    )
+                    continue
+                if best_effort_path is not None:
+                    logger.warning(
+                        "file_search retry failed after a usable uncited result for query=%r; "
+                        "keeping first attempt file %s",
+                        item.query,
+                        os.path.basename(best_effort_path),
+                    )
+                    return best_effort_path
+                self._record_search_failure(f"exception:{type(exc).__name__}", item, exc=exc)
+                return None
+            finally:
+                self.agent_calls["file_search_agent"] += 1
+                self.agent_calls["total"] += 1
+
+        return None
+
+    def _record_search_failure(
+        self,
+        reason: str,
+        item: FileSearchItem,
+        *,
+        exc: Exception | None = None,
+    ) -> None:
+        self.agent_calls["failures"] += 1
+        self.search_failure_breakdown[reason] = self.search_failure_breakdown.get(reason, 0) + 1
+        if exc is None:
+            logger.error("file_search failed for query=%r: %s", item.query, reason)
+            return
+        logger.error(
+            "file_search failed for query=%r: %s (%s: %s)",
+            item.query,
+            reason,
+            type(exc).__name__,
+            exc,
+        )
+
+    def _search_result_has_chunk_citations(self, file_path: str) -> bool:
         try:
-            result = await Runner.run(
-                self.file_search_agent,
-                input_text,
-                context=self.research_info,
-            )
-            self._record_usage(result, phase="search")
-            self.agent_calls["file_search_agent"] += 1
-            self.agent_calls["total"] += 1
-            # file_search_agent has no output_type (dropped in 2f35b47); per
-            # its prompt it returns the bare filename as final_output text.
-            raw_file_name = str(result.final_output or "").strip()
-            normalized_path = self._normalize_search_result_path(raw_file_name)
-            if normalized_path is None:
-                self.agent_calls["failures"] += 1
-            return normalized_path
-        except Exception:
-            self.agent_calls["failures"] += 1
-            return None
+            with open(file_path, encoding="utf-8") as handle:
+                return _CHUNK_CITATION_RE.search(handle.read()) is not None
+        except OSError:
+            return False
 
     def _normalize_search_result_path(self, raw_file_name: str) -> str | None:
         """
