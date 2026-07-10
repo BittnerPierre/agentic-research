@@ -13,6 +13,7 @@ Règles :
 - Concentre-toi sur l'objectif de ton chapitre. Tu peux puiser dans n'importe quelle source du corpus, pas seulement les prioritaires, si cela sert ton objectif.
 - Cite tes sources inline avec leur identifiant, par exemple `[S2]`. Chaque affirmation importante doit être traçable à au moins une source. C'est ce qui rend le rapport vérifiable.
 - Commence directement par le contenu en markdown. Ne répète pas le titre du chapitre : il sera ajouté automatiquement lors de l'assemblage.
+- N'enveloppe PAS ta réponse dans un bloc de code (pas de ``` ni de ```markdown autour du texte) : écris le markdown directement, il est inséré tel quel dans le rapport.
 - Ne rédige pas l'introduction ni la conclusion générale du rapport : ce n'est pas ton rôle, et cela créerait des redondances avec les autres chapitres.
 - Reste factuel et concis. Développe les idées utiles, sans remplissage.
 

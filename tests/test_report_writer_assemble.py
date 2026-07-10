@@ -2,6 +2,7 @@
 
 from src.agents.schemas import Chapter, ReportOutline, SourceDocument
 from src.report_writer.assemble import (
+    _strip_wrapping_code_fence,
     assemble_report,
     build_sources_section,
     cited_source_ids,
@@ -12,6 +13,34 @@ from src.report_writer.outline import fallback_outline
 
 def _src(sid, topic, file_name):
     return SourceDocument(source_id=sid, file_name=file_name, topic=topic, content="x")
+
+
+def test_strip_wrapping_code_fence_unwraps_whole_body():
+    body = "```markdown\n## Titre\n\nContenu [S1].\n```"
+    assert _strip_wrapping_code_fence(body) == "## Titre\n\nContenu [S1]."
+
+
+def test_strip_wrapping_code_fence_plain_fence():
+    assert _strip_wrapping_code_fence("```\nTexte [S2].\n```") == "Texte [S2]."
+
+
+def test_strip_wrapping_code_fence_leaves_unwrapped_body():
+    body = "## Titre\n\nContenu normal [S1]."
+    assert _strip_wrapping_code_fence(body) == body
+
+
+def test_strip_wrapping_code_fence_preserves_inner_code_block():
+    # A body that is NOT fully wrapped (real prose + an inner code block) is untouched.
+    body = "Voici du code :\n\n```python\nprint('x')\n```\n\nFin [S1]."
+    assert _strip_wrapping_code_fence(body) == body
+
+
+def test_assemble_report_unwraps_fenced_chapter():
+    outline = ReportOutline(title="Rapport", chapters=[Chapter(title="Ch1", objective="o")])
+    chapters = [(Chapter(title="Ch1", objective="o"), "```markdown\nCorps [S1].\n```")]
+    md = assemble_report(outline, chapters, [_src("S1", "t", "t.txt")])
+    assert "```markdown" not in md
+    assert "## Ch1\n\nCorps [S1]." in md
 
 
 def test_cited_source_ids_unique_in_order():

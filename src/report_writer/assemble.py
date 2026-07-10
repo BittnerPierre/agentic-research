@@ -13,6 +13,26 @@ from ..agents.schemas import Chapter, ReportOutline, SourceDocument
 
 _SID_RE = re.compile(r"\[(S\d+)\]")
 _HEADING_RE = re.compile(r"^#{1,6}\s+(.*)$")
+_FENCE_OPEN_RE = re.compile(r"^`{3,}[^\n`]*$")
+_FENCE_CLOSE_RE = re.compile(r"^`{3,}\s*$")
+
+
+def _strip_wrapping_code_fence(body: str) -> str:
+    """Unwrap a chapter body the model wrapped in a whole ```markdown … ``` fence.
+
+    Some models emit their entire chapter inside a code fence, which makes the
+    assembled report render as one literal code block instead of markdown. Only a
+    fence that wraps the ENTIRE body is removed, and only when the inner content
+    keeps its own fences balanced, so legitimate inner code blocks are untouched.
+    """
+    lines = body.strip().splitlines()
+    if len(lines) < 2:
+        return body
+    if _FENCE_OPEN_RE.match(lines[0].strip()) and _FENCE_CLOSE_RE.match(lines[-1].strip()):
+        inner = "\n".join(lines[1:-1]).strip()
+        if inner.count("```") % 2 == 0:
+            return inner
+    return body
 
 
 def _norm_heading(text: str) -> str:
@@ -76,6 +96,7 @@ def assemble_report(
         body = (body or "").strip()
         if not body:
             continue
+        body = _strip_wrapping_code_fence(body)
         body = _strip_leading_title(body, chapter.title)
         parts.append(f"## {chapter.title}\n\n{body}")
         bodies.append(body)
