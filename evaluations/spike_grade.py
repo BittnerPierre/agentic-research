@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 from pathlib import Path
 
 from agents import Agent, Runner
@@ -39,6 +40,23 @@ from .rag_triad_evaluator import evaluate_rag_triad
 from .schemas import EvaluationResult
 from .scoring import quality_score_100
 from .spec_compliance_evaluator import evaluate_spec_compliance
+
+
+def _load_dotenv() -> None:
+    """Load .env so the OpenAI judge finds OPENAI_API_KEY.
+
+    The main app loads it via src.config, but this CLI entry point runs
+    standalone (uv run spike-grade) and never imports that module.
+    """
+    try:
+        from dotenv import find_dotenv, load_dotenv
+    except ImportError:  # python-dotenv absent: rely on the ambient env
+        return
+    dotenv_path = find_dotenv(usecwd=True)
+    load_dotenv(dotenv_path, override=False)
+    if os.getenv("OPENAI_API_KEY") == "":
+        load_dotenv(dotenv_path, override=True)
+
 
 # Quality composite weights (quality-first; NO speed term on purpose).
 W_QUALITY, W_RAG, W_SPEC = 0.40, 0.35, 0.25
@@ -213,6 +231,7 @@ def main() -> None:
         "--judge-model", default="openai/gpt-4.1-mini", help="OpenAI judge model id"
     )
     parser.add_argument("--output-dir", default="output", help="where report .md files live")
+    _load_dotenv()
     asyncio.run(_amain(parser.parse_args()))
 
 
