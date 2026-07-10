@@ -52,18 +52,30 @@ mcp:
 # NB: /v1 OBLIGATOIRE — vLLM ne sert que /v1/* (contrairement à llama.cpp qui
 # accepte aussi /chat/completions sans /v1).
 models:
-  research_model: &spark1
+  # Deux profils du MÊME modèle (Mistral Small 4, hybride reasoning+instruct) :
+  # le reasoning ne sert que là où on PLANIFIE / structure. La récupération et la
+  # rédaction des chapitres restent en instruct pur (vitesse/débit, pas de CoT).
+  #
+  # reasoning_effort:"high" est transmis par le SDK (openai_chatcompletions) à vLLM
+  # (lancé avec --reasoning-parser mistral) et déclenche le CoT — cf. HF model card.
+
+  # --- Instruct pur (pas de reasoning) : recherche + chapitres ---
+  search_model: &spark1
     name: "openai/mistralai/Mistral-Small-4-119B-2603-NVFP4"
     base_url: "http://spark1:8000/v1"
     api_key: "dummy"
-  planning_model: *spark1
-  search_model: *spark1
   writer_model: *spark1
-  knowledge_preparation_model: *spark1
-  # Writer décomposé : non renseignés => fallback sur writer_model (= spark1).
-  # Pour une topologie "split" il faudrait un 2e endpoint (modèle reasoning séparé).
-  # outline_model: *spark1
-  # chapter_writer_model: *spark1
+  chapter_writer_model: *spark1
+
+  # --- Reasoning high : les étapes de planification ---
+  planning_model: &spark1_reasoning # plan de recherche (FileSearchPlan)
+    name: "openai/mistralai/Mistral-Small-4-119B-2603-NVFP4"
+    base_url: "http://spark1:8000/v1"
+    api_key: "dummy"
+    reasoning_effort: "high"
+  knowledge_preparation_model: *spark1_reasoning # agenda de recherche
+  research_model: *spark1_reasoning # orchestration / lead
+  outline_model: *spark1_reasoning # chemin de fer du rapport (D1)
 
 manager:
   default_manager: "deep_manager"
