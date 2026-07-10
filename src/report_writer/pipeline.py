@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import time
 
-from ..agents.schemas import ReportData, ReportOutline, ResearchInfo
+from ..agents.schemas import ReportData, ResearchInfo
 from ..agents.utils import parse_writer_markdown
 from ..config import get_config
 from .aggregate import aggregate_sources, render_corpus
@@ -50,10 +50,12 @@ async def write_report_decomposed(
     outline = await build_outline(query, agenda, sources, research_info, usage_sink)
     outline_seconds = time.perf_counter() - outline_start
 
-    # Writing budget: cap the number of chapters if configured.
+    # Writing budget: cap the number of chapters if configured. Use model_copy
+    # so short_summary / follow_up_questions survive the truncation (else the
+    # ReportData contract silently regresses whenever the cap fires).
     max_chapters = config.agents.writer_max_chapters
     if max_chapters is not None and len(outline.chapters) > max_chapters:
-        outline = ReportOutline(title=outline.title, chapters=outline.chapters[:max_chapters])
+        outline = outline.model_copy(update={"chapters": outline.chapters[:max_chapters]})
 
     # D2 — parallel chapter drafting. Only require [S#] citations when we have sources.
     chapters_start = time.perf_counter()

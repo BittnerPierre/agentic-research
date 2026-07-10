@@ -142,6 +142,8 @@ async def test_pipeline_respects_chapter_budget_cap(monkeypatch, tmp_path):
             Chapter(title="A", objective="o", source_ids=["S1"]),
             Chapter(title="B", objective="o", source_ids=["S2"]),
         ],
+        short_summary="Résumé sous cap.",
+        follow_up_questions=["Q1 ?"],
     )
     counter = {"outline": 0, "chapter": 0}
     fake = _make_fake_runner(outline, lambda title: f"Body {title} [S1].", counter)
@@ -156,6 +158,9 @@ async def test_pipeline_respects_chapter_budget_cap(monkeypatch, tmp_path):
     assert counter["chapter"] == 1  # capped
     assert "## A" in report.markdown_report
     assert "## B" not in report.markdown_report
+    # The cap must not drop the outline's summary / follow-ups (regression guard).
+    assert report.short_summary == "Résumé sous cap."
+    assert report.follow_up_questions == ["Q1 ?"]
 
 
 @pytest.mark.asyncio
