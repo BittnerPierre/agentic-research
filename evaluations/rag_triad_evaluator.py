@@ -21,35 +21,44 @@ class RAGScore(BaseModel):
 
 # ========== Prompts ==========
 
-GROUNDEDNESS_PROMPT = """You are evaluating the GROUNDEDNESS of a research report.
+GROUNDEDNESS_PROMPT = """You are a STRICT groundedness auditor for a research report.
 
-Groundedness measures whether the report's claims are well-supported by the Raw Notes (source material).
+Groundedness measures whether the report's claims are actually supported by the SOURCES
+(the retrieved material). Be skeptical: your job is to catch fabrication, not to reward
+fluent writing.
 
-**Task**: Evaluate how well the report is grounded in the provided Raw Notes.
+**Method — verify claim by claim.** Pay special attention to SPECIFIC claims:
+- numbers, percentages, monetary amounts, dates, durations, benchmark figures;
+- named studies, datasets, tools, or quotes.
+For each such specific claim, check that the SAME fact is actually present in the SOURCES.
 
-**Scoring Guide**:
-- **0.9-1.0**: Excellent - All key claims directly supported, proper citations, no hallucinations
-- **0.7-0.8**: Good - Most claims supported, minor unsupported details
-- **0.5-0.6**: Fair - Some claims supported, noticeable gaps or weak connections
-- **0.3-0.4**: Poor - Many unsupported claims, significant hallucinations
-- **0.0-0.2**: Very Poor - Little to no grounding, mostly hallucinated content
+**Critical rules**:
+- A bracket citation like `[S3]` or `[doc:12]` next to a claim is NOT evidence. Ignore the
+  label and check whether the cited source truly contains the claim. Citations that don't
+  match their source are a SERIOUS groundedness failure.
+- A fabricated specific (e.g. "reduces errors by 30-40%", "0.20$ per 1k tokens", "22% gender
+  bias", a made-up benchmark table) is a hallucination even if it sounds plausible and carries
+  a citation. Each fabricated specific must pull the score DOWN hard.
+- Generic, hedged statements that paraphrase the sources are acceptable; invented precision is not.
 
-**Evaluation Criteria**:
-1. Are claims backed by specific evidence from Raw Notes?
-2. Are there hallucinations or unsupported assertions?
-3. Does the report cite or reference sources appropriately?
-4. Is the synthesis faithful to the source material?
+**Scoring Guide** (calibrate to fabrication, not polish):
+- **0.9-1.0**: Every specific claim is traceable to the sources; no invented figures.
+- **0.7-0.8**: Claims supported; at most one or two minor unsupported details, no fabricated numbers.
+- **0.5-0.6**: Several specific claims unsupported OR one clearly fabricated statistic/study.
+- **0.3-0.4**: Multiple fabricated specifics (numbers/benchmarks/studies) dressed with citations.
+- **0.0-0.2**: Pervasive fabrication; the report invents precision the sources do not contain.
 
 **Input Format**:
 ```
-===RAW NOTES===
-[Raw notes from sources]
+===SOURCES===
+[Retrieved source material]
 
 ===REPORT===
 [Generated report]
 ```
 
-**Output**: Return a score (0.0-1.0) and reasoning.
+**Output**: Return a score (0.0-1.0) and reasoning that NAMES the specific unsupported/fabricated
+claims you found (or states that every specific claim checked out).
 """
 
 CONTEXT_RELEVANCE_PROMPT = """You are evaluating the CONTEXT RELEVANCE of retrieved sources.
@@ -142,7 +151,7 @@ async def evaluate_groundedness(
         output_type=RAGScore,
     )
 
-    input_text = f"""===RAW NOTES===
+    input_text = f"""===SOURCES===
 {raw_notes}
 
 ===REPORT===

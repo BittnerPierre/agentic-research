@@ -20,6 +20,9 @@ do NOT touch):
   how polished it reads — fixing the false positive above.
 
 Uses an OpenAI judge (neutral, constant across runs) for fairness between models.
+The judge must be STRONG: gpt-4.1-mini rationalizes fabricated statistics as supported
+(it scored a report full of invented figures 0.95 where gpt-4.1 caught them at 0.40), so
+the default judge is gpt-4.1. Grounding is checked claim-by-claim against the sources.
 
     uv run spike-grade                              # grades benchmarks/runs
     uv run spike-grade benchmarks/runs/<run>
@@ -68,8 +71,12 @@ agentic RAG workflow. You receive the RETRIEVED SOURCES (the only knowledge the 
 allowed to use), the QUERY, and the REPORT.
 
 Grade each axis A-E (A best):
-- grounding: are the report's claims supported by the RETRIEVED SOURCES? Penalize heavily any
-  hallucination or claim that relies on external knowledge not present in the sources.
+- grounding: verify the report's claims CLAIM BY CLAIM against the RETRIEVED SOURCES. Be strict on
+  SPECIFIC claims (numbers, percentages, monetary amounts, dates, benchmark figures, named
+  studies/tools): the same fact must actually appear in the sources. A bracket citation like [S3]
+  is NOT proof — check the source truly contains the claim. Any fabricated specific (a plausible
+  but invented statistic/table/study dressed with a citation) is a hallucination and must drop this
+  grade to D or E, regardless of how polished the prose is.
 - agenda: does the report cover the aspects the QUERY asks for (completeness, no gaps)?
 - format: well-structured markdown — clear sections, a sources/references section, inline
   citations where appropriate.
@@ -237,7 +244,13 @@ def main() -> None:
         "paths", nargs="*", help="run dirs or a parent dir (default: benchmarks/runs)"
     )
     parser.add_argument(
-        "--judge-model", default="openai/gpt-4.1-mini", help="OpenAI judge model id"
+        # gpt-4.1-mini is too credulous for claim-by-claim grounding: it rationalizes
+        # fabricated statistics as "found or implied" (verified — it scored a report full
+        # of invented figures 0.95, while gpt-4.1 caught them and scored 0.40). Default to
+        # the stronger judge; grading a handful of runs is cheap enough.
+        "--judge-model",
+        default="openai/gpt-4.1",
+        help="OpenAI judge model id (strong model recommended for reliable grounding)",
     )
     parser.add_argument("--output-dir", default="output", help="where report .md files live")
     _load_dotenv()
