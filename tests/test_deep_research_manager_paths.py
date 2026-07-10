@@ -144,6 +144,130 @@ async def test_file_search_returns_none_for_empty_output(monkeypatch, tmp_path: 
 
 
 @pytest.mark.asyncio
+async def test_file_search_retries_once_on_exception_then_succeeds(monkeypatch, tmp_path: Path):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+    summary_file = tmp_path / "mips.txt"
+    summary_file.write_text("MIPS retrieves vectors [doc_mips:0].", encoding="utf-8")
+
+    calls = {"count": 0}
+
+    class _FakeResult:
+        final_output = "mips.txt"
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise TimeoutError("search timed out")
+        return _FakeResult()
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result = await manager._file_search(FileSearchItem(query="mips", reason="need summary"))
+
+    assert result == str(summary_file.resolve())
+    assert calls["count"] == 2
+    assert manager.agent_calls["file_search_agent"] == 2
+    assert manager.agent_calls["failures"] == 0
+    assert manager.search_failure_breakdown == {}
+
+
+@pytest.mark.asyncio
+async def test_file_search_retries_when_first_result_has_no_chunk_citation(
+    monkeypatch, tmp_path: Path
+):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+    summary_file = tmp_path / "rewoo.txt"
+
+    calls = {"count": 0}
+
+    class _FakeResult:
+        final_output = "rewoo.txt"
+
+    async def _fake_run(agent, input_text, context):
+        del agent, context
+        calls["count"] += 1
+        if calls["count"] == 1:
+            summary_file.write_text("ReWOO plans without citations.", encoding="utf-8")
+            assert "IMPORTANT RETRY INSTRUCTION" not in input_text
+        else:
+            summary_file.write_text(
+                "ReWOO plans without observation [rewoo.txt:0].", encoding="utf-8"
+            )
+            assert "IMPORTANT RETRY INSTRUCTION" in input_text
+        return _FakeResult()
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result = await manager._file_search(FileSearchItem(query="rewoo", reason="need summary"))
+
+    assert result == str(summary_file.resolve())
+    assert calls["count"] == 2
+    assert manager.agent_calls["file_search_agent"] == 2
+    assert manager.agent_calls["failures"] == 0
+
+
+@pytest.mark.asyncio
+async def test_file_search_keeps_first_uncited_result_when_retry_then_raises(
+    monkeypatch, tmp_path: Path
+):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+    summary_file = tmp_path / "fallback.txt"
+
+    calls = {"count": 0}
+
+    class _FakeResult:
+        final_output = "fallback.txt"
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        calls["count"] += 1
+        if calls["count"] == 1:
+            summary_file.write_text("Fallback summary without citations.", encoding="utf-8")
+            return _FakeResult()
+        raise TimeoutError("retry timed out")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result = await manager._file_search(FileSearchItem(query="fallback", reason="need summary"))
+
+    assert result == str(summary_file.resolve())
+    assert calls["count"] == 2
+    assert manager.agent_calls["file_search_agent"] == 2
+    assert manager.agent_calls["failures"] == 0
+    assert manager.search_failure_breakdown == {}
+
+
+@pytest.mark.asyncio
+async def test_file_search_records_terminal_exception_details(
+    monkeypatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        raise TimeoutError("still too slow")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+
+    with caplog.at_level("WARNING"):
+        result = await manager._file_search(FileSearchItem(query="ann", reason="need summary"))
+
+    assert result is None
+    assert manager.agent_calls["file_search_agent"] == 2
+    assert manager.agent_calls["failures"] == 1
+    assert manager.search_failure_breakdown == {"exception:TimeoutError": 1}
+    assert "still too slow" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_path: Path):
     manager = _build_manager(tmp_path)
     manager.file_planner_agent = object()
