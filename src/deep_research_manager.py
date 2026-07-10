@@ -285,6 +285,7 @@ class DeepResearchManager:
             "Do not omit bracket citations.\n"
         )
         max_attempts = 2
+        best_effort_path: str | None = None
 
         for attempt in range(1, max_attempts + 1):
             input_text = base_input if attempt == 1 else base_input + retry_hint
@@ -314,6 +315,7 @@ class DeepResearchManager:
 
                 if not self._search_result_has_chunk_citations(normalized_path):
                     if attempt < max_attempts:
+                        best_effort_path = normalized_path
                         logger.warning(
                             "file_search missing chunk citations on attempt %s/%s for query=%r: %s",
                             attempt,
@@ -339,6 +341,14 @@ class DeepResearchManager:
                         exc,
                     )
                     continue
+                if best_effort_path is not None:
+                    logger.warning(
+                        "file_search retry failed after a usable uncited result for query=%r; "
+                        "keeping first attempt file %s",
+                        item.query,
+                        os.path.basename(best_effort_path),
+                    )
+                    return best_effort_path
                 self._record_search_failure(f"exception:{type(exc).__name__}", item, exc=exc)
                 return None
             finally:

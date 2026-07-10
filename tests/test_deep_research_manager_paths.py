@@ -212,6 +212,39 @@ async def test_file_search_retries_when_first_result_has_no_chunk_citation(
 
 
 @pytest.mark.asyncio
+async def test_file_search_keeps_first_uncited_result_when_retry_then_raises(
+    monkeypatch, tmp_path: Path
+):
+    manager = _build_manager(tmp_path)
+    manager.file_search_agent = object()
+    summary_file = tmp_path / "fallback.txt"
+
+    calls = {"count": 0}
+
+    class _FakeResult:
+        final_output = "fallback.txt"
+
+    async def _fake_run(agent, input_text, context):
+        del agent, input_text, context
+        calls["count"] += 1
+        if calls["count"] == 1:
+            summary_file.write_text("Fallback summary without citations.", encoding="utf-8")
+            return _FakeResult()
+        raise TimeoutError("retry timed out")
+
+    monkeypatch.setattr("src.deep_research_manager.Runner.run", _fake_run)
+    monkeypatch.setattr(manager, "_record_usage", lambda *a, **k: None)
+
+    result = await manager._file_search(FileSearchItem(query="fallback", reason="need summary"))
+
+    assert result == str(summary_file.resolve())
+    assert calls["count"] == 2
+    assert manager.agent_calls["file_search_agent"] == 2
+    assert manager.agent_calls["failures"] == 0
+    assert manager.search_failure_breakdown == {}
+
+
+@pytest.mark.asyncio
 async def test_file_search_records_terminal_exception_details(
     monkeypatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ):
