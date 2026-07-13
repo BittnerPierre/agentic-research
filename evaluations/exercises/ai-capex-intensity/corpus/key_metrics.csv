@@ -1,0 +1,247 @@
+Company,FYE_basis,Metric,FiscalYear,Value,Unit
+Amazon,Dec,Revenue,FY2020,386.1,USD_billions
+Amazon,Dec,Operating income,FY2020,22.9,USD_billions
+Amazon,Dec,Operating margin,FY2020,5.9,percent
+Amazon,Dec,Operating cash flow,FY2020,66.1,USD_billions
+Amazon,Dec,Capex,FY2020,40.1,USD_billions
+Amazon,Dec,FCF,FY2020,25.9,USD_billions
+Amazon,Dec,Capex/OCF,FY2020,61,percent
+Amazon,Dec,Revenue,FY2021,469.8,USD_billions
+Amazon,Dec,Operating income,FY2021,24.9,USD_billions
+Amazon,Dec,Operating margin,FY2021,5.3,percent
+Amazon,Dec,Operating cash flow,FY2021,46.3,USD_billions
+Amazon,Dec,Capex,FY2021,61.1,USD_billions
+Amazon,Dec,FCF,FY2021,-14.7,USD_billions
+Amazon,Dec,Capex/OCF,FY2021,132,percent
+Amazon,Dec,Revenue,FY2022,514.0,USD_billions
+Amazon,Dec,Operating income,FY2022,12.2,USD_billions
+Amazon,Dec,Operating margin,FY2022,2.4,percent
+Amazon,Dec,Operating cash flow,FY2022,46.8,USD_billions
+Amazon,Dec,Capex,FY2022,63.6,USD_billions
+Amazon,Dec,FCF,FY2022,-16.9,USD_billions
+Amazon,Dec,Capex/OCF,FY2022,136,percent
+Amazon,Dec,Revenue,FY2023,574.8,USD_billions
+Amazon,Dec,Operating income,FY2023,36.9,USD_billions
+Amazon,Dec,Operating margin,FY2023,6.4,percent
+Amazon,Dec,Operating cash flow,FY2023,84.9,USD_billions
+Amazon,Dec,Capex,FY2023,52.7,USD_billions
+Amazon,Dec,FCF,FY2023,32.2,USD_billions
+Amazon,Dec,Capex/OCF,FY2023,62,percent
+Amazon,Dec,Revenue,FY2024,638.0,USD_billions
+Amazon,Dec,Operating income,FY2024,68.6,USD_billions
+Amazon,Dec,Operating margin,FY2024,10.8,percent
+Amazon,Dec,Operating cash flow,FY2024,115.9,USD_billions
+Amazon,Dec,Capex,FY2024,83.0,USD_billions
+Amazon,Dec,FCF,FY2024,32.9,USD_billions
+Amazon,Dec,Capex/OCF,FY2024,72,percent
+Amazon,Dec,Revenue,FY2025,716.9,USD_billions
+Amazon,Dec,Operating income,FY2025,80.0,USD_billions
+Amazon,Dec,Operating margin,FY2025,11.2,percent
+Amazon,Dec,Operating cash flow,FY2025,139.5,USD_billions
+Amazon,Dec,Capex,FY2025,131.8,USD_billions
+Amazon,Dec,FCF,FY2025,7.7,USD_billions
+Amazon,Dec,Capex/OCF,FY2025,94,percent
+Alphabet,Dec,Revenue,FY2020,182.5,USD_billions
+Alphabet,Dec,Operating income,FY2020,41.2,USD_billions
+Alphabet,Dec,Operating margin,FY2020,22.6,percent
+Alphabet,Dec,Operating cash flow,FY2020,65.1,USD_billions
+Alphabet,Dec,Capex,FY2020,22.3,USD_billions
+Alphabet,Dec,FCF,FY2020,42.8,USD_billions
+Alphabet,Dec,Capex/OCF,FY2020,34,percent
+Alphabet,Dec,Revenue,FY2021,257.6,USD_billions
+Alphabet,Dec,Operating income,FY2021,78.7,USD_billions
+Alphabet,Dec,Operating margin,FY2021,30.6,percent
+Alphabet,Dec,Operating cash flow,FY2021,91.7,USD_billions
+Alphabet,Dec,Capex,FY2021,24.6,USD_billions
+Alphabet,Dec,FCF,FY2021,67.0,USD_billions
+Alphabet,Dec,Capex/OCF,FY2021,27,percent
+Alphabet,Dec,Revenue,FY2022,282.8,USD_billions
+Alphabet,Dec,Operating income,FY2022,74.8,USD_billions
+Alphabet,Dec,Operating margin,FY2022,26.5,percent
+Alphabet,Dec,Operating cash flow,FY2022,91.5,USD_billions
+Alphabet,Dec,Capex,FY2022,31.5,USD_billions
+Alphabet,Dec,FCF,FY2022,60.0,USD_billions
+Alphabet,Dec,Capex/OCF,FY2022,34,percent
+Alphabet,Dec,Revenue,FY2023,307.4,USD_billions
+Alphabet,Dec,Operating income,FY2023,84.3,USD_billions
+Alphabet,Dec,Operating margin,FY2023,27.4,percent
+Alphabet,Dec,Operating cash flow,FY2023,101.7,USD_billions
+Alphabet,Dec,Capex,FY2023,32.3,USD_billions
+Alphabet,Dec,FCF,FY2023,69.5,USD_billions
+Alphabet,Dec,Capex/OCF,FY2023,32,percent
+Alphabet,Dec,Revenue,FY2024,350.0,USD_billions
+Alphabet,Dec,Operating income,FY2024,112.4,USD_billions
+Alphabet,Dec,Operating margin,FY2024,32.1,percent
+Alphabet,Dec,Operating cash flow,FY2024,125.3,USD_billions
+Alphabet,Dec,Capex,FY2024,52.5,USD_billions
+Alphabet,Dec,FCF,FY2024,72.8,USD_billions
+Alphabet,Dec,Capex/OCF,FY2024,42,percent
+Alphabet,Dec,Revenue,FY2025,402.8,USD_billions
+Alphabet,Dec,Operating income,FY2025,129.0,USD_billions
+Alphabet,Dec,Operating margin,FY2025,32.0,percent
+Alphabet,Dec,Operating cash flow,FY2025,164.7,USD_billions
+Alphabet,Dec,Capex,FY2025,91.4,USD_billions
+Alphabet,Dec,FCF,FY2025,73.3,USD_billions
+Alphabet,Dec,Capex/OCF,FY2025,56,percent
+Meta,Dec,Revenue,FY2020,86.0,USD_billions
+Meta,Dec,Operating income,FY2020,32.7,USD_billions
+Meta,Dec,Operating margin,FY2020,38.0,percent
+Meta,Dec,Operating cash flow,FY2020,38.7,USD_billions
+Meta,Dec,Capex,FY2020,15.2,USD_billions
+Meta,Dec,FCF,FY2020,23.6,USD_billions
+Meta,Dec,Capex/OCF,FY2020,39,percent
+Meta,Dec,Revenue,FY2021,117.9,USD_billions
+Meta,Dec,Operating income,FY2021,46.8,USD_billions
+Meta,Dec,Operating margin,FY2021,39.6,percent
+Meta,Dec,Operating cash flow,FY2021,57.7,USD_billions
+Meta,Dec,Capex,FY2021,18.7,USD_billions
+Meta,Dec,FCF,FY2021,39.0,USD_billions
+Meta,Dec,Capex/OCF,FY2021,32,percent
+Meta,Dec,Revenue,FY2022,116.6,USD_billions
+Meta,Dec,Operating income,FY2022,28.9,USD_billions
+Meta,Dec,Operating margin,FY2022,24.8,percent
+Meta,Dec,Operating cash flow,FY2022,50.5,USD_billions
+Meta,Dec,Capex,FY2022,31.2,USD_billions
+Meta,Dec,FCF,FY2022,19.3,USD_billions
+Meta,Dec,Capex/OCF,FY2022,62,percent
+Meta,Dec,Revenue,FY2023,134.9,USD_billions
+Meta,Dec,Operating income,FY2023,46.8,USD_billions
+Meta,Dec,Operating margin,FY2023,34.7,percent
+Meta,Dec,Operating cash flow,FY2023,71.1,USD_billions
+Meta,Dec,Capex,FY2023,27.0,USD_billions
+Meta,Dec,FCF,FY2023,44.1,USD_billions
+Meta,Dec,Capex/OCF,FY2023,38,percent
+Meta,Dec,Revenue,FY2024,164.5,USD_billions
+Meta,Dec,Operating income,FY2024,69.4,USD_billions
+Meta,Dec,Operating margin,FY2024,42.2,percent
+Meta,Dec,Operating cash flow,FY2024,91.3,USD_billions
+Meta,Dec,Capex,FY2024,37.3,USD_billions
+Meta,Dec,FCF,FY2024,54.1,USD_billions
+Meta,Dec,Capex/OCF,FY2024,41,percent
+Meta,Dec,Revenue,FY2025,201.0,USD_billions
+Meta,Dec,Operating income,FY2025,83.3,USD_billions
+Meta,Dec,Operating margin,FY2025,41.4,percent
+Meta,Dec,Operating cash flow,FY2025,115.8,USD_billions
+Meta,Dec,Capex,FY2025,69.7,USD_billions
+Meta,Dec,FCF,FY2025,46.1,USD_billions
+Meta,Dec,Capex/OCF,FY2025,60,percent
+Microsoft,Jun,Revenue,FY2020,143.0,USD_billions
+Microsoft,Jun,Operating income,FY2020,53.0,USD_billions
+Microsoft,Jun,Operating margin,FY2020,37.0,percent
+Microsoft,Jun,Operating cash flow,FY2020,60.7,USD_billions
+Microsoft,Jun,Capex,FY2020,15.4,USD_billions
+Microsoft,Jun,FCF,FY2020,45.2,USD_billions
+Microsoft,Jun,Capex/OCF,FY2020,25,percent
+Microsoft,Jun,Revenue,FY2021,168.1,USD_billions
+Microsoft,Jun,Operating income,FY2021,69.9,USD_billions
+Microsoft,Jun,Operating margin,FY2021,41.6,percent
+Microsoft,Jun,Operating cash flow,FY2021,76.7,USD_billions
+Microsoft,Jun,Capex,FY2021,20.6,USD_billions
+Microsoft,Jun,FCF,FY2021,56.1,USD_billions
+Microsoft,Jun,Capex/OCF,FY2021,27,percent
+Microsoft,Jun,Revenue,FY2022,198.3,USD_billions
+Microsoft,Jun,Operating income,FY2022,83.4,USD_billions
+Microsoft,Jun,Operating margin,FY2022,42.1,percent
+Microsoft,Jun,Operating cash flow,FY2022,89.0,USD_billions
+Microsoft,Jun,Capex,FY2022,23.9,USD_billions
+Microsoft,Jun,FCF,FY2022,65.1,USD_billions
+Microsoft,Jun,Capex/OCF,FY2022,27,percent
+Microsoft,Jun,Revenue,FY2023,211.9,USD_billions
+Microsoft,Jun,Operating income,FY2023,88.5,USD_billions
+Microsoft,Jun,Operating margin,FY2023,41.8,percent
+Microsoft,Jun,Operating cash flow,FY2023,87.6,USD_billions
+Microsoft,Jun,Capex,FY2023,28.1,USD_billions
+Microsoft,Jun,FCF,FY2023,59.5,USD_billions
+Microsoft,Jun,Capex/OCF,FY2023,32,percent
+Microsoft,Jun,Revenue,FY2024,245.1,USD_billions
+Microsoft,Jun,Operating income,FY2024,109.4,USD_billions
+Microsoft,Jun,Operating margin,FY2024,44.6,percent
+Microsoft,Jun,Operating cash flow,FY2024,118.5,USD_billions
+Microsoft,Jun,Capex,FY2024,44.5,USD_billions
+Microsoft,Jun,FCF,FY2024,74.1,USD_billions
+Microsoft,Jun,Capex/OCF,FY2024,38,percent
+Microsoft,Jun,Revenue,FY2025,281.7,USD_billions
+Microsoft,Jun,Operating income,FY2025,128.5,USD_billions
+Microsoft,Jun,Operating margin,FY2025,45.6,percent
+Microsoft,Jun,Operating cash flow,FY2025,136.2,USD_billions
+Microsoft,Jun,Capex,FY2025,64.6,USD_billions
+Microsoft,Jun,FCF,FY2025,71.6,USD_billions
+Microsoft,Jun,Capex/OCF,FY2025,47,percent
+NVIDIA,Jan,Revenue,FY2020,10.9,USD_billions
+NVIDIA,Jan,Operating income,FY2020,2.8,USD_billions
+NVIDIA,Jan,Operating margin,FY2020,26.1,percent
+NVIDIA,Jan,Operating cash flow,FY2020,4.8,USD_billions
+NVIDIA,Jan,Revenue,FY2021,16.7,USD_billions
+NVIDIA,Jan,Operating income,FY2021,4.5,USD_billions
+NVIDIA,Jan,Operating margin,FY2021,27.2,percent
+NVIDIA,Jan,Operating cash flow,FY2021,5.8,USD_billions
+NVIDIA,Jan,Revenue,FY2022,26.9,USD_billions
+NVIDIA,Jan,Operating income,FY2022,10.0,USD_billions
+NVIDIA,Jan,Operating margin,FY2022,37.3,percent
+NVIDIA,Jan,Operating cash flow,FY2022,9.1,USD_billions
+NVIDIA,Jan,Capex,FY2022,1.0,USD_billions
+NVIDIA,Jan,FCF,FY2022,8.1,USD_billions
+NVIDIA,Jan,Capex/OCF,FY2022,11,percent
+NVIDIA,Jan,Revenue,FY2023,27.0,USD_billions
+NVIDIA,Jan,Operating income,FY2023,4.2,USD_billions
+NVIDIA,Jan,Operating margin,FY2023,15.7,percent
+NVIDIA,Jan,Operating cash flow,FY2023,5.6,USD_billions
+NVIDIA,Jan,Capex,FY2023,1.8,USD_billions
+NVIDIA,Jan,FCF,FY2023,3.8,USD_billions
+NVIDIA,Jan,Capex/OCF,FY2023,32,percent
+NVIDIA,Jan,Revenue,FY2024,60.9,USD_billions
+NVIDIA,Jan,Operating income,FY2024,33.0,USD_billions
+NVIDIA,Jan,Operating margin,FY2024,54.1,percent
+NVIDIA,Jan,Operating cash flow,FY2024,28.1,USD_billions
+NVIDIA,Jan,Capex,FY2024,1.1,USD_billions
+NVIDIA,Jan,FCF,FY2024,27.0,USD_billions
+NVIDIA,Jan,Capex/OCF,FY2024,4,percent
+NVIDIA,Jan,Revenue,FY2025,130.5,USD_billions
+NVIDIA,Jan,Operating income,FY2025,81.5,USD_billions
+NVIDIA,Jan,Operating margin,FY2025,62.4,percent
+NVIDIA,Jan,Operating cash flow,FY2025,64.1,USD_billions
+NVIDIA,Jan,Capex,FY2025,3.2,USD_billions
+NVIDIA,Jan,FCF,FY2025,60.9,USD_billions
+NVIDIA,Jan,Capex/OCF,FY2025,5,percent
+Apple,Sep,Revenue,FY2020,274.5,USD_billions
+Apple,Sep,Operating income,FY2020,66.3,USD_billions
+Apple,Sep,Operating margin,FY2020,24.1,percent
+Apple,Sep,Operating cash flow,FY2020,80.7,USD_billions
+Apple,Sep,Capex,FY2020,7.3,USD_billions
+Apple,Sep,FCF,FY2020,73.4,USD_billions
+Apple,Sep,Capex/OCF,FY2020,9,percent
+Apple,Sep,Revenue,FY2021,365.8,USD_billions
+Apple,Sep,Operating income,FY2021,108.9,USD_billions
+Apple,Sep,Operating margin,FY2021,29.8,percent
+Apple,Sep,Operating cash flow,FY2021,104.0,USD_billions
+Apple,Sep,Capex,FY2021,11.1,USD_billions
+Apple,Sep,FCF,FY2021,93.0,USD_billions
+Apple,Sep,Capex/OCF,FY2021,11,percent
+Apple,Sep,Revenue,FY2022,394.3,USD_billions
+Apple,Sep,Operating income,FY2022,119.4,USD_billions
+Apple,Sep,Operating margin,FY2022,30.3,percent
+Apple,Sep,Operating cash flow,FY2022,122.2,USD_billions
+Apple,Sep,Capex,FY2022,10.7,USD_billions
+Apple,Sep,FCF,FY2022,111.4,USD_billions
+Apple,Sep,Capex/OCF,FY2022,9,percent
+Apple,Sep,Revenue,FY2023,383.3,USD_billions
+Apple,Sep,Operating income,FY2023,114.3,USD_billions
+Apple,Sep,Operating margin,FY2023,29.8,percent
+Apple,Sep,Operating cash flow,FY2023,110.5,USD_billions
+Apple,Sep,Capex,FY2023,11.0,USD_billions
+Apple,Sep,FCF,FY2023,99.6,USD_billions
+Apple,Sep,Capex/OCF,FY2023,10,percent
+Apple,Sep,Revenue,FY2024,391.0,USD_billions
+Apple,Sep,Operating income,FY2024,123.2,USD_billions
+Apple,Sep,Operating margin,FY2024,31.5,percent
+Apple,Sep,Operating cash flow,FY2024,118.3,USD_billions
+Apple,Sep,Capex,FY2024,9.4,USD_billions
+Apple,Sep,FCF,FY2024,108.8,USD_billions
+Apple,Sep,Capex/OCF,FY2024,8,percent
+Apple,Sep,Revenue,FY2025,416.2,USD_billions
+Apple,Sep,Operating income,FY2025,133.1,USD_billions
+Apple,Sep,Operating margin,FY2025,32.0,percent
+Apple,Sep,Operating cash flow,FY2025,111.5,USD_billions
+Apple,Sep,Capex,FY2025,12.7,USD_billions
+Apple,Sep,FCF,FY2025,98.8,USD_billions
+Apple,Sep,Capex/OCF,FY2025,11,percent

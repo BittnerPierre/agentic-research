@@ -1,0 +1,41 @@
+# Deterministic answer key — AI Engineering course prep (conceptual exercise)
+#
+# Input = test_files/syllabus.md (4 modules: prompt engineering, advanced retrieval/RAG,
+# multi-agent systems, ChatGPT API). The 5 External References are HTML articles the
+# workflow downloads. Ground truth for fabrication = ./corpus (the downloaded articles).
+#
+# This is a CONCEPTUAL exercise: coverage is checked by anchor tokens (mechanical),
+# NOT numbers. Fabrication is still mechanical: any specific number / named study /
+# dataset in the report that is absent from the corpus is a hallucination.
+
+mode: conceptual
+theme: "AI engineering fundamentals — prompting, RAG, agents, ChatGPT API"
+
+# ---------------------------------------------------------------------------
+# must_cover — the concepts the report MUST surface (recall). anchors_any = the
+# concept counts as covered if any listed token appears (case-insensitive).
+# ---------------------------------------------------------------------------
+must_cover:
+  - {id: system_user_prompts, concept: "system vs user prompts", anchors_any: ["system prompt", "user prompt"]}
+  - {id: zero_shot,  concept: "zero-shot prompting", anchors_any: ["zero-shot", "zero shot"]}
+  - {id: few_shot,   concept: "few-shot prompting",  anchors_any: ["few-shot", "few shot"]}
+  - {id: cot,        concept: "Chain-of-Thought",    anchors_any: ["chain-of-thought", "chain of thought", "CoT"]}
+  - {id: react,      concept: "ReAct prompting",     anchors_any: ["ReAct"]}
+  - {id: embeddings, concept: "embeddings",          anchors_any: ["embedding"]}
+  - {id: vector_search, concept: "vector search / store", anchors_any: ["vector search", "vector store", "vector database"]}
+  - {id: rag,        concept: "retrieval-augmented generation", anchors_any: ["retrieval-augmented", "retrieval augmented", "RAG"]}
+  - {id: chromadb,   concept: "ChromaDB",            anchors_any: ["chroma"]}
+  - {id: orchestration, concept: "agent orchestration / frameworks", anchors_any: ["orchestration", "agent framework"]}
+  - {id: multi_agent, concept: "multi-agent systems", anchors_any: ["multi-agent", "multi agent"]}
+  - {id: agent_memory, concept: "agent memory",      anchors_any: ["memory"]}
+  - {id: function_calling, concept: "function calling", anchors_any: ["function calling", "function call"]}
+  - {id: error_handling, concept: "API error handling", anchors_any: ["error handling", "error-handling"]}
+
+# No off-theme distractor set for this exercise (single coherent topic).
+distractors: {}
+
+companies_in_scope: []   # N/A for the conceptual exercise (kept for scorer compat)
+
+provenance:
+  input: test_files/syllabus.md
+  corpus: "downloaded from the 5 External References (see ./corpus)"

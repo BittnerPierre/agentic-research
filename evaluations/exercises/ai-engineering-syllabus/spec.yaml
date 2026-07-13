@@ -1,0 +1,25 @@
+# Format / compliance spec — conceptual exercise (lenient structure, strict grounding).
+
+required_chapters: []          # report structure is open for this course-prep task
+
+embedded_tables:
+  required: false
+  min_tables: 0
+
+only_provided_sources:
+  enforce: true
+
+tone:
+  register: "instructional, factual"
+  forbidden_language: []       # no positioning constraint here
+
+length:
+  min_words: 300
+  max_words: 2500
+
+scoring:
+  axes:
+    coverage: {weight: 0.80}   # concept recall dominates
+    fabrication_gate: {type: penalty, per_item_penalty: 8, hard_cap_if_any: 50}
+    format: {weight: 0.20}
+  # accuracy axis N/A (no numeric facts); coverage + fabrication carry the grade.
