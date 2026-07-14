@@ -1,6 +1,8 @@
-# Format / compliance spec — conceptual exercise (lenient structure, strict grounding).
-
-required_chapters: []          # report structure is open for this course-prep task
+required_chapters:
+  - Prompting
+  - Retrieval
+  - Agent Systems
+  - Source Gaps
 
 embedded_tables:
   required: false
@@ -8,18 +10,18 @@ embedded_tables:
 
 only_provided_sources:
   enforce: true
+  forbid_web_citations: true
 
 tone:
-  register: "instructional, factual"
-  forbidden_language: []       # no positioning constraint here
+  register: "instructional and factual"
+  forbidden_language: []
 
 length:
-  min_words: 300
-  max_words: 2500
+  min_words: 600
+  max_words: 2200
 
 scoring:
   axes:
-    coverage: {weight: 0.80}   # concept recall dominates
-    fabrication_gate: {type: penalty, per_item_penalty: 8, hard_cap_if_any: 50}
+    coverage: {weight: 0.80}
+    fabrication_gate: {type: penalty, hard_cap_if_any: 40}
     format: {weight: 0.20}
-  # accuracy axis N/A (no numeric facts); coverage + fabrication carry the grade.

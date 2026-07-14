@@ -5,8 +5,8 @@ report (Form 10-K), consolidated statements. **Fiscal-year-end differs by compan
 Amazon/Alphabet/Meta = December; Microsoft = June; NVIDIA = late January;
 Apple = late September. Compare on a fiscal-year basis, not calendar.
 
-Metric definitions: Operating margin = Operating income / Revenue. 
-Free cash flow (FCF) = Operating cash flow − Capex. 
+Metric definitions: Operating margin = Operating income / Revenue.
+Free cash flow (FCF) = Operating cash flow - Capex.
 Capex intensity = Capex / Operating cash flow.
 
 

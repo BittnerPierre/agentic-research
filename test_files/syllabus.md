@@ -1,38 +1,41 @@
-# AI Engineer Basic Course Syllabus
+# Junior AI Engineering Reference Brief
 
-## Course Objective
+## Objective
 
-This basic course introduces software professionals to essential AI engineering concepts and practical workflows, including prompt engineering, retrieval-augmented generation, agent systems, and using the ChatGPT API to build AI-powered applications.
+Prepare a factual onboarding brief for a junior AI engineer. Explain the requested
+concepts from the five supplied references, connect them into practical workflows,
+and make the limits of the source pack visible. This is documentation synthesis, not
+an invitation to add facts from memory.
 
-## Course Duration
+## Required coverage
 
-- **1-Day Workshop** (8 hours)
+### Prompting
 
-## Modules
+Explain system/developer versus user messages, zero-shot prompting, few-shot
+prompting, chain-of-thought prompting, and ReAct. Distinguish the techniques rather
+than listing their names.
 
-### Module 1: Prompt Engineering for Developers
+### Retrieval and RAG
 
-- Learn system vs. user prompts, zero-shot & few-shot techniques
-- Practice Chain-of-Thought and ReAct prompting
-- Hands-on: iterate prompts to optimize responses
+Explain embeddings, vector search or vector stores, retrieval-augmented generation,
+and ChromaDB. Describe how retrieval supplies context to generation.
 
-### Module 2: Advanced Retrieval for AI
+### Agent systems
 
-- Understand embeddings and vector search fundamentals
-- Explore RAG workflows with ChromaDB
-- Hands-on: build a simple document Q&A chatbot
+Explain orchestration, multi-agent execution, agent memory, function calling or tool
+use, and error handling with retries or recovery.
 
-### Module 3: Multi AI Agent Systems
+## Source discipline
 
-- Introduction to agent frameworks and orchestration
-- Explore multi-agent planning and memory workflows
-- Hands-on: prototype a basic AI assistant with multiple tools
+Use only the five references below. Cite the supplied source ID in every concept
+explanation. If the references do not substantively explain a requested concept,
+state that source gap explicitly instead of filling it from prior knowledge. A source
+title, keyword mention, or unsupported search summary is not evidence by itself.
 
-### Module 4: Building Systems with the ChatGPT API
-
-- Fundamentals of the ChatGPT API and function calling
-- Best practices for API integration and error handling
-- Hands-on: build a ChatGPT-based application
+Write 24-80 words per concept or tightly related concept pair. Use the sections
+Prompting, Retrieval and RAG, Agent Systems, and Source Gaps. Keep the full brief
+between 600 and 2,200 words, excluding the generated Sources section. Avoid fixed
+numeric recommendations unless the cited reference explicitly provides them.
 
 ## External References:
 

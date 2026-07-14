@@ -50,6 +50,8 @@ class DeepResearchManager:
             "failures": 0,
         }
         self.search_failure_breakdown: dict[str, int] = {}
+        self._benchmark_run_dir: Path | None = None
+        self._benchmark_search_results: list[str] = []
         self.usage_summary = {
             "requests": 0,
             "input_tokens": 0,
@@ -113,6 +115,7 @@ class DeepResearchManager:
 
         # Start timing
         workflow_start = time.time()
+        self._start_benchmark_run()
 
         trace_id = gen_trace_id()
         with trace(
@@ -142,31 +145,37 @@ class DeepResearchManager:
             self.writer_agent = create_writer_agent([self.fs_server], do_save_report=False)
 
             # Phase 1: Knowledge Preparation
-            prep_start = time.time()
-            agenda = await self._prepare_knowledge(query)
-            self.timings["knowledge_preparation"] = time.time() - prep_start
+            agenda = await self._execute_benchmark_phase(
+                "knowledge_preparation", self._prepare_knowledge(query), query
+            )
             print("\n\n=====AGENDA=====\n\n")
             print(agenda)
 
             # Phase 2: Planning
-            plan_start = time.time()
-            search_plan = await self._plan_file_searches(agenda)
-            self.timings["planning"] = time.time() - plan_start
+            search_plan = await self._execute_benchmark_phase(
+                "planning", self._plan_file_searches(agenda), query
+            )
             print("\n\n=====SEARCH PLAN=====\n\n")
             print(search_plan)
 
             # Phase 3: Search
-            search_start = time.time()
-            search_results = await self._perform_file_searches(search_plan)
-            self.timings["search"] = time.time() - search_start
+            search_results = await self._execute_benchmark_phase(
+                "search", self._perform_file_searches(search_plan), query
+            )
+            self._benchmark_search_results = search_results
 
             # Gate: block report if no exploitable source was produced
-            check_search_results_gate(search_results)
+            try:
+                check_search_results_gate(search_results)
+            except Exception as exc:
+                self.agent_calls["failures"] += 1
+                self._persist_benchmark_failure(query, "search_gate", exc)
+                raise
 
             # Phase 4: Writing
-            write_start = time.time()
-            report = await self._write_report(query, search_results, agenda)
-            self.timings["writing"] = time.time() - write_start
+            report = await self._execute_benchmark_phase(
+                "writing", self._write_report(query, search_results, agenda), query
+            )
 
             final_report = f"Report summary\n\n{report.short_summary}"
             self.printer.update_item("final_report", final_report, is_done=True)
@@ -207,6 +216,29 @@ class DeepResearchManager:
             "preparing", "Préparation de la connaissance terminée", is_done=True
         )
         return str(result.final_output)
+
+    def _start_benchmark_run(self) -> None:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        strategy = self._config.agents.writer_strategy
+        self._benchmark_run_dir = (
+            Path("benchmarks") / "runs" / f"{timestamp}_{self._config.config_name}_{strategy}"
+        )
+        self._benchmark_run_dir.mkdir(parents=True, exist_ok=True)
+
+    async def _execute_benchmark_phase(self, phase: str, operation, query: str):
+        started = time.time()
+        try:
+            return await operation
+        except Exception as exc:
+            self.timings[phase] = time.time() - started
+            self.timings["total"] = sum(
+                duration for name, duration in self.timings.items() if name != "total"
+            )
+            self.agent_calls["failures"] += 1
+            self._persist_benchmark_failure(query, phase, exc)
+            raise
+        finally:
+            self.timings.setdefault(phase, time.time() - started)
 
     async def _plan_file_searches(self, query: str) -> FileSearchPlan:
         self.printer.update_item("planning", "Planification des recherches dans les fichiers...")
@@ -552,8 +584,11 @@ class DeepResearchManager:
         try:
             cfg = self._config
             strategy = cfg.agents.writer_strategy
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            run_dir = Path("benchmarks") / "runs" / f"{timestamp}_{cfg.config_name}_{strategy}"
+            run_dir = self._benchmark_run_dir
+            if run_dir is None:
+                self._start_benchmark_run()
+                run_dir = self._benchmark_run_dir
+            assert run_dir is not None
             run_dir.mkdir(parents=True, exist_ok=True)
 
             sources = aggregate_sources(search_results)
@@ -593,6 +628,72 @@ class DeepResearchManager:
             print(f"Benchmark stats saved: {run_dir / 'stats.json'}")
         except Exception as exc:  # never let stats persistence break a run
             print(f"Warning: could not persist benchmark stats: {exc}")
+
+    def _persist_benchmark_failure(self, query: str, phase: str, exc: Exception) -> None:
+        """Persist a zero-score artifact so failed workflows remain comparable."""
+        try:
+            run_dir = self._benchmark_run_dir
+            if run_dir is None:
+                self._start_benchmark_run()
+                run_dir = self._benchmark_run_dir
+            assert run_dir is not None
+
+            sources = aggregate_sources(self._benchmark_search_results)
+            (run_dir / "sources.json").write_text(
+                json.dumps(
+                    [source.model_dump() for source in sources], ensure_ascii=False, indent=2
+                ),
+                encoding="utf-8",
+            )
+            failure = {
+                "phase": phase,
+                "exception_type": type(exc).__name__,
+                "message": str(exc),
+            }
+            self.usage_by_phase["total"] = dict(self.usage_summary)
+            stats = {
+                "config_name": self._config.config_name,
+                "writer_strategy": self._config.agents.writer_strategy,
+                "manager": "deep_manager",
+                "query": query,
+                "report_file": None,
+                "output_dir": self._config.agents.output_dir,
+                "success": False,
+                "status": "failed",
+                "failure": failure,
+                "models": self._model_summary(),
+                "timings": self.timings,
+                "usage_by_phase": self.usage_by_phase,
+                "agent_calls": self.agent_calls,
+                "n_sources": len(sources),
+                "writer_metrics": self.writer_metrics,
+            }
+            (run_dir / "stats.json").write_text(
+                json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            deterministic_failure = {
+                "exercise": None,
+                "score": 0.0,
+                "qualified": False,
+                "qualification": {
+                    "passed": False,
+                    "blockers": ["workflow failed"],
+                    "critical_requirement_failures": [],
+                    "format_blockers": [],
+                },
+                "requirements": [],
+                "root_cause": {
+                    "verdict": f"{phase}: {type(exc).__name__}",
+                    **failure,
+                },
+            }
+            (run_dir / "det_grade.json").write_text(
+                json.dumps(deterministic_failure, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            print(f"Benchmark failure saved: {run_dir / 'stats.json'}")
+        except Exception as persist_exc:
+            print(f"Warning: could not persist benchmark failure: {persist_exc}")
 
     def _record_usage(self, result, phase: str | None = None) -> None:
         usage = getattr(getattr(result, "context_wrapper", None), "usage", None)

@@ -1,59 +1,31 @@
-# Exercise — Finance: AI-Era Capex Intensity (junior-analyst data prep)
+# FY2025 AI Capex Intensity Exercise
 
-A **deterministic** benchmark exercise for the agentic research workflow, built on
-authoritative SEC EDGAR data. It replaces open LLM-judge grading with mechanical
-checks + closed entailment against a fixed answer key.
+This deterministic exercise tests a junior-analyst report across Amazon, Alphabet,
+Meta, Microsoft, NVIDIA, and Apple. It is calibrated for medium 24B-250B models:
+the task asks for factual extraction, simple ratios, source gaps, and neutral trends,
+not an investment thesis.
 
-## What it tests, and for whom
+## Frozen contract
 
-The **whole workflow** end-to-end — knowledge preparation, retrieval, agenda, and
-the final report. It is calibrated for **medium-size, new-generation models**
-(e.g. Mistral Small 4, Qwen 3.6) hosted on **DGX Spark (GB10)**, solo or cluster —
-**not** frontier models. Accordingly the task is a **junior-analyst data prep**:
-gather reported figures, compute first-level ratios, describe trends **neutrally**.
-It deliberately does **not** ask for a market thesis, positioning, or forecast —
-that would be a senior-analyst task and hard to score deterministically.
+- `syllabus.md` requests seven FY2025 metrics for each company: 42 required facts.
+- `answer_key.yaml` declares companies, metrics, and periods without duplicating values.
+- `corpus/key_metrics.csv` is the numeric truth generated from SEC Company Facts.
+- `corpus/manifest.json` records the six input snapshot hashes and generated-file hashes.
+- `generate.py` regenerates the corpus and fails if the answer-key dimensions are absent.
+- `capex_guidance_2025.md` freezes initial guidance as of February 7, 2025 and records
+  the basis mismatch that makes Meta's guidance variance not like-for-like.
 
-## The exercise
+Regenerate with:
 
-- **Task**: `syllabus.md` — assemble a factual capex-intensity data pack for six
-  large-cap tech companies (Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple),
-  using only the provided sources, in a chaptered brief with data tables.
-- **KB / corpus**: `corpus/` — multi-format, so retrieval must handle heterogeneity:
-  - `capex_reference_data.md` — clean markdown data tables (the actuals grid).
-  - `analyst_prep_notes.md` — the same figures as factual prose notes.
-  - `key_metrics.csv` — compact structured extract (the accuracy universe).
-  - `capex_guidance_2025.md` — forward guidance (kept separate from actuals).
-  - `misc_disclosures.md` — off-theme facts (R&D, dividends, headcount) = distractors.
-- **Answer key**: `answer_key.yaml` — must_cover / accuracy_universe / distractors.
-- **Spec**: `spec.yaml` — chapters, tables, only-provided, **tone neutrality**, weights.
+```bash
+uv run python evaluations/exercises/ai-capex-intensity/generate.py \
+  --companyfacts-dir /path/to/companyfacts
+```
 
-## Scoring model (no open "grade it 0-1" judge)
+## Qualification
 
-| Axis | Mechanism | Deterministic? |
-| --- | --- | --- |
-| **Coverage** (must_cover) | headline figures → anchor tokens (grep); factual trend claims → closed LLM-entailment (YES/NO + quote) | numeric: yes |
-| **Accuracy** | figures in the report matched to `key_metrics.csv` after number normalization | **yes** |
-| **Fabrication gate** | numbers/entities not traceable to the corpus | **yes** — the lock |
-| **Agenda discipline** | distractor facts pulled in | **yes** |
-| **Tone neutrality** | forbidden opinion/forecast language (this exercise is factual-only) | **yes** |
-| **Format** | required chapters + parseable tables + length | **yes** |
-
-Grade is **factual**: raw counts (`23/25 must-cover, 0 fabrications, 1 tone
-violation, 6/6 chapters`). Run **N times per model**, report mean ± std (retrieval
-variance is the only remaining run-to-run noise; corpus + answer key are fixed).
-
-## Provenance — authoritative ground truth
-
-Corpus and answer key are **both generated from the same EDGAR XBRL extraction**
-(`scratchpad/gen_capex_exercise.py`), so they cannot drift. Annual values are taken
-from 10-K filings, keyed by the fact's **period end date** (not the filing's `fy`
-label — a common XBRL trap that mis-dates comparative-year figures). Each company
-uses its most recent fiscal year with a complete metric set; fiscal-year-ends differ
-(Dec / June / late-Jan / late-Sep) and are labeled throughout.
-
-## Status
-
-Draft authored by Opus 2026-07-13 — **answer key pending Pierre's review**. Scorer
-(`deterministic_grade.py`) not built yet. Sibling exercises using the same scorer:
-`finance-consumer-platforms` (ready) and a conceptual AI-engineering exercise (todo).
+`deterministic_grade.py` emits both a diagnostic score and `qualified`. Qualification
+requires every critical report requirement, no wrong or fabricated factual claim,
+the requested report structure, and the frozen source policy. Tone, exact table layout,
+and ambiguous but non-contradictory prose remain diagnostic to avoid penalizing medium
+models for stylistic variance.

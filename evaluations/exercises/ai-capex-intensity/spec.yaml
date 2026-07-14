@@ -1,16 +1,15 @@
-# Format / compliance spec — checked mechanically against the final report.
-
-required_chapters:            # matched by heading, case-insensitive, fuzzy
+required_chapters:
   - Overview
-  - Revenue
+  - Profitability
   - Capex
-  - Cash Generation
+  - Capex Trends
+  - Guidance
   - Comparison
   - Data Gaps
 
 embedded_tables:
   required: true
-  min_tables: 3               # revenue/margin, capex, cash-generation at least
+  min_tables: 1
   expected_columns: [Company, Metric, Period, Value]
   parseable: true
 
@@ -18,55 +17,27 @@ only_provided_sources:
   enforce: true
   forbid_web_citations: true
 
-# Neutral factual tone — this is the axis the reframing added. Editorializing,
-# rating, forecasting, or taking a position is a violation for THIS exercise.
 tone:
   register: "neutral, factual, descriptive; junior-analyst data prep"
-  forbidden_language:         # opinion / positioning / forecasting markers
-    - "we expect"
-    - "we believe"
-    - "should"
+  forbidden_language:
+    - "we recommend"
     - "best positioned"
     - "most disciplined"
-    - "from strength"
-    - "outperform"
-    - "buy"
-    - "sell"
-    - "attractive"
-    - "the market will"
-    - "poised to"
-  per_violation_penalty: 4
+    - outperform
+    - overweight
+    - underweight
+    - "buy rating"
+    - "sell rating"
 
 length:
-  min_words: 350
-  max_words: 1400
+  min_words: 500
+  max_words: 1800
 
-# Deterministic scoring. Grade is factual (raw counts), not a vibe score.
 scoring:
   axes:
-    coverage:                 # recall over must_cover — dominant: a data pack that
-      weight: 0.50            # omits a third of the required figures must score low
-    accuracy:                 # figures appearing vs accuracy_universe (key_metrics.csv)
-      weight: 0.20
-    fabrication_gate:
-      type: penalty
-      per_item_penalty: 8
-      hard_cap_if_any: 45      # any fabrication = unacceptable (zero tolerance)
-    agenda_discipline:        # distractor facts pulled into the brief
-      weight: 0.10
-      per_distractor_penalty: 5
-    tone_neutrality:          # forbidden_language occurrences
-      weight: 0.10
-    format:                   # required_chapters + tables + length
-      weight: 0.10
-  report_counts:
-    - n_must_cover_total
-    - n_must_cover_hit
-    - n_figures_in_report
-    - n_figures_matching
-    - n_figures_wrong
-    - n_fabricated_specifics
-    - n_distractors_cited
-    - n_tone_violations
-    - n_required_chapters_present
-    - n_tables_parseable
+    coverage: {weight: 0.60}
+    accuracy: {weight: 0.20}
+    fabrication_gate: {type: penalty, hard_cap_if_any: 40}
+    agenda_discipline: {weight: 0.05}
+    tone_neutrality: {weight: 0.05}
+    format: {weight: 0.10}

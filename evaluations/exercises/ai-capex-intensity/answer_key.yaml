@@ -1,129 +1,79 @@
-# Deterministic answer key — AI Capex Intensity (junior-analyst factual data prep)
-#
-# Ground truth = the corpus under ./corpus, GENERATED from EDGAR companyfacts XBRL
-# by scratchpad/gen_capex_exercise.py. Corpus and answer key come from the same
-# extraction, so they are consistent by construction.
-#
-# The task is FACTUAL data-gathering + first-level analysis (a junior analyst
-# assembling figures and simple ratios). It is NOT a market study. There is no
-# "thesis" to grade — only whether the right figures are present, correct, and not
-# fabricated, with neutral descriptive commentary.
-#
-# Tiers:
-#   must_cover        -> RECALL. Headline figures + neutral factual trend statements.
-#   accuracy_universe -> PRECISION. Any figure appearing must match (after number
-#                        normalization). Full grid lives in corpus/key_metrics.csv.
-#   distractors       -> AGENDA DISCIPLINE. Off-theme figures; citing them is a
-#                        relevance penalty.
-#
-# Tolerances (scorer): $B values ±0.2; percentages/margins ±0.3pp; ratios ±2pp.
+# Deterministic contract for the junior-analyst AI capex report.
+# Numeric values are read from corpus/key_metrics.csv. Keeping the requirement
+# dimensions here and the values in one generated table prevents silent drift.
 
+mode: numeric
 theme: "AI-era capital-expenditure intensity across six large-cap tech companies"
 companies_in_scope: [Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple]
-note_fiscal_years: >
-  Each company is reported on its most recent fiscal year with a COMPLETE metric
-  set: Amazon/Alphabet/Meta FY2024 (Dec), Microsoft FY2024 (Jun), NVIDIA FY2025
-  (Jan), Apple FY2025 (Sep). Fiscal-year ends differ; do not conflate with calendar.
 
-# ---------------------------------------------------------------------------
-# TIER 1 — must_cover
-# ---------------------------------------------------------------------------
-must_cover:
+numeric_requirements:
+  require_latest: true
+  metrics:
+    - Revenue
+    - Operating income
+    - Operating margin
+    - Operating cash flow
+    - Capex
+    - FCF
+    - Capex/OCF
+  periods:
+    Amazon: FY2025
+    Alphabet: FY2025
+    Meta: FY2025
+    Microsoft: FY2025
+    NVIDIA: FY2025
+    Apple: FY2025
 
-  # --- Headline figures per company (latest complete FY): rev, op margin, capex, capex/OCF ---
-  - {id: amzn_rev,   kind: numeric, company: Amazon,    metric: Revenue,           period: FY2024, value: 638.0, unit: USD_billions, anchors_all: [Amazon, "638"]}
-  - {id: amzn_opm,   kind: numeric, company: Amazon,    metric: Operating margin,  period: FY2024, value: 10.8,  unit: percent,       anchors_all: [Amazon, "10.8"]}
-  - {id: amzn_cpx,   kind: numeric, company: Amazon,    metric: Capex,             period: FY2024, value: 83.0,  unit: USD_billions, anchors_all: [Amazon, "83"]}
-  - {id: amzn_cxo,   kind: numeric, company: Amazon,    metric: Capex/OCF,         period: FY2024, value: 72,    unit: percent,       anchors_all: [Amazon, "72"]}
+# These local semantic checks validate the requested report, not writing style.
+text_requirements:
+  - id: metric_definitions
+    label: "FCF and capex-intensity definitions"
+    anchors_any: ["free cash flow", FCF, "capex intensity", "capex/OCF"]
+    semantic_groups:
+      - ["operating cash flow", OCF]
+      - [subtract, minus, "-", ratio, divided, percentage, "%"]
+  - id: fiscal_year_caveat
+    label: "different fiscal-year ends are disclosed"
+    anchors_any: ["fiscal year", "fiscal-year", "exercice fiscal", FYE]
+    semantic_groups:
+      - [differ, different, diffèrent, differentes, December, décembre, June, juin, January, janvier, September, septembre, clôturent]
+      - [Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple]
+  - id: capex_trends
+    label: "capex trend direction and magnitude"
+    anchors_any: [trend, rose, increased, moved, grew, declined, stable]
+    semantic_groups:
+      - [capex, "capital expenditure"]
+      - [FY2020, FY2021, FY2022, FY2023, FY2024]
+      - [FY2025]
+  - id: guidance_actual_separation
+    label: "guidance is separated from reported actuals"
+    anchors_any: [guidance, outlook]
+    semantic_groups:
+      - [actual, reported, "10-K"]
+      - [basis, "not like-for-like", comparable, comparison]
+  - id: data_gaps
+    label: "requested source gaps are reported without estimation"
+    anchors_any: ["data gap", unavailable, missing, "not disclosed", "no gap"]
+    semantic_groups:
+      - [source, corpus, provided]
 
-  - {id: googl_rev,  kind: numeric, company: Alphabet,  metric: Revenue,           period: FY2024, value: 350.0, unit: USD_billions, anchors_all: [Alphabet, "350"]}
-  - {id: googl_opm,  kind: numeric, company: Alphabet,  metric: Operating margin,  period: FY2024, value: 32.1,  unit: percent,       anchors_all: [Alphabet, "32.1"]}
-  - {id: googl_cpx,  kind: numeric, company: Alphabet,  metric: Capex,             period: FY2024, value: 52.5,  unit: USD_billions, anchors_all: [Alphabet, "52.5"]}
-  - {id: googl_cxo,  kind: numeric, company: Alphabet,  metric: Capex/OCF,         period: FY2024, value: 42,    unit: percent,       anchors_all: [Alphabet, "42"]}
-
-  - {id: meta_rev,   kind: numeric, company: Meta,      metric: Revenue,           period: FY2024, value: 164.5, unit: USD_billions, anchors_all: [Meta, "164.5"]}
-  - {id: meta_opm,   kind: numeric, company: Meta,      metric: Operating margin,  period: FY2024, value: 42.2,  unit: percent,       anchors_all: [Meta, "42.2"]}
-  - {id: meta_cpx,   kind: numeric, company: Meta,      metric: Capex,             period: FY2024, value: 37.3,  unit: USD_billions, anchors_all: [Meta, "37.3"]}
-  - {id: meta_cxo,   kind: numeric, company: Meta,      metric: Capex/OCF,         period: FY2024, value: 41,    unit: percent,       anchors_all: [Meta, "41"]}
-
-  - {id: msft_rev,   kind: numeric, company: Microsoft, metric: Revenue,           period: FY2024, value: 245.1, unit: USD_billions, anchors_all: [Microsoft, "245"]}
-  - {id: msft_opm,   kind: numeric, company: Microsoft, metric: Operating margin,  period: FY2024, value: 44.6,  unit: percent,       anchors_all: [Microsoft, "44.6"]}
-  - {id: msft_cpx,   kind: numeric, company: Microsoft, metric: Capex,             period: FY2024, value: 44.5,  unit: USD_billions, anchors_all: [Microsoft, "44.5"]}
-  - {id: msft_cxo,   kind: numeric, company: Microsoft, metric: Capex/OCF,         period: FY2024, value: 38,    unit: percent,       anchors_all: [Microsoft, "38"]}
-
-  - {id: nvda_rev,   kind: numeric, company: NVIDIA,    metric: Revenue,           period: FY2025, value: 130.5, unit: USD_billions, anchors_all: [NVIDIA, "130.5"]}
-  - {id: nvda_opm,   kind: numeric, company: NVIDIA,    metric: Operating margin,  period: FY2025, value: 62.4,  unit: percent,       anchors_all: [NVIDIA, "62.4"]}
-  - {id: nvda_cpx,   kind: numeric, company: NVIDIA,    metric: Capex,             period: FY2025, value: 3.2,   unit: USD_billions, anchors_all: [NVIDIA, "3.2"]}
-  - {id: nvda_cxo,   kind: numeric, company: NVIDIA,    metric: Capex/OCF,         period: FY2025, value: 5,     unit: percent,       anchors_all: [NVIDIA, "5"]}
-
-  - {id: aapl_rev,   kind: numeric, company: Apple,     metric: Revenue,           period: FY2025, value: 416.2, unit: USD_billions, anchors_all: [Apple, "416"]}
-  - {id: aapl_opm,   kind: numeric, company: Apple,     metric: Operating margin,  period: FY2025, value: 32.0,  unit: percent,       anchors_all: [Apple, "32"]}
-  - {id: aapl_cpx,   kind: numeric, company: Apple,     metric: Capex,             period: FY2025, value: 12.7,  unit: USD_billions, anchors_all: [Apple, "12.7"]}
-  - {id: aapl_cxo,   kind: numeric, company: Apple,     metric: Capex/OCF,         period: FY2025, value: 11,    unit: percent,       anchors_all: [Apple, "11"]}
-
-  # --- Neutral, factual trend statements (directional facts, NOT opinions) ---
-  - id: trend_hyperscaler_capex_rising
-    kind: qualitative
-    claim: >
-      Reported capex rose materially over FY2020-FY2024 for the four cloud/platform
-      companies (e.g. Amazon ~$40B -> ~$83B; Alphabet ~$22B -> ~$52B; Meta ~$15B ->
-      ~$37B; Microsoft ~$15B -> ~$44B).
-    anchors_any: [capex, "capital expenditure"]
-    verify: entailment
-  - id: trend_nvidia_low_capex
-    kind: qualitative
-    claim: >
-      NVIDIA's capex is small relative to its cash generation (a few $B, ~5% of
-      operating cash flow) even as its revenue grew sharply.
-    anchors_any: [NVIDIA]
-    verify: entailment
-  - id: trend_apple_flat_capex
-    kind: qualitative
-    claim: >
-      Apple's capex stayed low and broadly flat (~$9-13B/yr, ~8-11% of operating
-      cash flow), not rising with the cloud peers.
-    anchors_any: [Apple]
-    verify: entailment
-
-  # --- Guidance vs actuals (factual: management-stated guidance is a disclosed fact) ---
-  - id: guidance_present
-    kind: qualitative
-    claim: >
-      2025 capex GUIDANCE is reported for Amazon (~$100B+), Alphabet (~$75B), and
-      Meta (~$72-75B), and is distinguished from reported actuals; guidance for
-      Microsoft/NVIDIA/Apple is stated as not available in the sources.
-    anchors_any: [guidance, "2025"]
-    verify: entailment
-
-# ---------------------------------------------------------------------------
-# TIER 2 — accuracy_universe
-# The full FY2020-FY2025 grid (revenue, operating income, operating margin, OCF,
-# capex, FCF, capex/OCF) for all six companies lives in corpus/key_metrics.csv.
-# The scorer loads that CSV as the accuracy universe: any figure appearing in the
-# report must match a CSV row (company+metric+period) within tolerance; a
-# contradicting value = error; a specific number not in the CSV nor elsewhere in
-# the corpus = fabrication.
-# ---------------------------------------------------------------------------
 accuracy_universe:
   source: corpus/key_metrics.csv
 
-# ---------------------------------------------------------------------------
-# TIER 3 — distractors (off-theme; citing in the brief = agenda/relevance penalty)
-# ---------------------------------------------------------------------------
 distractors:
   facts:
-    - {company: Apple,     metric: R&D expense,          period: FY2025, value: 34.5, unit: USD_billions, keyword: "R&D"}
-    - {company: Apple,     metric: Dividends paid,       period: FY2025, value: 15.4, unit: USD_billions, keyword: "dividend"}
-    - {company: Microsoft, metric: R&D expense,          period: FY2025, value: 32.5, unit: USD_billions, keyword: "research and development"}
-    - {company: Microsoft, metric: Employees outside US, period: FY2024, value: 44.7, unit: percent,      keyword: "outside the U"}
-  note: >
-    R&D, dividends, and workforce geography are real disclosures but off-theme for a
-    capex-intensity data pack; pulling them into the brief is a relevance miss.
+    - {company: Apple, metric: R&D expense, period: FY2025, value: 34.5, unit: USD_billions, keyword: "R&D"}
+    - {company: Apple, metric: Dividends paid, period: FY2025, value: 15.4, unit: USD_billions, keyword: dividend}
+    - {company: Microsoft, metric: R&D expense, period: FY2025, value: 32.5, unit: USD_billions, keyword: "research and development"}
+    - {company: Microsoft, metric: Employees outside US, period: FY2024, value: 44.7, unit: percent, keyword: "outside the U"}
 
-# ---------------------------------------------------------------------------
-# Provenance
-# ---------------------------------------------------------------------------
 provenance:
-  source_dataset: "SEC EDGAR bulk companyfacts (XBRL), downloaded ~2026-04"
-  extractor: "scratchpad/gen_capex_exercise.py (annual 10-K values, keyed by period end date)"
-  ciks: {Amazon: "0001018724", Alphabet: "0001652044", Meta: "0001326801", Microsoft: "0000789019", NVIDIA: "0001045810", Apple: "0000320193"}
+  source_dataset: "SEC EDGAR Company Facts snapshots supplied with issue 196"
+  generator: evaluations/exercises/ai-capex-intensity/generate.py
+  ciks:
+    Amazon: "0001018724"
+    Alphabet: "0001652044"
+    Meta: "0001326801"
+    Microsoft: "0000789019"
+    NVIDIA: "0001045810"
+    Apple: "0000320193"

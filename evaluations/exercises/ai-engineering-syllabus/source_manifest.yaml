@@ -1,0 +1,16 @@
+sources:
+  - url: https://huyenchip.com/2025/01/07/agents.html
+    file_pattern: Agents*.md
+    sha256: a75132168cd499347eaddd1bfcb183b041bb3cb415a228ffc761f356dffdaf9c
+  - url: https://www.anthropic.com/engineering/built-multi-agent-research-system
+    file_pattern: How_we_built_our_multi*.md
+    sha256: 77d9d344f3f0abe1eaa96fb3130c545121529452f14e170eb62b92edb7fba791
+  - url: https://platform.openai.com/docs/guides/text?api-mode=chat
+    file_pattern: Text_generation*.md
+    sha256: 02cf067b92b7f6e1e3595329ac185553d1c8f815abdf52fb1c7a9fd2a0518aad
+  - url: https://medium.com/@callumjmac/advanced-retrieval-for-retrieval-augmented-generation-99042fa6b774
+    file_pattern: Advanced_Retrieval_for_Retrieval-Augmented_Generat*.md
+    sha256: 78f9793a292c3c76e5f03772b92aaa23ef3e74a2db0f5b9310d9ec5ba734e2ef
+  - url: https://medium.com/@farheenshaukat_19/building-systems-with-the-chatgpt-api-6b0bc6755799
+    file_pattern: Building_Systems_with_the_ChatGPT_API___by_Farheen*.md
+    sha256: bf943a9b2073edd6a08bd44004168e4d46fb0a48db84d112b40b73c81110c52a

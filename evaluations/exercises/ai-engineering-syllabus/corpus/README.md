@@ -1,19 +1,15 @@
-# Conceptual exercise corpus (not committed)
+# Conceptual Exercise Corpus
 
-The ground-truth corpus for this exercise is the **5 External References** listed in
-`test_files/syllabus.md` (huyenchip agents, Anthropic multi-agent, OpenAI text-gen
-docs, two Medium articles). Their full text is **not committed** (third-party
-content) — the deterministic grader needs them locally to build the fabrication
-whitelist and to check retrieval-vs-writer root cause.
+The corpus is the downloaded content of the five fixed URLs in `test_files/syllabus.md`.
+Third-party article bodies are not committed. `../source_manifest.yaml` freezes the
+expected filenames and SHA-256 hashes so a URL changing in place cannot silently change
+the benchmark.
 
-To populate this folder:
+At grading time, the five raw files must be present either here or in the run repository's
+`data/` directory. `sources.json` citations must contain chunk document IDs that resolve
+through `data/knowledge_db.json` to those raw files. A generated search summary with no
+document IDs is not accepted as evidence.
 
-1. Run the exercise once (the workflow downloads the 5 URLs):
-   `uv run agentic-research --config configs/tests/config-gpt54mini-chroma-decomposed.yaml \
-      --syllabus test_files/syllabus.md --vector-store bench-aieng --output-dir output/bench-aieng/`
-2. Copy the downloaded articles from `data/` into this folder:
-   `cp data/Agents_1.md data/Text_generation.md data/Advanced_Retrieval_*.md \
-      data/Building_Systems_with_the_ChatGPT_API_*.md data/How_we_built_our_multi_*.md \
-      evaluations/exercises/ai-engineering-syllabus/corpus/`
-
-The grader (`deterministic_grade.py`) then uses these as the corpus whitelist.
+To refresh the frozen corpus deliberately, download all five URLs, review source support
+for every answer-key item, update all five hashes together, and treat the result as a new
+benchmark version.
