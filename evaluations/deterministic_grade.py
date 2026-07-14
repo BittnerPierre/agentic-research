@@ -84,6 +84,20 @@ def close(a: float, b: float, tol_abs: float = 0.15, tol_rel: float = 0.01) -> b
     return abs(a - b) <= max(tol_abs, tol_rel * max(abs(a), abs(b)))
 
 
+# Change/derivation language: a number nearby is first-level trend analysis (growth,
+# delta, ratio, multiple) the data-prep task explicitly asks for — not a fabricated
+# primary fact. Used as a backstop to the operand-based derivation check.
+_DERIVED_CTX = (
+    "increase", "increased", "rise", "rose", "risen", "grew", "grow", "growth",
+    "growing", "jump", "jumped", "doubl", "tripl", "fold", "year-over-year",
+    "year over year", "yoy", "single-year", "basis point", "bps", "x increase",
+    "cagr", "expand", "compress", "declin", "decreas", "up from", "down from",
+    "rise from", "increase from", "vs.", "versus", "delta", "range", "trajectory",
+    "escalation", "nearly doubled", "represents a", "climbed", "diverged",
+    "exceed", "surpass", "shy of", "above the", "below the", "more than",
+)
+
+
 # ---------------------------------------------------------------------------
 # Corpus ground truth
 # ---------------------------------------------------------------------------
@@ -95,6 +109,8 @@ METRIC_ORDER = [
     ("intensitecapex", "Capex/OCF"),
     ("intensite", "Capex/OCF"),
     ("capex/ocf", "Capex/OCF"),
+    ("%ocf", "Capex/OCF"),          # "Capex as % OCF" -> intensity, not OCF
+    ("aspercentocf", "Capex/OCF"),
     ("intensity", "Capex/OCF"),
     ("fluxdetresoreriedisponible", "FCF"),
     ("freecashflow", "FCF"),
@@ -268,6 +284,31 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
 
     # ---- fabrication gate (ZERO TOLERANCE) ----
     report_nums = extract_numbers(report_md)
+    # Spans where numbers are NOT grounding claims: fenced/inline code (example data)
+    # and heading lines (section numbers like "3.1"). Skip fabrication checks there.
+    _ignore = []
+    for _m in re.finditer(r"```.*?```", report_md, re.S):
+        _ignore.append((_m.start(), _m.end()))
+    for _m in re.finditer(r"`[^`\n]*`", report_md):
+        _ignore.append((_m.start(), _m.end()))
+    for _m in re.finditer(r"(?m)^#{1,6}.*$", report_md):
+        _ignore.append((_m.start(), _m.end()))
+
+    def _in_ignore(p: int) -> bool:
+        return any(a <= p < b for a, b in _ignore)
+
+    def _is_derived(x: float, neighbors: list[float]) -> bool:
+        # x is a shown derivation if it equals delta / growth% / ratio% / multiple
+        # of two corpus-valid numbers that appear right next to it in the report.
+        for a in neighbors:
+            for b in neighbors:
+                if a == b or b == 0:
+                    continue
+                for cand in (abs(a - b), a / b, (a / b - 1.0) * 100.0, a / b * 100.0):
+                    if close(x, cand, tol_abs=0.6, tol_rel=0.02):
+                        return True
+        return False
+
     hedge_words = (
         "supérieur", "superieur", "inférieur", "inferieur", "plus de", "moins de",
         "environ", "près de", "pres de", "dans les", "au-dessus", "au dessus",
@@ -278,12 +319,25 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     for val, unit, pos in report_nums:
         if 1990 <= val <= 2100 and float(val).is_integer():
             continue  # years
+        if _in_ignore(pos):
+            continue  # code example / section number, not a grounding claim
         if in_whitelist(val, whitelist):
             continue
         # skip round-ten integers used as a hedge/threshold ("marges > 30%"):
         # a reasonable summary, not an invented precise statistic.
         pre = report_md[max(0, pos - 28) : pos].lower()
         if float(val).is_integer() and val % 10 == 0 and any(h in pre for h in hedge_words):
+            continue
+        # skip correct derivations shown next to their operands (growth %, delta,
+        # ratio, multiple) — first-level analysis the task explicitly asks for.
+        window = report_md[max(0, pos - 90) : pos + 90]
+        neighbors = [v for v, _u, _p in extract_numbers(window) if in_whitelist(v, whitelist)]
+        if _is_derived(val, neighbors):
+            continue
+        # backstop: numbers in explicit change/derivation language are first-level
+        # trend analysis (the task asks for it), not fabricated primary facts.
+        ctx_low = report_md[max(0, pos - 60) : pos + 40].lower()
+        if any(w in ctx_low for w in _DERIVED_CTX):
             continue
         ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
         fabricated.append({"value": val, "unit": unit, "context": ctx.strip()})
