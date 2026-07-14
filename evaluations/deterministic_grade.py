@@ -1095,6 +1095,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         ]
         if candidates and any(close(value, candidate) for candidate in candidates):
             return True
+        if percentage_claim:
+            claim_prefix = _deaccent(clause[max(0, relative_pos - 72) : relative_pos].lower())
+            if re.search(
+                r"\b(?:grew|increased|rose|growth|hausse|croissance|progression)\b"
+                r".{0,32}\b(?:by|de)\b",
+                claim_prefix,
+            ):
+                return None  # A rate of change is a derivation, not the metric level.
         same_company_period_values = [
             fact_value
             for (fact_company, _fact_metric, fact_period), fact_value in facts.items()
@@ -1330,11 +1338,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             ):
                 continue
             citation_support_failed = True
-        elif (
-            mode == "numeric"
-            and unit not in {"x", "\u00d7"}
-            and (in_whitelist(val, whitelist) or unit in {"b", "$"})
-        ):
+        elif mode == "numeric" and unit not in {"x", "\u00d7"}:
             attribution_valid = _fact_attribution_is_valid(val, unit, pos)
             if attribution_valid is True:
                 continue
@@ -1363,6 +1367,26 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             continue
         ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
         item = {"value": val, "unit": unit, "context": ctx.strip()}
+        cited_numbers = [
+            source_value
+            for citation in citations
+            for source_value in source_numbers.get(citation, [])
+        ]
+        citation_supports_number = any(close(val, source_value) for source_value in cited_numbers)
+        citation_supports_derivation = _is_derived(val, cited_numbers)
+        if (
+            mode == "numeric"
+            and citations
+            and not in_whitelist(val, whitelist)
+            and not citation_supports_number
+            and not citation_supports_derivation
+        ):
+            # A citation asserts source support. Without a demonstrated local
+            # or cited-source derivation, an out-of-corpus number is laundering
+            # regardless of whether variation language looks plausible.
+            item["reason"] = "citation_laundering"
+            fabricated.append(item)
+            continue
         if derivation_status == "invalid":
             item["reason"] = "invalid_derivation"
             unverifiable.append(item)

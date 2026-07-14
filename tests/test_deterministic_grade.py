@@ -630,6 +630,28 @@ def test_cited_unsupported_range_is_blocking_citation_laundering(tmp_path: Path)
     assert result["qualified"] is False
 
 
+def test_cited_growth_language_cannot_bypass_citation_laundering(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = "Amazon capex grew by an impressive 73% year-over-year [S3].\n"
+    sources = [{"source_id": "S3", "content": "Amazon invested heavily in infrastructure."}]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+
+    assert [item["value"] for item in result["fabrication"]["items"]] == [73.0]
+    assert result["fabrication"]["items"][0]["reason"] == "citation_laundering"
+    assert result["qualified"] is False
+
+
+def test_explicit_off_whitelist_fact_is_a_blocking_contradiction(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = "Apple's operating margin reached 45% in FY2025.\n"
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [45.0]
+    assert result["qualified"] is False
+
+
 def test_uncited_unsupported_range_is_diagnostic(tmp_path: Path) -> None:
     exercise = _write_exercise(tmp_path)
     report = (
@@ -661,6 +683,20 @@ def test_unverifiable_volume_cap_blocks_gaming(tmp_path: Path) -> None:
     result = grade(tmp_path / "run", exercise, report, [])
 
     assert result["unverifiable"]["count"] == 2
+    assert "too many unverifiable numeric claims" in result["qualification"]["blockers"]
+    assert result["qualified"] is False
+
+
+def test_six_uncited_growth_rates_exceed_finance_volume_cap(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = (
+        "Across the sector, separate investment categories rose roughly 13.37%, 24.27%, "
+        "38.53%, 49.73%, 58.37%, and 67.63% year-over-year.\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["unverifiable"]["count"] == 6
     assert "too many unverifiable numeric claims" in result["qualification"]["blockers"]
     assert result["qualified"] is False
 

@@ -36,7 +36,7 @@ length:
 unverifiable_claims:
   per_item_penalty: 1
   prose_contradiction_penalty: 5
-  max_for_qualification: 12
+  max_for_qualification: 5
 
 scoring:
   axes:
