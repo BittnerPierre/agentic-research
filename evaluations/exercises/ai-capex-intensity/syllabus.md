@@ -56,8 +56,8 @@ words, excluding the automatically generated Sources section.
 
 Use exclusively these provided files. Do not browse the web.
 
-- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/67170ebcc17d941290bef6947b64f559d3586297/capex_reference_data.md
-- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/8a7374c91cfe666134d600738f32be349c41ee4c/analyst_prep_notes.md
+- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md
+- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md
 - https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv
-- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/6765f4127b59f5c717b2ff7b4aa8154ed954bc12/capex_guidance_2025.md
+- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md
 - https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md
