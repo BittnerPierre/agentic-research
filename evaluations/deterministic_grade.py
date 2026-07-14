@@ -248,6 +248,7 @@ METRIC_ALIASES = {
     "Operating margin": (
         "operating margin",
         "op. margin",
+        "margin",
         "marge operationnelle",
         "marge d'exploitation",
     ),
@@ -943,8 +944,18 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             for company in companies
             for match in re.finditer(rf"\b{re.escape(company)}\b", clause, re.I)
         ]
+        inherited_company = None
         if not company_matches:
-            return None
+            prior_companies = list(
+                dict.fromkeys(
+                    company
+                    for company in companies
+                    if re.search(rf"\b{re.escape(company)}\b", line[:clause_start], re.I)
+                )
+            )
+            if len(prior_companies) != 1:
+                return None
+            inherited_company = prior_companies[0]
         ordered_companies = list(
             dict.fromkeys(company for _position, company in sorted(company_matches))
         )
@@ -953,8 +964,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             for found, _unit, position in extract_numbers(clause)
             if not _is_year(found)
         ]
-        company_confident = len(ordered_companies) == 1
-        if len(ordered_companies) == len(ordered_numbers):
+        company_confident = inherited_company is not None or len(ordered_companies) == 1
+        if inherited_company is not None:
+            company = inherited_company
+        elif len(ordered_companies) == len(ordered_numbers):
             number_index = min(
                 range(len(ordered_numbers)),
                 key=lambda index: abs(ordered_numbers[index][0] - relative_pos),
@@ -979,12 +992,26 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 ordered_metric_matches.append((position, matched_metric))
         metric_confident = len(ordered_metric_matches) == 1
         percentage_claim = unit == "%"
+        prior_metric_matches = [item for item in metric_matches if item[0] <= relative_pos]
         percentage_metrics = [
             item
             for item in metric_matches
             if item[1] in {"Capex/OCF", "Operating margin"} and abs(item[0] - relative_pos) <= 80
         ]
-        if percentage_claim and percentage_metrics:
+        if unit in {"b", "$"} and prior_metric_matches:
+            nearest_prior_metric = min(
+                prior_metric_matches,
+                key=lambda item: (
+                    relative_pos - item[0],
+                    METRIC_PRIORITY.get(item[1], 99),
+                ),
+            )
+            metric = nearest_prior_metric[1]
+            prior_metric_types = {item[1] for item in prior_metric_matches}
+            metric_confident = (
+                len(prior_metric_types) == 1 and relative_pos - nearest_prior_metric[0] <= 80
+            )
+        elif percentage_claim and percentage_metrics:
             metric = min(
                 percentage_metrics,
                 key=lambda item: (
@@ -1010,27 +1037,55 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             )[1]
 
         period_matches = [
-            (match.start(), f"fy{match.group(1)}")
+            (match.start(), match.end(), f"fy{match.group(1)}")
             for match in re.finditer(r"\bFY\s*(20\d{2})\b", clause, re.I)
         ]
-        period_confident = not period_matches
-        if len(period_matches) == len(ordered_numbers):
-            number_index = min(
-                range(len(ordered_numbers)),
-                key=lambda index: abs(ordered_numbers[index][0] - relative_pos),
-            )
-            period = period_matches[number_index][1]
+        period = None
+        period_confident = False
+
+        # Distance alone reverses comparative pairs such as
+        # ``52.5B in FY2024 to 91.4B in FY2025``: FY2024 is closer to 91.4.
+        # Bind a following period only when prose explicitly links it to the
+        # value, and never jump across another numeric claim.
+        following_periods = []
+        for period_start, _period_end, fact_period in period_matches:
+            if period_start < relative_pos:
+                continue
+            between = clause[relative_pos:period_start]
+            intervening = [
+                number_pos
+                for number_pos, _number in ordered_numbers
+                if relative_pos < number_pos < period_start
+            ]
+            explicit_link = re.search(r"(?:\(|\b(?:in|en|for)\s*)$", between, re.I)
+            if not intervening and explicit_link and len(between) <= 48:
+                following_periods.append((period_start, fact_period))
+        if following_periods:
+            _period_start, period = min(following_periods)
             period_confident = True
         else:
-            period = (
-                min(period_matches, key=lambda item: abs(item[0] - relative_pos))[1]
-                if period_matches
-                else None
-            )
-            if len(period_matches) == 1:
-                period_confident = (
-                    len(ordered_numbers) == 1 or abs(period_matches[0][0] - relative_pos) <= 32
+            # Support subject-first claims (``FY2025 capex was $131.8B``), but
+            # do not inherit a period across another number or a long clause.
+            prior_periods = []
+            for _period_start, period_end, fact_period in period_matches:
+                if period_end > relative_pos:
+                    continue
+                between = clause[period_end:relative_pos]
+                intervening = [
+                    number_pos
+                    for number_pos, _number in ordered_numbers
+                    if period_end < number_pos < relative_pos
+                ]
+                comparative_bridge = re.search(
+                    r"\b(?:from|to|between|growth|grew|rising|rose|range|ratios?|"
+                    r"de|a|entre|croissance|hausse|progression)\b",
+                    _deaccent(between.lower()),
                 )
+                if not intervening and not comparative_bridge and relative_pos - period_end <= 64:
+                    prior_periods.append((period_end, fact_period))
+            if prior_periods:
+                _period_end, period = max(prior_periods)
+                period_confident = True
         candidates = [
             fact_value
             for (fact_company, fact_metric, fact_period), fact_value in facts.items()
@@ -1040,6 +1095,21 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         ]
         if candidates and any(close(value, candidate) for candidate in candidates):
             return True
+        same_company_period_values = [
+            fact_value
+            for (fact_company, _fact_metric, fact_period), fact_value in facts.items()
+            if fact_company == company.lower() and period is not None and fact_period == period
+        ]
+        metric_directly_precedes_value = any(
+            matched_metric == metric and 0 <= relative_pos - metric_position <= 64
+            for metric_position, matched_metric in metric_matches
+        )
+        if (
+            same_company_period_values
+            and any(close(value, candidate) for candidate in same_company_period_values)
+            and not metric_directly_precedes_value
+        ):
+            return None
         if company_confident and metric_confident and period_confident:
             return False
         return None
@@ -1053,7 +1123,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     continue
                 candidates = (
                     (abs(a - b), 0.25, 0.01),
-                    (a / b, 0.08, 0.03),
+                    (a / b, 0.06, 0.01),
                     ((a / b - 1.0) * 100.0, 0.6, 0.02),
                     (a / b * 100.0, 0.6, 0.02),
                 )
@@ -1064,7 +1134,8 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     return True
         return False
 
-    def _derived_from_facts(x: float, pos: int) -> bool:
+    def _derivation_status(x: float, pos: int) -> str:
+        """Return valid, invalid, or unverifiable for a displayed derivation."""
         boundary = report_md.rfind("\n\n", 0, pos)
         start = 0 if boundary == -1 else boundary + 2
         end = report_md.find("\n\n", pos)
@@ -1082,7 +1153,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         elif company_matches:
             company = min(company_matches)[1]
         else:
-            return False
+            return "unverifiable"
 
         metric_matches = []
         for metric, aliases in METRIC_ALIASES.items():
@@ -1094,7 +1165,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                         (abs(match.start() - relative_pos), match.start(), metric)
                     )
         if not metric_matches:
-            return False
+            return "unverifiable"
         prior_metrics = [item for item in metric_matches if item[1] <= relative_pos]
         metric = min(prior_metrics or metric_matches)[2]
 
@@ -1116,22 +1187,90 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 if subject_period and comparison_period
                 else []
             )
-        shown_operands = [
-            value
-            for value, _unit, position in extract_numbers(paragraph)
-            if abs(position - relative_pos) > 2
-            and not _is_year(value)
-            and in_whitelist(value, whitelist)
+        shown_numbers = [
+            (value, unit, position)
+            for value, unit, position in extract_numbers(paragraph)
+            if abs(position - relative_pos) > 2 and not _is_year(value)
         ]
         if len(periods) == 2:
-            values = [facts.get((company.lower(), metric.lower(), period)) for period in periods]
-            if any(value is None for value in values) or not all(
-                any(close(value, shown) for shown in shown_operands) for value in values
+            displayed_operands = []
+            for period in periods:
+                year = period.removeprefix("fy")
+                period_positions = [
+                    match.start()
+                    for match in re.finditer(rf"\bFY\s*{re.escape(year)}\b", paragraph, re.I)
+                ]
+                prior_period_positions = [
+                    position for position in period_positions if position < relative_pos
+                ]
+                if prior_period_positions:
+                    period_positions = prior_period_positions
+                raw_candidates = [
+                    (value, position)
+                    for value, unit, position in shown_numbers
+                    if unit not in {"%", "x", "\u00d7"}
+                ]
+                if not period_positions or not raw_candidates:
+                    return "unverifiable"
+                displayed_operands.append(
+                    min(
+                        raw_candidates,
+                        key=lambda item: min(
+                            abs(item[1] - period_position) for period_position in period_positions
+                        ),
+                    )[0]
+                )
+            if _is_derived(x, displayed_operands):
+                return "valid"
+            expected_operands = [
+                facts.get((company.lower(), metric.lower(), period)) for period in periods
+            ]
+            if all(expected is not None for expected in expected_operands) and all(
+                close(displayed, expected)
+                for displayed, expected in zip(displayed_operands, expected_operands, strict=True)
             ):
-                return False
-            operands = values
+                return "invalid"
+            return "unverifiable"
         else:
-            operands = shown_operands
+            grounded_operands = [
+                value for value, _unit, _position in shown_numbers if in_whitelist(value, whitelist)
+            ]
+            if len(grounded_operands) >= 2 and _is_derived(x, grounded_operands):
+                return "valid"
+        return "unverifiable"
+
+    def _derivable_from_corpus(x: float, pos: int) -> bool:
+        boundary = report_md.rfind("\n\n", 0, pos)
+        start = 0 if boundary == -1 else boundary + 2
+        end = report_md.find("\n\n", pos)
+        paragraph = report_md[start : len(report_md) if end == -1 else end]
+        relative_pos = pos - start
+        company_matches = [
+            (abs(match.start() - relative_pos), company)
+            for company in companies
+            for match in re.finditer(rf"\b{re.escape(company)}\b", paragraph, re.I)
+        ]
+        if not company_matches:
+            return False
+        company = min(company_matches)[1]
+        normalized_paragraph = _deaccent(paragraph.lower())
+        metric_matches = [
+            (abs(match.start() - relative_pos), metric)
+            for metric, aliases in METRIC_ALIASES.items()
+            for alias in aliases
+            for match in re.finditer(re.escape(_deaccent(alias.lower())), normalized_paragraph)
+        ]
+        if not metric_matches:
+            return False
+        metric = min(
+            metric_matches,
+            key=lambda item: (item[0], METRIC_PRIORITY.get(item[1], 99)),
+        )[1]
+        operands = [
+            value
+            for (fact_company, fact_metric, _period), value in facts.items()
+            if fact_company == company.lower() and fact_metric == metric.lower()
+        ]
         return len(operands) >= 2 and _is_derived(x, operands)
 
     hedge_words = (
@@ -1162,6 +1301,8 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     )
     fabricated = []
     unverifiable = []
+    grounded_ambiguous = []
+    prose_contradictions = []
     for val, unit, pos in report_nums:
         if not unit and 1990 <= val <= 2100 and float(val).is_integer():
             continue  # years
@@ -1173,6 +1314,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         if mode == "conceptual" and "=" in line and re.search(r"\d\s*[x\u00d7]?\s*[+*/-]", line):
             continue  # pedagogical arithmetic example, not an empirical claim
         citations = _line_citations(pos)
+        citation_support_failed = False
         if mode == "conceptual" and citations:
             cited_value_exists = any(
                 any(close(val, source_value) for source_value in source_numbers.get(citation, []))
@@ -1187,13 +1329,25 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 or (in_whitelist(val, whitelist) and cited_origin_exists)
             ):
                 continue
-        elif in_whitelist(val, whitelist) and unit not in {"x", "\u00d7"}:
+            citation_support_failed = True
+        elif (
+            mode == "numeric"
+            and unit not in {"x", "\u00d7"}
+            and (in_whitelist(val, whitelist) or unit in {"b", "$"})
+        ):
             attribution_valid = _fact_attribution_is_valid(val, unit, pos)
             if attribution_valid is True:
                 continue
             if attribution_valid is False:
                 ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
-                fabricated.append({"value": val, "unit": unit, "context": ctx.strip()})
+                prose_contradictions.append(
+                    {
+                        "value": val,
+                        "unit": unit,
+                        "context": ctx.strip(),
+                        "reason": "contradicted_fact",
+                    }
+                )
                 continue
         # skip round-ten integers used as a hedge/threshold ("marges > 30%"):
         # a reasonable summary, not an invented precise statistic.
@@ -1204,13 +1358,15 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         # ratio, multiple) — first-level analysis the task explicitly asks for.
         window = report_md[max(0, pos - 160) : pos + 160]
         neighbors = [v for v, _u, _p in extract_numbers(window) if in_whitelist(v, whitelist)]
-        if (unit in {"x", "\u00d7"} and _derived_from_facts(val, pos)) or (
-            unit not in {"x", "\u00d7"}
-            and (_is_derived(val, neighbors) or _derived_from_facts(val, pos))
-        ):
+        derivation_status = _derivation_status(val, pos)
+        if (unit == "%" and _is_derived(val, neighbors)) or derivation_status == "valid":
             continue
         ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
         item = {"value": val, "unit": unit, "context": ctx.strip()}
+        if derivation_status == "invalid":
+            item["reason"] = "invalid_derivation"
+            unverifiable.append(item)
+            continue
         derivation_context = report_md[max(0, pos - 100) : pos + 100].lower()
         looks_derived = bool(
             re.search(
@@ -1219,14 +1375,25 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 _deaccent(derivation_context),
             )
         )
-        if (
-            mode == "numeric"
-            and unit not in {"x", "\u00d7"}
-            and (in_whitelist(val, whitelist) or looks_derived)
-        ):
-            unverifiable.append(item)
-        else:
+        corpus_derivable = mode == "numeric" and _derivable_from_corpus(val, pos)
+        if citation_support_failed:
+            item["reason"] = "citation_laundering"
             fabricated.append(item)
+        elif in_whitelist(val, whitelist):
+            item["reason"] = "grounded_ambiguous_attribution"
+            grounded_ambiguous.append(item)
+        elif corpus_derivable:
+            item["reason"] = "derivable_but_operands_not_shown"
+            unverifiable.append(item)
+        elif mode == "numeric" and guidance_re.search(_deaccent(derivation_context)):
+            item["reason"] = "guidance_derivation_not_locally_verifiable"
+            unverifiable.append(item)
+        elif citations:
+            item["reason"] = "citation_laundering"
+            fabricated.append(item)
+        else:
+            item["reason"] = "unsupported_derivation" if looks_derived else "unsupported_uncited"
+            unverifiable.append(item)
 
     # ---- agenda discipline (distractors) ----
     # Off-theme FACTS (in-scope companies are fine; citing their off-theme figure is not).
@@ -1371,14 +1538,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         result["label"] for result in requirement_results if result["status"] != "pass"
     ]
     root_cause["failed_requirements"] = failed_requirement_labels
-    root_cause["wrong_claims"] = len(wrongs) + len(contradictions)
+    root_cause["wrong_claims"] = len(wrongs) + len(contradictions) + len(prose_contradictions)
     root_cause["fabricated_claims"] = len(fabricated)
     root_cause["unverifiable_claims"] = len(unverifiable)
     if source_violations:
         root_cause["verdict"] = "input/provenance: frozen source contract is not satisfied"
     elif fabricated:
         root_cause["verdict"] = "writer/grounding: fabricated factual claims"
-    elif wrongs or contradictions:
+    elif wrongs or contradictions or prose_contradictions:
         root_cause["verdict"] = "writer/factuality: claims contradict the frozen corpus"
     elif failed_requirement_labels and not missing:
         root_cause["verdict"] = "writer/contract: non-numeric report requirements were omitted"
@@ -1425,9 +1592,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         + w_agenda * agenda_score
         + w_tone * tone_score
     )
-    # ZERO TOLERANCE: any fabrication, unattributed figure, or wrong figure caps
-    # the diagnostic score. Qualification below is stricter than this score.
-    if fabricated or unverifiable:
+    unverifiable_spec = spec.get("unverifiable_claims", {}) or {}
+    unverifiable_penalty = float(unverifiable_spec.get("per_item_penalty", 1.0))
+    score -= unverifiable_penalty * len(unverifiable)
+    prose_penalty = float(unverifiable_spec.get("prose_contradiction_penalty", 5.0))
+    score -= prose_penalty * len(prose_contradictions)
+    # Fabrication is a hard cap. Unverifiable prose receives a bounded diagnostic
+    # penalty and only blocks qualification when its configured volume cap is exceeded.
+    if fabricated:
         score = min(score, cap)
     if wrongs or contradictions:
         score = min(score, 60.0)
@@ -1447,14 +1619,17 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         format_blockers.append("report too short")
     if max_words is not None and word_count > max_words:
         format_blockers.append("report too long")
+    max_unverifiable = unverifiable_spec.get("max_for_qualification")
 
     qualification_blockers = []
     if critical_requirement_failures:
         qualification_blockers.append("critical requirements failed")
-    if wrongs or contradictions:
+    if wrongs or contradictions or prose_contradictions:
         qualification_blockers.append("wrong factual claims")
     if fabricated:
         qualification_blockers.append("fabricated claims")
+    if max_unverifiable is not None and len(unverifiable) > int(max_unverifiable):
+        qualification_blockers.append("too many unverifiable numeric claims")
     if format_blockers:
         qualification_blockers.append("report contract not met")
     if source_violations:
@@ -1494,7 +1669,19 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             + contradictions,
         },
         "fabrication": {"count": len(fabricated), "items": fabricated[:20]},
-        "unverifiable": {"count": len(unverifiable), "items": unverifiable[:20]},
+        "prose_contradictions": {
+            "count": len(prose_contradictions),
+            "items": prose_contradictions[:20],
+        },
+        "unverifiable": {
+            "count": len(unverifiable),
+            "max_for_qualification": max_unverifiable,
+            "items": unverifiable[:20],
+        },
+        "grounded_ambiguous": {
+            "count": len(grounded_ambiguous),
+            "items": grounded_ambiguous[:20],
+        },
         "agenda_discipline": {"distractors_cited": distractor_hits},
         "tone": {"violations": tone_hits},
         "format": {

@@ -100,7 +100,7 @@ def test_grade_root_cause_marks_retrieved_but_omitted_items(tmp_path: Path) -> N
     )
 
 
-def test_grade_flags_fabricated_number_inside_heading(tmp_path: Path) -> None:
+def test_grade_treats_uncited_unsupported_heading_as_unverifiable(tmp_path: Path) -> None:
     exercise = _write_exercise(tmp_path)
     report_md = (
         "# Overview\n"
@@ -120,8 +120,9 @@ def test_grade_flags_fabricated_number_inside_heading(tmp_path: Path) -> None:
 
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
-    assert result["fabrication"]["count"] == 1
-    assert result["fabrication"]["items"][0]["value"] == 999.9
+    assert result["fabrication"]["count"] == 0
+    assert result["unverifiable"]["items"][0]["value"] == 999.9
+    assert result["unverifiable"]["items"][0]["reason"] == "unsupported_uncited"
 
 
 def test_number_parser_preserves_signs_and_locale() -> None:
@@ -203,8 +204,8 @@ def test_grade_ignores_styled_section_number_but_not_heading_claim(tmp_path: Pat
 
     result = grade(tmp_path / "run", exercise, report_md, [])
 
-    assert result["fabrication"]["count"] == 1
-    assert result["fabrication"]["items"][0]["value"] == 999.9
+    assert result["fabrication"]["count"] == 0
+    assert result["unverifiable"]["items"][0]["value"] == 999.9
 
 
 def test_grade_scores_declared_length_constraint(tmp_path: Path) -> None:
@@ -268,7 +269,9 @@ def test_derivation_uses_claimed_company_metric_and_periods(tmp_path: Path) -> N
 
     result = grade(tmp_path / "run", exercise, report_md, [])
 
-    assert [item["value"] for item in result["fabrication"]["items"]] == [3.3]
+    assert result["fabrication"]["count"] == 0
+    assert [item["value"] for item in result["unverifiable"]["items"]] == [3.3]
+    assert result["unverifiable"]["items"][0]["reason"] == "invalid_derivation"
 
 
 def test_false_latest_year_unavailability_is_accuracy_error(tmp_path: Path) -> None:
@@ -368,7 +371,7 @@ def test_prose_fact_cannot_reuse_another_company_value(tmp_path: Path) -> None:
 
     result = grade(tmp_path / "run", exercise, report_md, [])
 
-    assert [item["value"] for item in result["fabrication"]["items"]] == [402.8]
+    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [402.8]
 
 
 def test_correct_prose_fact_remains_grounded(tmp_path: Path) -> None:
@@ -378,6 +381,52 @@ def test_correct_prose_fact_remains_grounded(tmp_path: Path) -> None:
     result = grade(tmp_path / "run", exercise, report_md, [])
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_comparative_prose_binds_each_value_to_its_following_period(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = (
+        "Pour Alphabet, les Capex sont passes de $52.5B en FY2024 a $91.4B en FY2025, "
+        "tandis que l'OCF est passe de $125.3B en FY2024 a $164.7B en FY2025 [S1].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
+
+    assert result["prose_contradictions"]["count"] == 0
+    assert result["fabrication"]["count"] == 0
+
+
+def test_respective_ratios_do_not_inherit_the_last_prior_period(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = (
+        "Apple spending was $9.4B in FY2024 and $12.7B in FY2025 [S1], "
+        "with capex/OCF ratios of 8% and 11% respectively [S1].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
+
+    assert result["prose_contradictions"]["count"] == 0
+
+
+def test_correct_value_with_ambiguous_metric_is_not_called_a_contradiction(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = (
+        "Alphabet grew from $182.5B in FY2020 to $402.8B in FY2025, with an operating "
+        "margin near 32% and operating income of $129.0B [S1].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
+
+    assert result["prose_contradictions"]["count"] == 0
+
+
+def test_explicit_wrong_metric_cannot_reuse_another_metric_value(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = "Apple FY2025 capex was $416.2B [S1].\n"
+
+    result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
+
+    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [416.2]
 
 
 def _finance_exercise() -> Path:
@@ -426,7 +475,11 @@ def test_finance_contract_has_a_reachable_qualified_reference(tmp_path: Path) ->
             "# Capex Trends\nEach capex trend is described from FY2020 to FY2025 as "
             "rising, declining, or stable using the supplied endpoints.",
             "# Guidance vs Actuals\nGuidance is kept separate from each reported actual. "
-            "Its basis must be comparable; Meta is explicitly not like-for-like.",
+            "Amazon guidance was about $100B on 2025-02-06; Alphabet guidance was "
+            "about $75B on 2025-02-04; Meta guidance was $60B-$65B on 2025-01-29. "
+            "Meta includes finance-lease principal, so its basis is explicitly not "
+            "like-for-like. Initial guidance for Microsoft, NVIDIA, and Apple is "
+            "unavailable and is not estimated.",
             "# Cross-Company Comparison\nThe table provides the factual comparison.",
             "# Data Gaps\nNo required actual is missing from the provided source corpus. "
             "Unavailable guidance remains a source data gap and is not estimated.",
@@ -447,7 +500,7 @@ def test_number_that_looks_like_year_but_has_unit_is_checked(tmp_path: Path) -> 
 
     result = grade(tmp_path / "run", exercise, "Apple FY2025 revenue was $2025B.\n", [])
 
-    assert [item["value"] for item in result["fabrication"]["items"]] == [2025.0]
+    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [2025.0]
 
 
 def test_wrong_direct_fact_cannot_be_rescued_as_derivation(tmp_path: Path) -> None:
@@ -464,7 +517,7 @@ def test_wrong_direct_fact_cannot_be_rescued_as_derivation(tmp_path: Path) -> No
 
     result = grade(tmp_path / "run", exercise, report, [])
 
-    assert any(item["value"] == 391.0 for item in result["fabrication"]["items"])
+    assert any(item["value"] == 391.0 for item in result["prose_contradictions"]["items"])
 
 
 def test_correct_derivation_can_use_operands_in_previous_sentence(tmp_path: Path) -> None:
@@ -558,3 +611,84 @@ def test_finance_manifest_matches_committed_corpus() -> None:
 
     for file_name, expected_hash in manifest["generated_files"].items():
         assert hashlib.sha256((corpus / file_name).read_bytes()).hexdigest() == expected_hash
+
+
+def test_cited_unsupported_range_is_blocking_citation_laundering(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    report = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Revenue | FY2025 | 416.2 |\n\n"
+        "A new process reduces errors by 30-40% according to the supplied evidence [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "The source discusses process quality."}]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+
+    assert [item["value"] for item in result["fabrication"]["items"]] == [30.0, 40.0]
+    assert {item["reason"] for item in result["fabrication"]["items"]} == {"citation_laundering"}
+    assert result["qualified"] is False
+
+
+def test_uncited_unsupported_range_is_diagnostic(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    report = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Revenue | FY2025 | 416.2 |\n\n"
+        "A new process reduces errors by 30-40% according to general commentary.\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["fabrication"]["count"] == 0
+    assert [item["value"] for item in result["unverifiable"]["items"]] == [30.0, 40.0]
+    assert result["qualified"] is True
+
+
+def test_unverifiable_volume_cap_blocks_gaming(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    spec = yaml.safe_load((exercise / "spec.yaml").read_text(encoding="utf-8"))
+    spec["unverifiable_claims"] = {"per_item_penalty": 1, "max_for_qualification": 1}
+    (exercise / "spec.yaml").write_text(yaml.safe_dump(spec), encoding="utf-8")
+    report = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Revenue | FY2025 | 416.2 |\n\n"
+        "A new process reduces errors by 30-40% according to general commentary.\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["unverifiable"]["count"] == 2
+    assert "too many unverifiable numeric claims" in result["qualification"]["blockers"]
+    assert result["qualified"] is False
+
+
+def test_wrong_operand_is_charged_once_but_consistent_derivation_is_not(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = (
+        "Alphabet spending rose from $22.0B in FY2020 to $91.4B in FY2025 [S1]. "
+        "The FY2025 figure represents a 4.2x increase over FY2020 [S1].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
+
+    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [22.0]
+    assert all(item["value"] != 4.2 for item in result["unverifiable"]["items"])
+
+
+def test_wrong_derivation_from_correct_operands_is_diagnostic(tmp_path: Path) -> None:
+    exercise = _finance_exercise()
+    report = (
+        "Alphabet spending rose from $22.3B in FY2020 to $91.4B in FY2025 [S1]. "
+        "The FY2025 figure represents a 4.2x increase over FY2020 [S1].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
+
+    assert result["fabrication"]["count"] == 0
+    assert any(
+        item["value"] == 4.2 and item["reason"] == "invalid_derivation"
+        for item in result["unverifiable"]["items"]
+    )

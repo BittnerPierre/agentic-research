@@ -51,6 +51,34 @@ text_requirements:
     semantic_groups:
       - [actual, reported, "10-K"]
       - [basis, "not like-for-like", comparable, comparison]
+  - id: initial_guidance_values
+    label: "frozen initial FY2025 guidance values"
+    anchors_any: [guidance, outlook]
+    semantic_groups:
+      - [Amazon]
+      - [100]
+      - [Alphabet]
+      - [75]
+      - [Meta]
+      - [60]
+      - [65]
+  - id: guidance_dates_and_basis
+    label: "guidance release dates and Meta basis"
+    anchors_any: [guidance, outlook]
+    semantic_groups:
+      - ["2025-02-06", "February 6, 2025", "6 February 2025"]
+      - ["2025-02-04", "February 4, 2025", "4 February 2025"]
+      - ["2025-01-29", "January 29, 2025", "29 January 2025"]
+      - ["finance lease", "finance-lease"]
+      - [principal]
+  - id: guidance_gaps
+    label: "unavailable initial guidance is not estimated"
+    anchors_any: [unavailable, missing, "not disclosed", "not provided"]
+    semantic_groups:
+      - [Microsoft]
+      - [NVIDIA]
+      - [Apple]
+      - [guidance, outlook]
   - id: data_gaps
     label: "requested source gaps are reported without estimation"
     anchors_any: ["data gap", unavailable, missing, "not disclosed", "no gap"]

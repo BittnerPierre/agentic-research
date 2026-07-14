@@ -33,6 +33,11 @@ length:
   min_words: 500
   max_words: 1800
 
+unverifiable_claims:
+  per_item_penalty: 1
+  prose_contradiction_penalty: 5
+  max_for_qualification: 12
+
 scoring:
   axes:
     coverage: {weight: 0.60}
