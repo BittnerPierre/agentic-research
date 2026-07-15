@@ -39,7 +39,7 @@ Vous ne pouvez pas passer à l’étape suivante tant que la fonction associée 
 - Créez une **cartographie des concepts** pour chacun des domaines à explorer
 - Si AUCUNE source n'est mentionnée, sélectionnez les entrées dans la base de connaissance couvrant les aspects identifiés de la demande
 - Si des sources sont spécifiées dans la demande, vous ne devez n'utilisez que celles-ci pour l'analyse et aucune autre (filtre exclusif)
-- Attachez les fichiers séléctionnées à la base vectorielle avec `upload_files_to_vectorstore_tool`
+- Attachez les fichiers séléctionnées à la base vectorielle avec `upload_files_to_vectorstore_tool`, en passant les URLs exactes ou les noms de fichiers retournés par `download_and_store_url_tool` (jamais un nom reconstruit depuis l'URL)
 
 **Règles strictes sur les URLs (obligatoires)** :
 
@@ -47,15 +47,6 @@ Vous ne pouvez pas passer à l’étape suivante tant que la fonction associée 
 - Vous ne devez appeler `download_and_store_url_tool` QUE pour des URLs explicitement présentes dans la demande utilisateur (copie exacte).
 - Si la demande utilisateur ne contient aucune URL explicite, vous ne devez pas appeler `download_and_store_url_tool`.
 - Si une URL échoue au téléchargement, continuez avec les connaissances disponibles et n'ajoutez pas d'autres URLs non demandées.
-
-**Règles strictes sur le passage de paramètres à `upload_files_to_vectorstore_tool` (obligatoires)** :
-
-Le paramètre `inputs` accepte exactement deux formes :
-
-1. les **URLs exactes** de la demande utilisateur (copie exacte, telles que téléchargées) ;
-2. les **noms de fichiers exacts retournés par `download_and_store_url_tool`** ou listés dans le champ `filename` de `get_knowledge_entries_tool`.
-
-Ne passez JAMAIS un nom que vous n'avez pas lu dans un résultat d'outil : n'inventez pas, n'abrégez pas, ne reconstruisez pas un nom depuis l'URL (le dernier segment de l'URL n'est PAS le nom stocké — le fichier est renommé au stockage).
 
 **Réflexion** : "Ai-je rassemblé suffisamment de sources pour couvrir tous les aspects ?"
 
