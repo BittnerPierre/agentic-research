@@ -11,7 +11,7 @@ request_file: ../../../test_files/syllabus.md
 
 semantic_judge:
   model: gpt-5.4-2026-03-05
-  reasoning_effort: high
+  reasoning_effort: none
   protocol: judge_then_contradictor
   authority: semantic_authority
   requirement_sections: [must_cover, report_requirements]

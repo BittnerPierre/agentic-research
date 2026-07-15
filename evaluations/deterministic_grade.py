@@ -1982,6 +1982,9 @@ def _locate_report(run_dir: Path, stats: dict) -> Path | None:
 
 
 def main() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv()  # the semantic judge reads OPENAI_API_KEY from the environment
     p = argparse.ArgumentParser(description="Evidence-bound grader for research exercises")
     p.add_argument("run_dir", help="benchmarks/runs/<run> directory")
     p.add_argument("--exercise", required=True, help="evaluations/exercises/<name> directory")

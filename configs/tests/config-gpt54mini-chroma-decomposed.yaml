@@ -16,9 +16,9 @@ vector_search:
   chroma_port: 8000
   chroma_ssl: false
   chroma_embedding_provider: "openai"
-  chroma_embedding_api_base: "http://spark1:8003/v1"
-  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
-  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  chroma_embedding_api_base: "https://api.openai.com/v1"
+  chroma_embedding_model: "text-embedding-3-small"
+  chroma_embedding_api_key_env: "OPENAI_API_KEY"
 
 data:
   knowledge_db_path: "data/knowledge_db.json"
@@ -46,7 +46,7 @@ logging:
 mcp:
   server_host: "localhost"
   server_port: 8001
-  client_timeout_seconds: 10.0
+  client_timeout_seconds: 300.0
 
 models:
   research_model: "openai/gpt-5.4-mini"

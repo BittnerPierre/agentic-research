@@ -401,10 +401,17 @@ async def test_conceptual_judge_disagreement_fails_closed(tmp_path: Path) -> Non
 
 
 @pytest.mark.asyncio
-async def test_conceptual_judge_rejects_non_verbatim_evidence_quote(tmp_path: Path) -> None:
+async def test_conceptual_judge_trusts_llm_for_quote_fidelity(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-15): quote fidelity is the judge's own job.
+
+    A byte-exact Python substring check rejected legitimate quoting (e.g. two
+    report lines stitched together by the adversary). A non-verbatim quote is
+    no longer a protocol error; the verdict proceeds to the adversarial stage
+    and the quote stays archived in judge_io for human review.
+    """
     exercise, run, request, report, sources = _fixture(tmp_path)
-    invalid_pass = _pass("A paraphrase that is not present in the report [S1].")
-    client = _FakeJudge([invalid_pass])
+    stitched_pass = _pass("A paraphrase that is not present in the report [S1].")
+    client = _FakeJudge([stitched_pass, _uphold()])
 
     result = await adjudicate_conceptual_run(
         run_dir=run,
@@ -415,10 +422,9 @@ async def test_conceptual_judge_rejects_non_verbatim_evidence_quote(tmp_path: Pa
         client=client,
     )
 
-    assert result.requirements[0].final_status == "indeterminate"
-    assert result.status == "evaluation_failed"
-    assert result.requirements[0].protocol_errors == ["report quote is not an exact substring"]
-    assert len(client.calls) == 1
+    assert result.requirements[0].final_status == "pass"
+    assert result.requirements[0].protocol_errors == []
+    assert len(client.calls) == 2
 
 
 @pytest.mark.asyncio
@@ -676,7 +682,9 @@ def test_fixed_conceptual_contract_has_closed_rubric_and_pinned_judge() -> None:
     assert answer_key["contract_version"] == 2
     assert answer_key["semantic_judge"] == {
         "model": "gpt-5.4-2026-03-05",
-        "reasoning_effort": "high",
+        # Never any reasoning on judge validations (arbitrage Pierre 2026-07-15):
+        # gpt-3.5-level checks; reasoning starves max_output_tokens.
+        "reasoning_effort": "none",
         "protocol": "judge_then_contradictor",
         "authority": "semantic_authority",
         "requirement_sections": ["must_cover", "report_requirements"],

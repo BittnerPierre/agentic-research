@@ -11,7 +11,7 @@ require_citation: true
 
 semantic_judge:
   model: gpt-5.4-2026-03-05
-  reasoning_effort: high
+  reasoning_effort: none
   protocol: judge_then_contradictor
   authority: adequacy_veto
   requirement_sections: [adequacy_requirements]

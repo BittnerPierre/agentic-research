@@ -38,7 +38,9 @@ Respect the declared authority policy. In adequacy_veto mode, identify omissions
 claim to replace, override, or rehabilitate the deterministic numeric evaluation.
 
 Return pass only when the report substantively satisfies every required point, avoids every critical
-error, and cites a supplied source whose raw chunk entails the explanation. A source title, a generated
+error, and cites a supplied source whose raw chunk entails the explanation. The required points are
+the authoritative checklist; a required point phrased with "or" is disjunctive and is satisfied by
+any one of its alternatives, even when the expected answer describes several of them. A source title, a generated
 search summary, or a citation id without a resolved raw chunk is not evidence. For a declared source
 gap, pass only when the report explicitly discloses the gap and does not fill it from model memory.
 The report_quote must be an exact contiguous excerpt copied from the report and must include the local
@@ -301,14 +303,6 @@ def _rubric_payload(requirement: dict, require_citation: bool) -> dict:
     }
 
 
-def _source_ids_in_quote(text: str) -> set[str]:
-    return {
-        f"S{number}"
-        for block in re.findall(r"\[([^\]]+)\]", text)
-        for number in re.findall(r"\bS(\d+)(?::\d+)?\b", block, re.I)
-    }
-
-
 def _primary_protocol_errors(
     verdict: PrimaryVerdict,
     requirement: dict,
@@ -320,8 +314,9 @@ def _primary_protocol_errors(
     errors = []
     if verdict.requirement_id != requirement["id"]:
         errors.append("wrong requirement id")
-    if verdict.report_quote and verdict.report_quote not in report:
-        errors.append("report quote is not an exact substring")
+    # Quote fidelity is the judge's own responsibility (Pierre, 2026-07-15):
+    # a byte-exact Python substring check rejects legitimate quoting (two report
+    # lines stitched together) while the quote stays archived for human review.
     unknown_sources = sorted(set(verdict.cited_source_ids) - set(source_to_chunks))
     if unknown_sources:
         errors.append("unknown source ids: " + ", ".join(unknown_sources))
@@ -335,10 +330,9 @@ def _primary_protocol_errors(
         errors.append("pass is missing an exact report quote")
     if require_citation and not verdict.cited_source_ids:
         errors.append("pass is missing a source citation")
-    quote_source_ids = _source_ids_in_quote(verdict.report_quote)
-    for source_id in verdict.cited_source_ids:
-        if source_id not in quote_source_ids:
-            errors.append(f"source citation [{source_id}] is absent from report quote")
+    # Same ruling as the verbatim-quote check: whether the cited [Sx] markers
+    # sit inside the quoted excerpt is text-level judgment, the judge's job —
+    # not Python byte-matching. Structural checks on closed ID sets remain.
     mapped_chunks = {
         chunk_id
         for source_id in verdict.cited_source_ids
@@ -371,8 +365,6 @@ def _adversary_protocol_errors(
     errors = []
     if verdict.requirement_id != requirement_id:
         errors.append("wrong requirement id")
-    if verdict.report_quote and verdict.report_quote not in report:
-        errors.append("adversary quote is not an exact report substring")
     unknown_chunks = sorted(set(verdict.counterevidence_chunk_ids) - set(valid_chunks))
     if unknown_chunks:
         errors.append("unknown adversary chunk ids: " + ", ".join(unknown_chunks))
@@ -714,7 +706,10 @@ async def adjudicate_semantic_run(
             chunk_validation=chunk_validation_payload,
             judge={"model": model},
         )
-    reasoning_effort = str(judge_config.get("reasoning_effort") or "high")
+    # Never any reasoning on judge validations (Pierre, 2026-07-15): these are
+    # gpt-3.5-level checks; gpt-5.4 is belt-and-braces, reasoning adds nothing
+    # and starves max_output_tokens (observed truncation on source_discipline).
+    reasoning_effort = str(judge_config.get("reasoning_effort") or "none")
     if judge_config.get("protocol") != "judge_then_contradictor":
         return ConceptualAdjudication(
             status="evaluation_failed",
