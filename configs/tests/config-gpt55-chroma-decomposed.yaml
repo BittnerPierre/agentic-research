@@ -2,7 +2,7 @@
 # pour évaluer sans le cluster Spark. LLM = gpt-4.1-mini ; embeddings = API OpenAI
 # (text-embedding-3-small) au lieu de llama.cpp/Spark ; retrieval = ChromaDB local.
 # Sert à faire tourner les exercices déterministes (evaluations/exercises/*) en cloud.
-config_name: "gpt-5.4-mini-chroma-decomposed (bench)"
+config_name: "gpt-5.5-chroma-decomposed (bench)"
 
 vector_store:
   name: "agentic-research-default"   # overridable via --vector-store (nom de collection Chroma)
@@ -50,11 +50,11 @@ mcp:
   client_timeout_seconds: 300.0
 
 models:
-  research_model: "openai/gpt-5.4-mini"
-  planning_model: "openai/gpt-5.4-mini"
-  search_model: "openai/gpt-5.4-mini"
-  writer_model: "openai/gpt-5.4-mini"
-  knowledge_preparation_model: "openai/gpt-5.4-mini"
+  research_model: "openai/gpt-5.5"
+  planning_model: "openai/gpt-5.5"
+  search_model: "openai/gpt-5.5"
+  writer_model: "openai/gpt-5.5"
+  knowledge_preparation_model: "openai/gpt-5.5"
 
 manager:
   default_manager: "deep_manager"

@@ -11,6 +11,7 @@ vector_store:
 
 # Retrieval = ChromaDB local (archi Spark). Embeddings = API OpenAI (Spark llama.cpp non lancé).
 vector_search:
+  top_k: 12
   provider: "chroma"
   chroma_host: "localhost"
   chroma_port: 8000

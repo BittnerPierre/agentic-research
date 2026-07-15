@@ -188,11 +188,7 @@ def test_assisted_mismatch_is_not_accused_but_content_mismatch_is(tmp_path: Path
     # erreur de lecture -> silence (existence seulement). Un écart dans une
     # ligne canonique auto-identifiée (contenu) reste une accusation.
     exercise = _write_exercise(tmp_path)
-    header_mismatch = (
-        "| Company | Earliest revenue |\n"
-        "| --- | --- |\n"
-        "| Apple | 999.0 |\n"
-    )
+    header_mismatch = "| Company | Earliest revenue |\n| --- | --- |\n| Apple | 999.0 |\n"
     result = grade(tmp_path / "run", exercise, header_mismatch, [])
     assert result["accuracy"]["wrong"] == 0  # pas d'accusation via en-têtes
 

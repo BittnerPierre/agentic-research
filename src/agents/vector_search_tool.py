@@ -18,10 +18,6 @@ MAX_CHARS_PER_CHUNK = 1500
 MIN_CHARS_PER_CHUNK = 100
 MAX_CHUNKS_PER_DOCUMENT = 5
 
-_PROMPT_ARTIFACT_RE = re.compile(
-    r"(RECOMMENDED_PROMPT_PREFIX|You are a|system prompt|tool_call|BEGIN|END)",
-    re.IGNORECASE,
-)
 logger = logging.getLogger(__name__)
 
 _DOMAIN_HINT_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -462,8 +458,6 @@ async def vector_search_impl(
 
         if len(document) < MIN_CHARS_PER_CHUNK:
             filtered_out_short += 1
-            continue
-        if _PROMPT_ARTIFACT_RE.search(document):
             continue
 
         key = _doc_key(metadata, document)

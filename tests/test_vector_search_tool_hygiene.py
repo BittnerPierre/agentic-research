@@ -118,6 +118,8 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
             metadata={"document_id": "doc-a", "chunk_index": 0},
             score=0.99,
         ),
+        # Issue #196: content mentioning "system prompt"/"You are a" is
+        # legitimate subject matter, no longer filtered as a prompt artifact.
         VectorSearchHit(
             document="You are a system prompt. " + ("x" * 260),
             metadata={"document_id": "doc-a", "chunk_index": 1},
@@ -165,8 +167,9 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
     result = await vector_search_impl(_Wrapper(), "q")
 
     returned = result["results"]
-    assert len(returned) == 5
-    assert len(returned[0]["document"]) == 1500
+    assert len(returned) == 6
+    assert any(item["document"].startswith("You are a system prompt.") for item in returned)
+    assert max(len(item["document"]) for item in returned) == 1500
     doc_c_chunks = [item for item in returned if item["metadata"].get("document_id") == "doc-c"]
     assert len(doc_c_chunks) == 4
 

@@ -49,7 +49,33 @@ def test_chunk_dense_text_builds_dense_chunks_and_quality_filter():
     assert all(_is_high_quality_chunk(c) for c in chunks)
 
 
-def test_is_high_quality_chunk_rejects_prompt_artifacts_and_too_short():
+def test_is_high_quality_chunk_rejects_only_structural_noise():
+    """Regression #196 (pompon, 2026-07-15): the artifact-marker filter censored
+    the very subject matter of technical corpora — chunks EXPLAINING system
+    prompts ("system prompt", "You are a") or containing code examples were
+    dropped at indexing, so retrieval could never surface them. Quality gating
+    keeps only structural criteria (length, symbol ratio, link spam)."""
     assert not _is_high_quality_chunk("short")
-    assert not _is_high_quality_chunk("You are a system prompt. " + ("x" * 300))
+    assert _is_high_quality_chunk(
+        "A system prompt such as 'You are a helpful assistant' sets application "
+        "rules that take priority over the user message. " * 3
+    )
     assert _is_high_quality_chunk("Dense technical content about retrieval and indexing. " * 8)
+
+
+def test_clean_for_rag_keeps_fenced_code_content():
+    """Regression #196: code examples ARE content (Chroma usage, few-shot
+    prompts lived only in fenced blocks and vanished from the index)."""
+    raw = (
+        "Vector stores in practice.\n\n"
+        "```python\n"
+        "chroma_collection = load_chroma(filename='report.pdf')\n"
+        "chroma_collection.query(query_texts=query, n_results=10)\n"
+        "```\n\n"
+        "The collection supports similarity queries over embeddings.\n"
+    )
+    cleaned = _clean_for_rag(raw)
+
+    assert "chroma_collection" in cleaned
+    assert "similarity queries" in cleaned
+    assert "```" not in cleaned

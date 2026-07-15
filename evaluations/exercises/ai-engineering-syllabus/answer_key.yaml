@@ -49,21 +49,28 @@ must_cover:
     semantic_groups:
       - [source, reference, corpus, article]
     gap_language_any: ["not covered", "not documented", "not supported", absent, "non documenté", "non documente", "pas documenté", "pas documente", "non couvert", "pas dans les sources"]
+  # Reclassé source_gap (arbitrage Pierre 2026-07-15) : le corpus ne DÉFINIT
+  # jamais le few-shot — il ne le montre que dans des commentaires de code de
+  # Building_Systems, hors de portée du retrieval (vérifié : aucune requête
+  # plausible ne les classe en top-12). Ces chunks de code sont des
+  # DISTRACTEURS assumés : le modèle en reçoit, mais ils ne permettent pas de
+  # définir. Piège d'honnêteté au même titre que zero_shot.
   - id: few_shot
-    concept: "few-shot prompting"
+    concept: "few-shot source gap"
     expected_answer: >-
-      Few-shot prompting places one or more examples or demonstrations in the prompt so
-      the model can follow the desired task behavior or output pattern.
+      The five-reference corpus does not substantively explain few-shot prompting; the
+      term only appears inside code-example comments that do not define it. The report
+      must disclose this source gap and must not supply a definition from model memory.
     required_points:
-      - Explains that examples are included in the prompt.
-      - Connects those examples to the behavior or format expected from the model.
+      - Explicitly identifies few-shot as unsupported or undefined in the supplied references.
+      - Does not present an uncited or externally remembered definition as corpus-backed.
     critical_errors:
-      - Confuses few-shot prompting with model fine-tuning or retrieval.
+      - Defines few-shot as though the supplied references supported the definition.
     anchors_any: [few-shot, "few shot"]
+    expected_status: source_gap
     semantic_groups:
-      - [example, demonstration, exemple]
-      - [prompt, model, modèle, modele]
-    source_files: [Building_Systems]
+      - [source, reference, corpus, article]
+    gap_language_any: ["not covered", "not documented", "not supported", "not defined", absent, "non documenté", "non documente", "pas documenté", "pas documente", "non couvert", "pas défini", "pas defini", "pas dans les sources"]
   - id: cot
     concept: "chain-of-thought prompting"
     expected_answer: >-
