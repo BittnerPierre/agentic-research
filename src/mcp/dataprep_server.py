@@ -49,13 +49,13 @@ def create_dataprep_server() -> FastMCP:
     @mcp.tool()
     def download_and_store_url_tool(url: str) -> str:
         """
-        Télécharge et stocke une URL dans le système de gestion de connaissances local.
+        Télécharge une URL et la stocke dans la base de connaissances ; retourne le NOM DE FICHIER STOCKÉ, à réutiliser tel quel pour upload_files_to_vectorstore_tool ou les recherches (le fichier est renommé au stockage : le dernier segment de l'URL n'est PAS le nom stocké).
 
         Args:
-            url: URL à télécharger et stocker
+            url: URL à télécharger et stocker (copie exacte depuis la demande utilisateur)
 
         Returns:
-            str: Nom du fichier local créé (.md)
+            str: Nom du fichier stocké dans la base de connaissances (.md) — l'identifiant à réutiliser
         """
         logger.info(f"[MCP Tool] download_and_store_url called with url={url}")
         config = get_config()
@@ -77,7 +77,7 @@ def create_dataprep_server() -> FastMCP:
         Indexation locale des fichiers dans le vector store.
 
         Args:
-            inputs: Liste d'URLs (qui seront résolues) ou noms de fichiers locaux
+            inputs: Liste d'URLs EXACTES (recommandé — résolues automatiquement) ou de noms de fichiers EXACTS tels que stockés dans la base de connaissances (= valeur retournée par download_and_store_url_tool, ou champ 'filename' de get_knowledge_entries_tool). Les derniers segments d'URL ne fonctionnent PAS : le fichier est renommé au stockage.
             vectorstore_name: Nom du vector store à créer
 
         Returns:

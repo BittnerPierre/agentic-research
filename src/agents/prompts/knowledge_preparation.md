@@ -48,6 +48,15 @@ Vous ne pouvez pas passer à l’étape suivante tant que la fonction associée 
 - Si la demande utilisateur ne contient aucune URL explicite, vous ne devez pas appeler `download_and_store_url_tool`.
 - Si une URL échoue au téléchargement, continuez avec les connaissances disponibles et n'ajoutez pas d'autres URLs non demandées.
 
+**Règles strictes sur le passage de paramètres à `upload_files_to_vectorstore_tool` (obligatoires)** :
+
+Le paramètre `inputs` accepte exactement deux formes :
+
+1. les **URLs exactes** de la demande utilisateur (copie exacte, telles que téléchargées) ;
+2. les **noms de fichiers exacts retournés par `download_and_store_url_tool`** ou listés dans le champ `filename` de `get_knowledge_entries_tool`.
+
+Ne passez JAMAIS un nom que vous n'avez pas lu dans un résultat d'outil : n'inventez pas, n'abrégez pas, ne reconstruisez pas un nom depuis l'URL (le dernier segment de l'URL n'est PAS le nom stocké — le fichier est renommé au stockage).
+
 **Réflexion** : "Ai-je rassemblé suffisamment de sources pour couvrir tous les aspects ?"
 
 ### ÉTAPE 2 : ANALYSE INITIALE ET DÉCOMPOSITION

@@ -29,3 +29,14 @@ requires every critical report requirement, no wrong or fabricated factual claim
 the requested report structure, and the frozen source policy. Tone, exact table layout,
 and ambiguous but non-contradictory prose remain diagnostic to avoid penalizing medium
 models for stylistic variance.
+
+## Interface versions
+
+- **v1** (runs of 2026-07-13/15): ambiguous tool interface — the stored-filename vs
+  URL-basename duality was undocumented (see issue #202). Historical runs kept as-is.
+- **v2** (issue #202, 2026-07-15): documentation-only fix — download tool states it
+  returns the stored filename; upload tool documents the two accepted input forms
+  (exact URLs, or exact stored names); vector_search documents the `filenames`
+  filter; knowledge_preparation prompt gets an explicit parameter-passing rule.
+  No logic, signature, or storage change. Campaign runs must be compared within
+  the same interface version; the v1→v2 delta measures robustness to ambiguity.
