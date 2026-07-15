@@ -478,12 +478,17 @@ def _table_claims(
         value_col = next(
             (i for i, h in enumerate(header) if h in {"value", "valeur", "montant"}), None
         )
-        # map each column index to a metric key
+        # map each column index to a metric key; a header can also carry the
+        # period ("Capex FY2020" / "Capex FY2025" trend tables).
         col_metrics = {}
+        col_periods = {}
         for i, h in enumerate(header):
             metrics = _canonical_metrics(h)
             if metrics:
                 col_metrics[i] = metrics
+                header_period = _period(tbl[0][i])
+                if header_period:
+                    col_periods[i] = header_period
         current_company = None
         for row in tbl[1:]:
             if not row or company_col >= len(row):
@@ -517,7 +522,7 @@ def _table_claims(
                     continue
                 metrics = col_metrics[i]
                 values = _cell_numbers(cell)
-                claim_period = period or _period(cell) or default_period
+                claim_period = col_periods.get(i) or period or _period(cell) or default_period
                 if len(metrics) == len(values):
                     out.extend(
                         (co, metric, claim_period, value, "numeric")
@@ -1426,6 +1431,18 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             attribution_valid = _fact_attribution_is_valid(val, unit, pos)
             if attribution_valid is True:
                 continue
+            if attribution_valid is False and unit == "%":
+                # A relative-change percentage ("une augmentation d'environ 320 %")
+                # is NOT a primary corpus fact: when it is a correct derivation of
+                # shown corpus operands, misattributing it to a % metric must not
+                # turn first-level trend analysis into a contradiction. Primary
+                # ($/absolute) contradictions keep the non-rescue rule untouched.
+                window = report_md[max(0, pos - 160) : pos + 160]
+                neighbors = [
+                    v for v, _u, _p in extract_numbers(window) if in_whitelist(v, whitelist)
+                ]
+                if _is_derived(val, neighbors) or _derivation_status(val, pos) == "valid":
+                    continue
             if attribution_valid is False:
                 ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
                 prose_contradictions.append(

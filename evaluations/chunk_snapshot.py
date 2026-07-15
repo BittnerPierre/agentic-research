@@ -5,6 +5,7 @@ from __future__ import annotations
 import fnmatch
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -84,6 +85,94 @@ def _manifest_source(filename: str, manifest: dict) -> dict | None:
     return matches[0] if len(matches) == 1 else None
 
 
+_FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
+
+
+def _frontmatter_and_body(text: str) -> tuple[dict, str]:
+    """Split the ingestion frontmatter (title/source/…) from the stored body."""
+    match = _FRONTMATTER_RE.match(text)
+    if not match:
+        return {}, text
+    meta: dict[str, str] = {}
+    for line in match.group(1).splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            meta[key.strip()] = value.strip().strip('"')
+    return meta, text[match.end() :]
+
+
+def _resolve_stored_variant(
+    filename: str,
+    manifest: dict,
+    roots: list[Path],
+) -> tuple[dict | None, Path | None]:
+    """Match a title-renamed ingested file back to its frozen manifest entry.
+
+    The ingestion pipeline renames downloads after the document title and adds a
+    frontmatter block recording the exact ``source`` URL. The frozen manifest
+    keys on the canonical corpus filenames (the URL basenames). Resolution is
+    only accepted when the frontmatter-stripped BODY hash equals the frozen
+    corpus hash — the security property (chunks provably come from the frozen
+    content) is preserved; only the filename indirection is bridged.
+    """
+    for root in roots:
+        path = root / filename
+        if not path.is_file():
+            continue
+        meta, body = _frontmatter_and_body(path.read_text(encoding="utf-8", errors="ignore"))
+        url = meta.get("source", "")
+        if not url:
+            continue
+        canonical = url.split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1]
+        expected = _manifest_source(canonical, manifest)
+        if expected is None:
+            continue
+        frozen_file = _frozen_source_file(canonical, expected, roots)
+        if frozen_file is None:
+            continue
+        if _strip_ingestion_preamble(body) != frozen_file.read_text(
+            encoding="utf-8", errors="ignore"
+        ).strip():
+            continue
+        return expected, path
+    return None, None
+
+
+def _strip_ingestion_preamble(body: str) -> str:
+    """Drop the loader-added preamble (# title / **Source:** url / ## Contenu).
+
+    The storage pipeline prepends exactly these lines before the verbatim
+    downloaded content. Anything beyond this known pattern is NOT stripped, so
+    a stored file with extra injected content will fail the equality check."""
+    lines = body.lstrip("\n").splitlines()
+    index = 0
+    if index < len(lines) and lines[index].startswith("# "):
+        index += 1
+        while index < len(lines) and not lines[index].strip():
+            index += 1
+    if index < len(lines) and lines[index].startswith("**Source:**"):
+        index += 1
+        while index < len(lines) and not lines[index].strip():
+            index += 1
+    if index < len(lines) and lines[index].strip().lower() in {"## contenu", "## content"}:
+        index += 1
+        while index < len(lines) and not lines[index].strip():
+            index += 1
+    end = len(lines)
+    while end > index and not lines[end - 1].strip():
+        end -= 1
+    # Known trailing footer:
+    # "---" + "*Document traité automatiquement par le système de recherche agentique*"
+    if end > index and re.fullmatch(
+        r"\*Document[^*\n]*(?:automatiquement|agentique|automatically|retrieved)[^*\n]*\*",
+        lines[end - 1].strip(),
+    ):
+        end -= 1
+        while end > index and lines[end - 1].strip() in {"---", ""}:
+            end -= 1
+    return "\n".join(lines[index:end]).strip()
+
+
 def load_source_manifest(exercise: Path) -> tuple[Path | None, dict]:
     """Load either supported frozen-corpus manifest into one internal schema."""
     yaml_path = exercise / "source_manifest.yaml"
@@ -147,10 +236,16 @@ def validate_chunk_snapshot(
             result.violations.append(f"resolved chunk missing filename: {label}")
             continue
         expected = _manifest_source(chunk.filename, manifest)
+        source_file: Path | None = None
+        if expected is None:
+            # Title-renamed ingested copy: bridge via its frontmatter source URL,
+            # accepted only when the stripped body hash-matches the frozen corpus.
+            expected, source_file = _resolve_stored_variant(chunk.filename, manifest, roots)
         if expected is None:
             result.violations.append(f"chunk source outside frozen manifest: {label}")
             continue
-        source_file = _frozen_source_file(chunk.filename, expected, roots)
+        if source_file is None:
+            source_file = _frozen_source_file(chunk.filename, expected, roots)
         if source_file is None:
             result.violations.append(f"frozen source unavailable or hash mismatch: {label}")
             continue
