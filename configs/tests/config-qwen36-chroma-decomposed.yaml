@@ -53,11 +53,15 @@ models:
   # INSTRUCT PUR partout (reasoning none). Qwen3 pense par défaut ; le thinking
   # contaminait la sortie JSON structurée (FileSearchPlan) -> ModelBehaviorError.
   # "none" désactive explicitement le thinking sur tous les agents.
+  # temperature 0.2 : discipline des tool-calls (runs 4/5 : arguments inventés,
+  # URLs corrompues, basenames — pathologies d'échantillonnage, différentes à
+  # chaque run). Réglage par modèle, légitime en campagne.
   search_model: &qwen
     name: "openai/nvidia/Qwen3.6-35B-A3B-NVFP4"
     base_url: "http://spark1:8000/v1"
     api_key: "dummy"
     reasoning_effort: "none"
+    temperature: 0.2
   writer_model: *qwen
   chapter_writer_model: *qwen
   planning_model: *qwen

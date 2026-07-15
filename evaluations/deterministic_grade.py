@@ -195,6 +195,22 @@ def close(a: float, b: float, tol_abs: float = 0.15, tol_rel: float = 0.01) -> b
     return abs(a - b) <= max(tol_abs, tol_rel * max(abs(a), abs(b)))
 
 
+_AMBIGUOUS_COMMA = re.compile(r"\d{1,3},\d{3}(?![\d.,])")
+
+
+def alternate_comma_value(text: str, pos: int) -> float | None:
+    """French-decimal reinterpretation of an ambiguous comma number at ``pos``.
+
+    "72,215 milliards" is 72.215 (FR 3-decimal) but parses as 72215 (EN thousands).
+    Only consulted as a FALLBACK when the primary parse fails the corpus whitelist,
+    so English thousands-grouped values ("85,002") keep their primary reading.
+    """
+    m = _AMBIGUOUS_COMMA.match(text, pos)
+    if not m:
+        return None
+    return to_float(m.group(0).replace(",", "."))
+
+
 # ---------------------------------------------------------------------------
 # Corpus ground truth
 # ---------------------------------------------------------------------------
@@ -1377,6 +1393,13 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             continue  # years
         if _in_ignore(pos):
             continue  # code example / section number, not a grounding claim
+        if not in_whitelist(val, whitelist):
+            # "72,215 milliards" is FR 3-decimal (72.215), not EN thousands
+            # (72215). Fallback only — a primary parse that matches the corpus
+            # (e.g. "85,002" as 85002) keeps its reading.
+            alt = alternate_comma_value(report_md, pos)
+            if alt is not None and in_whitelist(alt, whitelist):
+                val = alt
         line_start = report_md.rfind("\n", 0, pos) + 1
         line_end = report_md.find("\n", pos)
         line = report_md[line_start : len(report_md) if line_end == -1 else line_end]
