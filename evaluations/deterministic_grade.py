@@ -450,10 +450,90 @@ def _canonical_metrics(text: str) -> list[str]:
     return metrics
 
 
-def _table_claims(
+def _content_table_claims(
+    tables, companies: list[str]
+) -> list[tuple[str, str, str | None, float | None, str]]:
+    """Yield claims from CANONICAL rows — content-anchored, header-free.
+
+    Arbitrage Pierre (2026-07-15) : le syllabus impose le format
+    ``| Company | Metric | Period | Value |``. Une ligne est reconnue par son
+    CONTENU — une société en périmètre + une période FY20xx + une métrique du
+    vocabulaire fermé demandé + une valeur (ou « unavailable ») — jamais par
+    les noms d'en-têtes. Ces claims ont PLEINE AUTORITÉ (crédit ET accusation).
+    """
+    cmap = {c.lower(): c for c in companies}
+    out = []
+    for tbl in tables:
+        current_company = None
+        for row in tbl[1:]:
+            if not row:
+                continue
+            cells = [c.strip() for c in row]
+            # Ancre société : les cellules ne doivent nommer qu'UNE société.
+            comp_hits = [
+                (i, cmap[name])
+                for i, cell in enumerate(cells)
+                for name in cmap
+                if re.search(rf"\b{re.escape(name)}\b", cell, re.I)
+            ]
+            found = list(dict.fromkeys(c for _i, c in comp_hits))
+            if len(found) == 1:
+                co = found[0]
+                current_company = co
+                company_idx = comp_hits[0][0]
+            elif not found and cells and not cells[0] and current_company:
+                co = current_company  # ligne de continuation (1re cellule vide)
+                company_idx = 0
+            else:
+                continue
+            # Ancre période : exactement UNE période FY20xx distincte.
+            period_hits = [
+                (i, p) for i, cell in enumerate(cells) if i != company_idx and (p := _period(cell))
+            ]
+            periods = list(dict.fromkeys(p for _i, p in period_hits))
+            if len(periods) != 1:
+                continue
+            period = periods[0]
+            period_idxs = {i for i, _p in period_hits}
+            # Ancre métrique : exactement UNE métrique du vocabulaire fermé.
+            metric_hits = []
+            for i, cell in enumerate(cells):
+                if i == company_idx or i in period_idxs:
+                    continue
+                canonical = _canonical_metric(cell)
+                if canonical:
+                    metric_hits.append((i, canonical))
+            metrics = list(dict.fromkeys(m for _i, m in metric_hits))
+            if len(metrics) != 1:
+                continue
+            metric = metrics[0]
+            metric_idxs = {i for i, _m in metric_hits}
+            # Ancre valeur : UNE cellule restante numérique, ou « unavailable ».
+            rest = [
+                cells[i]
+                for i in range(len(cells))
+                if i != company_idx and i not in period_idxs and i not in metric_idxs and cells[i]
+            ]
+            numeric = [v for c in rest if (v := _single_cell_number(c)) is not None]
+            if len(numeric) == 1:
+                out.append((co, metric, period, numeric[0], "numeric"))
+            elif not numeric and any(_UNAVAILABLE_RE.search(c) for c in rest):
+                out.append((co, metric, period, None, "unavailable"))
+    return out
+
+
+def _assisted_table_claims(
     tables, companies: list[str], default_period: str | None = None
 ) -> list[tuple[str, str, str | None, float | None, str]]:
-    """Yield numeric and explicit-unavailability claims from Markdown tables."""
+    """Header-mapped claims (wide/long tables) — ASSIST ONLY, never accuse.
+
+    Arbitrage Pierre (2026-07-15) : la lecture par noms d'en-têtes peut se
+    tromper (langues, synonymes, « Earliest capex »…). Un match via en-têtes =
+    double coïncidence (valeur + société + corpus) → crédit sûr. Un écart via
+    en-têtes peut venir d'une mauvaise lecture → JAMAIS d'accusation numérique.
+    Exception : une cellule « unavailable » est l'affirmation explicite du
+    modèle, pas une devinette de nombre — elle reste accusable.
+    """
     cmap = {c.lower(): c for c in companies}
     out = []
     for tbl in tables:
@@ -478,8 +558,6 @@ def _table_claims(
         value_col = next(
             (i for i, h in enumerate(header) if h in {"value", "valeur", "montant"}), None
         )
-        # map each column index to a metric key; a header can also carry the
-        # period ("Capex FY2020" / "Capex FY2025" trend tables).
         col_metrics = {}
         col_periods = {}
         for i, h in enumerate(header):
@@ -488,7 +566,7 @@ def _table_claims(
                 col_metrics[i] = metrics
                 header_period = _period(tbl[0][i])
                 if header_period:
-                    col_periods[i] = header_period
+                    col_periods[i] = header_period.lower()
         current_company = None
         for row in tbl[1:]:
             if not row or company_col >= len(row):
@@ -537,11 +615,30 @@ def _table_claims(
     return out
 
 
+def _table_claims(
+    tables, companies: list[str], default_period: str | None = None
+) -> list[tuple[str, str, str | None, float | None, str, str]]:
+    """Combined claims with authority: content rows accuse, header rows assist."""
+    full = [
+        (co, metric, period, value, status, "content")
+        for co, metric, period, value, status in _content_table_claims(tables, companies)
+    ]
+    seen = {(co, metric, period, value) for co, metric, period, value, _s, _a in full}
+    assisted = [
+        (co, metric, period, value, status, "assisted")
+        for co, metric, period, value, status in _assisted_table_claims(
+            tables, companies, default_period
+        )
+        if (co, metric, period, value) not in seen
+    ]
+    return full + assisted
+
+
 def table_cells(tables, companies: list[str]) -> list[tuple[str, str, str | None, float]]:
-    """Yield company/metric/period/value facts from wide and canonical long tables."""
+    """Yield company/metric/period/value facts from canonical and header-mapped tables."""
     return [
         (company, metric, period, value)
-        for company, metric, period, value, status in _table_claims(tables, companies)
+        for company, metric, period, value, status, _authority in _table_claims(tables, companies)
         if status == "numeric" and value is not None
     ]
 
@@ -828,8 +925,8 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 default_period = candidate_period
         claims = _table_claims(parse_tables(report_body), companies, default_period)
         cells = [
-            (company, metric, period, value)
-            for company, metric, period, value, status in claims
+            (company, metric, period, value, authority)
+            for company, metric, period, value, status, authority in claims
             if status == "numeric" and value is not None
         ]
 
@@ -839,16 +936,21 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             m
             for m in must
             if any(
-                c[0] == m[0] and c[1] == m[1] and c[2] == m[2] and close(c[3], m[3]) for c in cells
+                c[0] == m[0]
+                and c[1] == m[1]
+                and (c[2] or "").lower() == (m[2] or "").lower()
+                and close(c[3], m[3])
+                for c in cells
             )
         ]
         coverage = len(covered) / len(must) if must else 0.0
 
-        # accuracy (precision): EVERY stated cell must match some corpus FY.
-        # Iterate all cells (not deduped by co/metric) so an internally inconsistent
-        # report (right value in one table, wrong in another) is caught.
+        # accuracy (precision): a MATCH is credited from any parsing (content or
+        # header-assisted — double coincidence, safe). A MISMATCH only accuses
+        # from content-anchored canonical rows: header-mapped readings can be
+        # OUR misreading, never the model's fault (arbitrage Pierre 2026-07-15).
         matches, wrongs, seen = [], [], set()
-        for co, metric, period, val in cells:
+        for co, metric, period, val, authority in cells:
             any_fy = [
                 v
                 for (c, m, fiscal_year), v in facts.items()
@@ -862,12 +964,12 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             seen.add(key)
             if any_fy and any(close(val, v) for v in any_fy):
                 matches.append((co, metric, val))
-            else:
+            elif authority == "content":
                 truth = facts.get((co.lower(), metric.lower(), (latest_fy.get(co) or "").lower()))
                 wrongs.append((co, metric, val, truth))
 
-        for co, metric, period, _value, status in claims:
-            if status != "unavailable":
+        for co, metric, period, _value, status, authority in claims:
+            if status != "unavailable" or authority != "content":
                 continue
             claim_period = period or expected_periods.get(co) or latest_fy.get(co)
             if facts.get((co.lower(), metric.lower(), (claim_period or "").lower())) is not None:
@@ -901,6 +1003,9 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         re.I,
     )
     guidance_re = re.compile(r"guidance|forecast|projection|prevision|orientation", re.I)
+    # Meta-discourse about the RETRIEVAL ("unavailable in that evidence chunk")
+    # is not a claim about the fact itself — never accuse on it.
+    evidence_re = re.compile(r"chunk|evidence|retriev|extrait|preuve|corpus fragment", re.I)
     contradictions = []
     current_company = None
     for line in report_body.splitlines():
@@ -912,8 +1017,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             current_company = explicit_companies[0] if len(explicit_companies) == 1 else None
         for clause in re.split(r"(?<=[.!?;])\s+|,\s+(?:and|et|but|mais)\s+", line):
             normalized_clause = _deaccent(clause.lower())
-            if not unavailable_re.search(normalized_clause) or guidance_re.search(
-                normalized_clause
+            if (
+                not unavailable_re.search(normalized_clause)
+                or guidance_re.search(normalized_clause)
+                or evidence_re.search(normalized_clause)
             ):
                 continue
             clause_companies = [
@@ -924,7 +1031,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             mentioned_years = re.findall(r"\b(?:FY\s*)?(20\d{2})\b", normalized_clause, re.I)
             for company in clause_companies:
                 latest = latest_fy.get(company)
-                if mentioned_years and latest and latest.removeprefix("FY") not in mentioned_years:
+                # Accuse only when the latest FY is the ONLY year mentioned (or
+                # none): a multi-year clause ("FY2020 and FY2021 ... unavailable
+                # ... FY2020->FY2025 basis") is nuance about OTHER periods.
+                if (
+                    mentioned_years
+                    and latest
+                    and set(mentioned_years) != {latest.removeprefix("FY")}
+                ):
                     continue
                 for metric, aliases in METRIC_ALIASES.items():
                     if not any(_deaccent(alias.lower()) in normalized_clause for alias in aliases):
@@ -1427,33 +1541,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             ):
                 continue
             citation_support_failed = True
-        elif mode == "numeric" and unit not in {"x", "\u00d7"}:
-            attribution_valid = _fact_attribution_is_valid(val, unit, pos)
-            if attribution_valid is True:
-                continue
-            if attribution_valid is False and unit == "%":
-                # A relative-change percentage ("une augmentation d'environ 320 %")
-                # is NOT a primary corpus fact: when it is a correct derivation of
-                # shown corpus operands, misattributing it to a % metric must not
-                # turn first-level trend analysis into a contradiction. Primary
-                # ($/absolute) contradictions keep the non-rescue rule untouched.
-                window = report_md[max(0, pos - 160) : pos + 160]
-                neighbors = [
-                    v for v, _u, _p in extract_numbers(window) if in_whitelist(v, whitelist)
-                ]
-                if _is_derived(val, neighbors) or _derivation_status(val, pos) == "valid":
-                    continue
-            if attribution_valid is False:
-                ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
-                prose_contradictions.append(
-                    {
-                        "value": val,
-                        "unit": unit,
-                        "context": ctx.strip(),
-                        "reason": "contradicted_fact",
-                    }
-                )
-                continue
+        # Arbitrage Pierre (2026-07-15) \u2014 fin du \u00ab devineur d'ann\u00e9es \u00bb : prose
+        # numbers are NEVER attributed to a company/metric/period mechanically.
+        # Free-text presentation has an unbounded format tail; guessing produced
+        # false accusations on correct historical values (calibration failed on
+        # the reference model). For prose the only mechanical question left is
+        # EXISTENCE: does the figure exist in the frozen corpus (or derive from
+        # shown corpus operands)? Analysis correctness belongs to the adequacy
+        # judge. Tables keep full attribution via _table_claims (reliable).
         # skip round-ten integers used as a hedge/threshold ("marges > 30%"):
         # a reasonable summary, not an invented precise statistic.
         pre = report_md[max(0, pos - 28) : pos].lower()
@@ -1464,7 +1559,23 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         window = report_md[max(0, pos - 160) : pos + 160]
         neighbors = [v for v, _u, _p in extract_numbers(window) if in_whitelist(v, whitelist)]
         derivation_status = _derivation_status(val, pos)
-        if (unit == "%" and _is_derived(val, neighbors)) or derivation_status == "valid":
+        # $ deltas: "from $15.4B to $64.6B, up $49.2B" — a correct SUBTRACTION of
+        # shown corpus operands is first-level analysis, not an invented figure.
+        # Restricted to |a-b| (no ratio ops) to keep collision risk low.
+        # A computed delta is near-exact by nature: tight tolerance, otherwise
+        # accidental pairs among ~180 corpus values launder real fabrications
+        # (observed: 83.0-3.2=79.8 nearly excusing an invented 80.3).
+        derived_delta = unit != "%" and any(
+            close(val, abs(a - b), tol_abs=0.15, tol_rel=0.005)
+            for a in neighbors
+            for b in neighbors
+            if a != b
+        )
+        if (
+            (unit == "%" and _is_derived(val, neighbors))
+            or derived_delta
+            or derivation_status == "valid"
+        ):
             continue
         ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
         item = {"value": val, "unit": unit, "context": ctx.strip()}

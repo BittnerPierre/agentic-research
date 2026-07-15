@@ -166,7 +166,11 @@ def test_table_cells_parse_canonical_long_format_and_small_integer() -> None:
     ]
 
 
-def test_table_cells_parse_combined_operating_income_and_margin() -> None:
+def test_combined_table_assists_coverage_but_never_accuses() -> None:
+    # Arbitrage Pierre (2026-07-15) — « les en-têtes peuvent aider, jamais
+    # accuser » : cette lecture par en-têtes fournit des claims d'ASSISTANCE
+    # (crédit de couverture sur match) ; un écart via ces claims ne produit
+    # jamais d'accusation (voir test_assisted_mismatch_is_not_accused).
     report_md = (
         "| Company | Period | Operating income (margin) |\n"
         "| --- | --- | --- |\n"
@@ -177,6 +181,28 @@ def test_table_cells_parse_combined_operating_income_and_margin() -> None:
         ("Amazon", "Operating income", "FY2025", 80.0),
         ("Amazon", "Operating margin", "FY2025", 11.2),
     ]
+
+
+def test_assisted_mismatch_is_not_accused_but_content_mismatch_is(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15) : un écart lu via en-têtes peut être NOTRE
+    # erreur de lecture -> silence (existence seulement). Un écart dans une
+    # ligne canonique auto-identifiée (contenu) reste une accusation.
+    exercise = _write_exercise(tmp_path)
+    header_mismatch = (
+        "| Company | Earliest revenue |\n"
+        "| --- | --- |\n"
+        "| Apple | 999.0 |\n"
+    )
+    result = grade(tmp_path / "run", exercise, header_mismatch, [])
+    assert result["accuracy"]["wrong"] == 0  # pas d'accusation via en-têtes
+
+    canonical_mismatch = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Revenue | FY2025 | 999.0 |\n"
+    )
+    result = grade(tmp_path / "run", exercise, canonical_mismatch, [])
+    assert result["accuracy"]["wrong"] == 1  # la ligne canonique accuse
 
 
 def test_grade_uses_period_for_table_accuracy(tmp_path: Path) -> None:
@@ -361,7 +387,12 @@ def test_unavailability_clause_is_attributed_to_named_company_only(tmp_path: Pat
     ]
 
 
-def test_prose_fact_cannot_reuse_another_company_value(tmp_path: Path) -> None:
+def test_prose_number_existing_in_corpus_is_not_accused(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): prose numbers are checked for EXISTENCE in
+    # the corpus only — mechanical company/metric/period attribution of free
+    # text is gone (it produced false accusations on the reference model).
+    # A corpus value reused for the wrong company in prose is an ANALYSIS error,
+    # which belongs to the adequacy judge, not the number checker.
     exercise = _write_exercise(tmp_path)
     (exercise / "corpus" / "other_company.md").write_text(
         "Alphabet revenue was 402.8B.\n",
@@ -371,7 +402,8 @@ def test_prose_fact_cannot_reuse_another_company_value(tmp_path: Path) -> None:
 
     result = grade(tmp_path / "run", exercise, report_md, [])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [402.8]
+    assert result["prose_contradictions"]["items"] == []
+    assert result["fabrication"]["count"] == 0
 
 
 def test_correct_prose_fact_remains_grounded(tmp_path: Path) -> None:
@@ -420,13 +452,17 @@ def test_correct_value_with_ambiguous_metric_is_not_called_a_contradiction(tmp_p
     assert result["prose_contradictions"]["count"] == 0
 
 
-def test_explicit_wrong_metric_cannot_reuse_another_metric_value(tmp_path: Path) -> None:
+def test_prose_metric_reuse_is_judge_territory_not_mechanical(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 416.2 exists in the corpus (Apple revenue),
+    # so the existence check passes; calling it "capex" in prose is an analysis
+    # error for the adequacy judge. No mechanical accusation.
     exercise = _finance_exercise()
     report = "Apple FY2025 capex was $416.2B [S1].\n"
 
     result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [416.2]
+    assert result["prose_contradictions"]["items"] == []
+    assert result["fabrication"]["count"] == 0
 
 
 def _finance_exercise() -> Path:
@@ -497,14 +533,21 @@ def test_finance_contract_has_a_reachable_deterministic_reference(tmp_path: Path
 
 
 def test_number_that_looks_like_year_but_has_unit_is_checked(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15) — documented limitation: "$2025B" collides
+    # with the year tokens present in the corpus text, so the existence check
+    # passes and no mechanical accusation is raised. Prose attribution is gone;
+    # this rare shape is left to the adequacy judge / human read.
     exercise = _write_exercise(tmp_path)
 
     result = grade(tmp_path / "run", exercise, "Apple FY2025 revenue was $2025B.\n", [])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [2025.0]
+    assert result["prose_contradictions"]["items"] == []
 
 
-def test_wrong_direct_fact_cannot_be_rescued_as_derivation(tmp_path: Path) -> None:
+def test_stale_period_value_in_prose_is_judge_territory(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 391.0 exists in the corpus (FY2024), so
+    # existence passes; claiming it for FY2025 in prose is an analysis error
+    # for the adequacy judge. The canonical table keeps full period authority.
     exercise = _write_exercise(tmp_path)
     corpus = exercise / "corpus" / "key_metrics.csv"
     corpus.write_text(
@@ -518,7 +561,8 @@ def test_wrong_direct_fact_cannot_be_rescued_as_derivation(tmp_path: Path) -> No
 
     result = grade(tmp_path / "run", exercise, report, [])
 
-    assert any(item["value"] == 391.0 for item in result["prose_contradictions"]["items"])
+    assert result["prose_contradictions"]["items"] == []
+    assert result["fabrication"]["count"] == 0
 
 
 def test_correct_derivation_can_use_operands_in_previous_sentence(tmp_path: Path) -> None:
@@ -762,14 +806,18 @@ def test_cited_growth_language_cannot_bypass_citation_laundering(tmp_path: Path)
     assert result["qualified"] is False
 
 
-def test_explicit_off_whitelist_fact_is_a_blocking_contradiction(tmp_path: Path) -> None:
+def test_off_whitelist_prose_number_is_unverifiable_diagnostic(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 45% exists nowhere in the corpus and is not
+    # a derivation of shown operands — it fails the EXISTENCE check and lands in
+    # the unverifiable diagnostic (per-item penalty, volume-capped), without a
+    # mechanical company/metric attribution.
     exercise = _finance_exercise()
     report = "Apple's operating margin reached 45% in FY2025.\n"
 
     result = grade(tmp_path / "run", exercise, report, [])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [45.0]
-    assert result["qualified"] is False
+    assert result["prose_contradictions"]["items"] == []
+    assert 45.0 in [item["value"] for item in result["unverifiable"]["items"]]
 
 
 def test_uncited_unsupported_range_is_diagnostic(tmp_path: Path) -> None:
@@ -821,7 +869,10 @@ def test_six_uncited_growth_rates_exceed_finance_volume_cap(tmp_path: Path) -> N
     assert result["qualified"] is False
 
 
-def test_wrong_operand_is_charged_once_but_consistent_derivation_is_not(tmp_path: Path) -> None:
+def test_wrong_operand_is_flagged_once_but_consistent_derivation_is_not(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 22.0 exists nowhere in the corpus (truth is
+    # 22.3) — it fails the EXISTENCE check (unverifiable diagnostic). The 4.2x
+    # consistent with the SHOWN operands is not charged a second time.
     exercise = _finance_exercise()
     report = (
         "Alphabet spending rose from $22.0B in FY2020 to $91.4B in FY2025 [S1]. "
@@ -830,7 +881,9 @@ def test_wrong_operand_is_charged_once_but_consistent_derivation_is_not(tmp_path
 
     result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [22.0]
+    assert result["prose_contradictions"]["items"] == []
+    # 22.0 exists nowhere in the corpus and carries a citation: laundering, blocking.
+    assert 22.0 in [item["value"] for item in result["fabrication"]["items"]]
     assert all(item["value"] != 4.2 for item in result["unverifiable"]["items"])
 
 
@@ -848,3 +901,24 @@ def test_wrong_derivation_from_correct_operands_is_diagnostic(tmp_path: Path) ->
         item["value"] == 4.2 and item["reason"] == "invalid_derivation"
         for item in result["unverifiable"]["items"]
     )
+
+
+def test_deterministic_scoring_is_invariant_across_rescores(tmp_path: Path) -> None:
+    # Exigence Pierre (2026-07-15): même rapport => même résultat, à chaque
+    # re-scoring. Couvre la partie déterministe (le juge LLM, non appelé ici,
+    # est mesuré séparément — il ne peut pas être exactement invariant).
+    exercise = _finance_exercise()
+    report = "\n".join(
+        [
+            "# FY2025 Capex and Cash Generation",
+            _fy2025_table(),
+            "",
+            "Amazon capex rose from $40.1B in FY2020 to $131.8B in FY2025.",
+        ]
+    )
+    sources = [{"source_id": "S1", "content": report}]
+
+    results = [grade(tmp_path / "run", exercise, report, sources) for _ in range(3)]
+
+    baseline = json.dumps(results[0], sort_keys=True)
+    assert all(json.dumps(r, sort_keys=True) == baseline for r in results[1:])
