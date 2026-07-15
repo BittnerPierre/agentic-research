@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.schemas import FileSearchItem, FileSearchPlan, ResearchInfo
+from src.agents.schemas import FileSearchItem, FileSearchPlan, ReportData, ResearchInfo
 from src.deep_research_manager import DeepResearchManager
 
 
@@ -319,6 +319,7 @@ async def test_failed_benchmark_phase_persists_zero_score_artifacts(monkeypatch,
     stats = json.loads((manager._benchmark_run_dir / "stats.json").read_text(encoding="utf-8"))
     grade = json.loads((manager._benchmark_run_dir / "det_grade.json").read_text(encoding="utf-8"))
     sources = json.loads((manager._benchmark_run_dir / "sources.json").read_text(encoding="utf-8"))
+    chunks = json.loads((manager._benchmark_run_dir / "chunks.json").read_text(encoding="utf-8"))
 
     assert stats["success"] is False
     assert stats["failure"] == {
@@ -330,3 +331,51 @@ async def test_failed_benchmark_phase_persists_zero_score_artifacts(monkeypatch,
     assert grade["qualified"] is False
     assert grade["root_cause"]["verdict"] == "planning: ValueError"
     assert sources == []
+    assert chunks == {"schema_version": 1, "chunks": [], "conflicts": []}
+
+
+def test_successful_benchmark_persists_portable_report_and_chunks(
+    monkeypatch, tmp_path: Path
+) -> None:
+    manager = _build_manager(tmp_path)
+    raw_source_dir = tmp_path / "data"
+    raw_source_dir.mkdir()
+    raw_source = raw_source_dir / "Agents_1.md"
+    raw_source.write_text("# Agents\n\nA raw retrieved passage.\n", encoding="utf-8")
+    monkeypatch.setattr(manager._config.data, "local_storage_dir", str(raw_source_dir))
+    monkeypatch.chdir(tmp_path)
+    manager._start_benchmark_run()
+    manager.research_info.retrieved_chunks["doc-1:0"] = {
+        "chunk_id": "doc-1:0",
+        "document_id": "doc-1",
+        "chunk_index": 0,
+        "filename": "Agents_1.md",
+        "source": "https://example.test/agents",
+        "text": "A raw retrieved passage.",
+        "sha256": "abc123",
+        "resolved": True,
+    }
+    summary = tmp_path / "summary.txt"
+    summary.write_text("Grounded summary [doc-1:0]", encoding="utf-8")
+    report = ReportData(
+        file_name="report.md",
+        research_topic="test",
+        short_summary="summary",
+        markdown_report="# Report\n\nGrounded content [S1].",
+        follow_up_questions=[],
+    )
+
+    manager._persist_benchmark_stats("request", report, [str(summary)])
+
+    assert manager._benchmark_run_dir is not None
+    run_dir = manager._benchmark_run_dir
+    chunks = json.loads((run_dir / "chunks.json").read_text(encoding="utf-8"))
+    stats = json.loads((run_dir / "stats.json").read_text(encoding="utf-8"))
+    assert chunks["chunks"] == [manager.research_info.retrieved_chunks["doc-1:0"]]
+    assert stats["n_chunks"] == 1
+    assert stats["source_archive"]["missing"] == []
+    assert stats["source_archive"]["files"][0]["filename"] == "Agents_1.md"
+    assert (run_dir / "raw_sources" / "Agents_1.md").read_text(encoding="utf-8") == (
+        raw_source.read_text(encoding="utf-8")
+    )
+    assert (run_dir / "report.md").read_text(encoding="utf-8") == report.markdown_report

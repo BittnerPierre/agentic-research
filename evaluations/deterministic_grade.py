@@ -12,9 +12,9 @@ allowed to use), not a model's opinion. The grader:
 - attributes failures to a workflow STAGE via the intermediate artifacts
   (sources.json = what retrieval returned) so we get a root cause.
 
-Everything above is mechanical. A closed, evidence-required LLM entailment is used
-ONLY for qualitative must-cover claims (trends), never for open grading, and is
-optional (skipped if no OPENAI_API_KEY).
+Finance numbers remain mechanical. A closed, evidence-bound judge and adversarial
+verifier in ``evaluations.semantic_judge`` provide conceptual authority and an
+adequacy-only Finance veto; they never override deterministic numeric verdicts.
 
     uv run deterministic-grade benchmarks/runs/<run> --exercise evaluations/exercises/ai-capex-intensity
 """
@@ -22,6 +22,7 @@ optional (skipped if no OPENAI_API_KEY).
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import json
 import re
@@ -542,6 +543,16 @@ def _hash_tree(path: Path) -> str:
 
 def _knowledge_document_names(run_dir: Path) -> dict[str, str]:
     """Map vector document IDs to original files when a run exposes its KB manifest."""
+    grade_path = run_dir / "det_grade.json"
+    if grade_path.is_file():
+        try:
+            previous_grade = json.loads(grade_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            previous_grade = {}
+        snapshot = (previous_grade.get("source_resolution") or {}).get("documents") or {}
+        if isinstance(snapshot, dict) and snapshot:
+            return {str(document_id): str(file_name) for document_id, file_name in snapshot.items()}
+
     candidates = [
         run_dir / "knowledge_db.json",
         run_dir / "data" / "knowledge_db.json",
@@ -575,8 +586,20 @@ def _knowledge_document_names(run_dir: Path) -> dict[str, str]:
 def _source_origins(source: dict, document_names: dict[str, str]) -> set[str]:
     origins = set()
     for doc_id in source.get("doc_ids") or []:
-        base = str(doc_id).split(":", 1)[0]
-        origins.add(document_names.get(base, base))
+        raw_id = str(doc_id)
+        if raw_id.startswith("document_id:"):
+            raw_id = raw_id.removeprefix("document_id:")
+        base = raw_id.split(":", 1)[0]
+        origin = document_names.get(base)
+        if origin is None:
+            prefix_matches = {
+                file_name
+                for document_id, file_name in document_names.items()
+                if document_id.startswith(base)
+            }
+            if len(prefix_matches) == 1:
+                origin = next(iter(prefix_matches))
+        origins.add(origin or base)
     return origins
 
 
@@ -651,46 +674,84 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 for expected in expected_files
             )
 
+        def _local_explanation_units(paragraph: str) -> list[str]:
+            units = []
+            for raw_line in paragraph.splitlines():
+                line = re.sub(r"^\s*(?:[-*+]\s+|#{1,6}\s+)", "", raw_line).strip()
+                if not line or set(line) <= {"-", "_", "*"}:
+                    continue
+                sentences = [
+                    sentence.strip()
+                    for sentence in re.split(r"(?<=[.!?])\s+", line)
+                    if sentence.strip()
+                ]
+                units.extend(sentences)
+                units.extend(
+                    f"{first} {second}"
+                    for first, second in pairwise(sentences)
+                    if len((first + " " + second).split()) <= 160
+                )
+            return units
+
         def _concept_evidence(concept: dict) -> tuple[bool, str | None]:
             anchors = concept.get("anchors_any") or []
             for paragraph in paragraphs:
-                normalized_paragraph = re.sub(r"[`*_]", "", paragraph)
-                if len(normalized_paragraph.split()) < min_explanation_words:
-                    continue
-                if not any(_contains_anchor(normalized_paragraph, anchor) for anchor in anchors):
-                    continue
-                citations = _citation_ids(paragraph)
-                if require_citation and not any(
-                    _citation_has_expected_origin(citation, concept) for citation in citations
-                ):
-                    continue
-                cited_origins = {
-                    origin
-                    for citation in citations
-                    for origin in _source_origins(source_by_id.get(citation, {}), document_names)
-                }
-                if len(cited_origins) < int(concept.get("min_cited_origins", 0)):
-                    continue
-                groups = concept.get("semantic_groups") or []
-                if any(not _matches_any(normalized_paragraph, group) for group in groups):
-                    continue
-                gap_language = concept.get("gap_language_any") or [
-                    "not covered",
-                    "not documented",
-                    "not supported",
-                    "absent",
-                    "non documente",
-                    "non couvert",
-                    "pas dans les sources",
-                    "source gap",
-                ]
-                states_gap = _matches_any(normalized_paragraph, gap_language)
-                expected_status = concept.get("expected_status", "supported")
-                if expected_status == "source_gap" and not states_gap:
-                    continue
-                if expected_status == "supported" and states_gap:
-                    continue
-                return True, paragraph.strip()[:240]
+                for unit in _local_explanation_units(paragraph):
+                    normalized_unit = re.sub(r"[`*_]", "", unit)
+                    if len(normalized_unit.split()) < min_explanation_words:
+                        continue
+                    if not any(_contains_anchor(normalized_unit, anchor) for anchor in anchors):
+                        continue
+                    citations = _citation_ids(unit)
+                    expected_citations = [
+                        citation
+                        for citation in citations
+                        if _citation_has_expected_origin(citation, concept)
+                    ]
+                    if require_citation and not expected_citations:
+                        continue
+                    cited_origins = {
+                        origin
+                        for citation in citations
+                        for origin in _source_origins(
+                            source_by_id.get(citation, {}), document_names
+                        )
+                    }
+                    if len(cited_origins) < int(concept.get("min_cited_origins", 0)):
+                        continue
+                    groups = concept.get("semantic_groups") or []
+                    if any(not _matches_any(normalized_unit, group) for group in groups):
+                        continue
+                    gap_language = concept.get("gap_language_any") or [
+                        "not covered",
+                        "not documented",
+                        "not supported",
+                        "absent",
+                        "non documente",
+                        "pas documente",
+                        "non couvert",
+                        "pas dans les sources",
+                        "source gap",
+                    ]
+                    states_gap = _matches_any(normalized_unit, gap_language)
+                    expected_status = concept.get("expected_status", "supported")
+                    if expected_status == "source_gap" and not states_gap:
+                        continue
+                    if expected_status == "supported" and states_gap:
+                        continue
+                    if expected_status == "supported":
+                        cited_content = "\n".join(
+                            source_by_id[citation].get("content") or ""
+                            for citation in expected_citations
+                        )
+                        normalized_cited_content = re.sub(r"[`*_]", "", cited_content)
+                        if anchors and not any(
+                            _contains_anchor(normalized_cited_content, anchor) for anchor in anchors
+                        ):
+                            continue
+                        if any(not _matches_any(cited_content, group) for group in groups):
+                            continue
+                    return True, unit.strip()[:240]
             return False, None
 
         evidence_by_id = {concept["id"]: _concept_evidence(concept) for concept in must}
@@ -1646,18 +1707,26 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     max_unverifiable = unverifiable_spec.get("max_for_qualification")
 
     qualification_blockers = []
-    if critical_requirement_failures:
+    if critical_requirement_failures and mode != "conceptual":
         qualification_blockers.append("critical requirements failed")
-    if wrongs or contradictions or prose_contradictions:
+    if mode != "conceptual" and (wrongs or contradictions or prose_contradictions):
         qualification_blockers.append("wrong factual claims")
-    if fabricated:
+    if mode != "conceptual" and fabricated:
         qualification_blockers.append("fabricated claims")
-    if max_unverifiable is not None and len(unverifiable) > int(max_unverifiable):
+    if (
+        mode != "conceptual"
+        and max_unverifiable is not None
+        and len(unverifiable) > int(max_unverifiable)
+    ):
         qualification_blockers.append("too many unverifiable numeric claims")
     if format_blockers:
         qualification_blockers.append("report contract not met")
     if source_violations:
         qualification_blockers.append("source policy violations")
+    if mode == "conceptual":
+        qualification_blockers.append("conceptual judge not run")
+    elif (ak.get("semantic_judge") or {}).get("authority") == "adequacy_veto":
+        qualification_blockers.append("finance adequacy judge not run")
 
     answer_key_path = exercise / "answer_key.yaml"
     spec_path = exercise / "spec.yaml"
@@ -1670,12 +1739,37 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "report_sha256": _sha256_bytes(report_md.encode()),
         "sources_sha256": _sha256_bytes(sources_payload),
     }
-    if source_manifest_path.is_file():
-        provenance["source_manifest_sha256"] = _sha256_bytes(source_manifest_path.read_bytes())
+    frozen_manifest_path = (
+        source_manifest_path
+        if source_manifest_path.is_file()
+        else exercise / "corpus" / "manifest.json"
+    )
+    if frozen_manifest_path.is_file():
+        provenance["source_manifest_sha256"] = _sha256_bytes(frozen_manifest_path.read_bytes())
+    chunks_path = run_dir / "chunks.json"
+    if chunks_path.is_file():
+        provenance["chunks_sha256"] = _sha256_bytes(chunks_path.read_bytes())
+    portable_report_path = run_dir / "report.md"
+    if portable_report_path.is_file():
+        provenance["portable_report_sha256"] = _sha256_bytes(portable_report_path.read_bytes())
+    if (run_dir / "raw_sources").is_dir():
+        provenance["raw_sources_sha256"] = _hash_tree(run_dir / "raw_sources")
+
+    source_resolution = {
+        "documents": dict(sorted(document_names.items())),
+        "sources": {
+            source_id: sorted(_source_origins(source, document_names))
+            for source_id, source in sorted(source_by_id.items())
+        },
+    }
 
     return {
         "exercise": exercise.name,
+        "mode": mode,
         "score": score,
+        "score_authority": (
+            "lexical_diagnostic" if mode == "conceptual" else "deterministic_numeric"
+        ),
         "qualified": not qualification_blockers,
         "qualification": {
             "passed": not qualification_blockers,
@@ -1720,10 +1814,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "source_policy": {"violations": source_violations},
         "root_cause": root_cause,
         "provenance": provenance,
+        "source_resolution": source_resolution,
     }
 
 
 def _locate_report(run_dir: Path, stats: dict) -> Path | None:
+    portable_report = run_dir / "report.md"
+    if portable_report.is_file():
+        return portable_report
     name = stats.get("report_file")
     for base in (stats.get("output_dir"), "output", "."):
         if base and name and (Path(base) / name).is_file():
@@ -1733,10 +1831,23 @@ def _locate_report(run_dir: Path, stats: dict) -> Path | None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Deterministic grader for research exercises")
+    p = argparse.ArgumentParser(description="Evidence-bound grader for research exercises")
     p.add_argument("run_dir", help="benchmarks/runs/<run> directory")
     p.add_argument("--exercise", required=True, help="evaluations/exercises/<name> directory")
     p.add_argument("--report", help="explicit path to the report .md (else located via stats.json)")
+    p.add_argument(
+        "--skip-semantic-judge",
+        "--skip-concept-judge",
+        dest="skip_semantic_judge",
+        action="store_true",
+        help="emit non-qualifying diagnostics without calling the semantic judge",
+    )
+    p.add_argument(
+        "--judge-concurrency",
+        type=int,
+        default=4,
+        help="maximum concurrent semantic judge calls",
+    )
     args = p.parse_args()
 
     run_dir = Path(args.run_dir)
@@ -1751,6 +1862,46 @@ def main() -> None:
     report_md = report_path.read_text(encoding="utf-8")
 
     result = grade(run_dir, exercise, report_md, sources)
+    answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8")) or {}
+    if answer_key.get("semantic_judge") and not args.skip_semantic_judge:
+        from .semantic_judge import (
+            adjudicate_semantic_run,
+            apply_conceptual_adjudication,
+            apply_finance_adequacy_veto,
+        )
+
+        adjudication = asyncio.run(
+            adjudicate_semantic_run(
+                run_dir=run_dir,
+                exercise=exercise,
+                report=report_md,
+                sources=sources,
+                request=str(stats.get("query") or ""),
+                concurrency=args.judge_concurrency,
+            )
+        )
+        judge_path = run_dir / "semantic_judge.json"
+        judge_path.write_text(
+            json.dumps(adjudication.model_dump(mode="json"), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        contract_path = run_dir / "adjudication_contract.json"
+        contract_path.write_text(
+            json.dumps(
+                {"contract": adjudication.contract, "judge": adjudication.judge},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        if result["mode"] == "conceptual":
+            result = apply_conceptual_adjudication(result, adjudication)
+        else:
+            result = apply_finance_adequacy_veto(result, adjudication)
+        result["provenance"]["semantic_judge_sha256"] = _sha256_bytes(judge_path.read_bytes())
+        result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
+            contract_path.read_bytes()
+        )
     (run_dir / "det_grade.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -1758,7 +1909,7 @@ def main() -> None:
     r = result
     print(f"\n=== {r['exercise']}  |  SCORE {r['score']}/100 ===")
     print(
-        f"coverage : {r['coverage']['hit']}/{r['coverage']['total']} headline facts ({r['coverage']['pct']:.0%})"
+        f"coverage : {r['coverage']['hit']}/{r['coverage']['total']} ({r['coverage']['pct']:.0%})"
     )
     print(f"accuracy : {r['accuracy']['matching']} ok / {r['accuracy']['wrong']} WRONG")
     for w in r["accuracy"]["wrong_details"]:

@@ -1,0 +1,213 @@
+"""Portable, deterministic validation of raw retrieval evidence."""
+
+from __future__ import annotations
+
+import fnmatch
+import hashlib
+import json
+from pathlib import Path
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from src.dataprep.vector_backends import clean_for_rag
+
+
+class RetrievedChunk(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chunk_id: str | None = None
+    document_id: str | None = None
+    chunk_index: int | str | None = None
+    filename: str | None = None
+    source: str | None = None
+    text: str
+    sha256: str
+    resolved: bool
+
+
+class ChunkConflict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chunk_id: str | None = None
+    first_sha256: str
+    second_sha256: str
+
+
+class ChunkSnapshot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: int = Field(ge=1)
+    chunks: list[RetrievedChunk]
+    conflicts: list[ChunkConflict] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def unique_resolved_chunk_ids(self) -> ChunkSnapshot:
+        resolved_ids = [chunk.chunk_id for chunk in self.chunks if chunk.resolved]
+        if len(resolved_ids) != len(set(resolved_ids)):
+            raise ValueError("resolved chunk ids must be unique")
+        return self
+
+
+class ChunkValidationResult(BaseModel):
+    valid_chunks: dict[str, RetrievedChunk] = Field(default_factory=dict)
+    unresolved_chunks: list[str] = Field(default_factory=list)
+    nonportable_chunks: list[str] = Field(default_factory=list)
+    violations: list[str] = Field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return not self.violations
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def load_chunk_snapshot(path: Path) -> ChunkSnapshot:
+    return ChunkSnapshot.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def _source_roots(exercise: Path, run_dir: Path) -> list[Path]:
+    roots = [run_dir / "raw_sources", exercise / "corpus"]
+    if len(run_dir.parents) >= 3:
+        roots.append(run_dir.parents[2] / "data")
+    return roots
+
+
+def _manifest_source(filename: str, manifest: dict) -> dict | None:
+    matches = [
+        source
+        for source in manifest.get("sources") or []
+        if fnmatch.fnmatch(filename, source["file_pattern"])
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def load_source_manifest(exercise: Path) -> tuple[Path | None, dict]:
+    """Load either supported frozen-corpus manifest into one internal schema."""
+    yaml_path = exercise / "source_manifest.yaml"
+    if yaml_path.is_file():
+        return yaml_path, yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+
+    json_path = exercise / "corpus" / "manifest.json"
+    if not json_path.is_file():
+        return None, {}
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    generated_files = payload.get("generated_files") or {}
+    return json_path, {
+        "sources": [
+            {"file_pattern": filename, "sha256": sha256}
+            for filename, sha256 in sorted(generated_files.items())
+        ]
+    }
+
+
+def _frozen_source_file(
+    filename: str,
+    expected: dict,
+    roots: list[Path],
+) -> Path | None:
+    candidates = [
+        path
+        for root in roots
+        for path in root.glob(expected["file_pattern"])
+        if path.is_file() and path.name == filename
+    ]
+    return next(
+        (path for path in candidates if _sha256_bytes(path.read_bytes()) == expected["sha256"]),
+        None,
+    )
+
+
+def validate_chunk_snapshot(
+    snapshot: ChunkSnapshot,
+    exercise: Path,
+    run_dir: Path,
+) -> ChunkValidationResult:
+    manifest_path, manifest = load_source_manifest(exercise)
+    if manifest_path is None:
+        return ChunkValidationResult(violations=["source manifest unavailable"])
+    roots = _source_roots(exercise, run_dir)
+    result = ChunkValidationResult()
+
+    if snapshot.conflicts:
+        result.violations.append("conflicting payloads for stable chunk ids")
+
+    source_texts: dict[Path, tuple[str, str]] = {}
+    for chunk in snapshot.chunks:
+        label = chunk.chunk_id or f"unresolved:{chunk.sha256[:12]}"
+        if _sha256_bytes(chunk.text.encode("utf-8")) != chunk.sha256:
+            result.violations.append(f"chunk hash mismatch: {label}")
+            continue
+        if not chunk.resolved or not chunk.chunk_id:
+            result.unresolved_chunks.append(label)
+            continue
+        if not chunk.filename:
+            result.violations.append(f"resolved chunk missing filename: {label}")
+            continue
+        expected = _manifest_source(chunk.filename, manifest)
+        if expected is None:
+            result.violations.append(f"chunk source outside frozen manifest: {label}")
+            continue
+        source_file = _frozen_source_file(chunk.filename, expected, roots)
+        if source_file is None:
+            result.violations.append(f"frozen source unavailable or hash mismatch: {label}")
+            continue
+        if source_file not in source_texts:
+            raw_text = source_file.read_text(encoding="utf-8", errors="ignore")
+            source_texts[source_file] = (raw_text, clean_for_rag(raw_text))
+        raw_text, cleaned_text = source_texts[source_file]
+        if chunk.text not in raw_text and chunk.text not in cleaned_text:
+            result.violations.append(f"chunk not present in frozen source: {label}")
+            continue
+        result.valid_chunks[chunk.chunk_id] = chunk
+        if not source_file.is_relative_to(run_dir / "raw_sources"):
+            result.nonportable_chunks.append(label)
+
+    result.unresolved_chunks.sort()
+    result.nonportable_chunks.sort()
+    result.violations = sorted(set(result.violations))
+    return result
+
+
+def resolve_chunk_id(raw_id: str, valid_chunks: dict[str, RetrievedChunk]) -> str | None:
+    candidate = str(raw_id).removeprefix("document_id:")
+    if candidate in valid_chunks:
+        return candidate
+    if ":" not in candidate:
+        return None
+    document_prefix, chunk_index = candidate.rsplit(":", 1)
+    matches = [
+        chunk_id
+        for chunk_id in valid_chunks
+        if chunk_id.rsplit(":", 1)[1] == chunk_index
+        and chunk_id.rsplit(":", 1)[0].startswith(document_prefix)
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def source_chunk_map(
+    sources: list[dict],
+    valid_chunks: dict[str, RetrievedChunk],
+) -> dict[str, list[str]]:
+    mapping: dict[str, list[str]] = {}
+    for source in sources:
+        source_id = str(source.get("source_id") or "").upper()
+        if not source_id:
+            continue
+        resolved = [
+            chunk_id
+            for raw_id in source.get("doc_ids") or []
+            if (chunk_id := resolve_chunk_id(str(raw_id), valid_chunks)) is not None
+        ]
+        mapping[source_id] = list(dict.fromkeys(resolved))
+    return mapping
+
+
+def write_chunk_snapshot(path: Path, payload: dict) -> None:
+    snapshot = ChunkSnapshot.model_validate(payload)
+    path.write_text(
+        json.dumps(snapshot.model_dump(mode="json"), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )

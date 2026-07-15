@@ -463,7 +463,7 @@ def test_finance_contract_requires_all_42_latest_facts(tmp_path: Path) -> None:
     )
 
 
-def test_finance_contract_has_a_reachable_qualified_reference(tmp_path: Path) -> None:
+def test_finance_contract_has_a_reachable_deterministic_reference(tmp_path: Path) -> None:
     report = "\n\n".join(
         [
             "# Overview and Definitions\n"
@@ -492,7 +492,8 @@ def test_finance_contract_has_a_reachable_qualified_reference(tmp_path: Path) ->
     assert result["coverage"]["hit"] == 42
     assert result["accuracy"]["wrong"] == 0
     assert result["fabrication"]["count"] == 0
-    assert result["qualified"] is True
+    assert result["qualified"] is False
+    assert result["qualification"]["blockers"] == ["finance adequacy judge not run"]
 
 
 def test_number_that_looks_like_year_but_has_unit_is_checked(tmp_path: Path) -> None:
@@ -563,7 +564,10 @@ def test_concept_source_provenance_rejects_summary_without_doc_ids(tmp_path: Pat
     answer_key["require_source_provenance"] = True
     answer_key["must_cover"][0]["source_files"] = ["Agents"]
     (exercise / "answer_key.yaml").write_text(yaml.safe_dump(answer_key), encoding="utf-8")
-    report = "Agent memory preserves persistent conversation history for later tasks [S1].\n"
+    report = (
+        "Agent memory preserves persistent conversation history and prior tool state so an "
+        "agent can resume later tasks without losing the context needed for decisions [S1].\n"
+    )
 
     result = grade(
         tmp_path / "run",
@@ -573,6 +577,122 @@ def test_concept_source_provenance_rejects_summary_without_doc_ids(tmp_path: Pat
     )
 
     assert result["coverage"]["hit"] == 0
+
+
+def test_concept_does_not_borrow_an_unrelated_citation_from_same_paragraph(
+    tmp_path: Path,
+) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8"))
+    answer_key["require_source_provenance"] = True
+    answer_key["must_cover"][0]["source_files"] = ["Agents"]
+    answer_key["must_cover"][0]["semantic_groups"] = [["persistent"], ["history"]]
+    (exercise / "answer_key.yaml").write_text(yaml.safe_dump(answer_key), encoding="utf-8")
+    report = (
+        "- Agent memory preserves persistent conversation history for later tasks.\n"
+        "- A separate implementation note discusses generic tools and schemas [S1].\n"
+    )
+    sources = [
+        {
+            "source_id": "S1",
+            "content": "Generic tools use schemas and arguments.",
+            "doc_ids": ["Agents_1.md:4"],
+        }
+    ]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+
+    assert result["coverage"]["hit"] == 0
+
+
+def test_concept_provenance_resolves_short_and_prefixed_document_ids(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8"))
+    answer_key["require_source_provenance"] = True
+    answer_key["must_cover"][0]["source_files"] = ["Agents"]
+    answer_key["must_cover"][0]["semantic_groups"] = [["persistent"], ["history"]]
+    (exercise / "answer_key.yaml").write_text(yaml.safe_dump(answer_key), encoding="utf-8")
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "knowledge_db.json").write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {
+                        "vector_doc_id": "abcdef12-3456-7890-abcd-ef1234567890",
+                        "filename": "Agents_1.md",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    report = (
+        "Agent memory preserves persistent conversation history and prior tool state so an "
+        "agent can resume later tasks without losing the context needed for decisions [S1].\n"
+    )
+    sources = [
+        {
+            "source_id": "S1",
+            "content": report,
+            "doc_ids": ["document_id:abcdef12:4"],
+        }
+    ]
+
+    result = grade(run, exercise, report, sources)
+
+    assert result["coverage"]["hit"] == 1
+    assert result["source_resolution"]["sources"] == {"S1": ["Agents_1.md"]}
+
+    (run / "det_grade.json").write_text(json.dumps(result), encoding="utf-8")
+    (run / "knowledge_db.json").unlink()
+    portable_result = grade(
+        run,
+        exercise,
+        report,
+        [{"source_id": "S1", "content": report, "doc_ids": ["abcdef12:4"]}],
+    )
+    assert portable_result["coverage"]["hit"] == 1
+
+
+def test_fixed_concept_contract_accepts_plural_embeddings_and_french_messages(
+    tmp_path: Path,
+) -> None:
+    exercise = Path(__file__).parents[1] / "evaluations" / "exercises" / "ai-engineering-syllabus"
+    report = (
+        "Les messages developer définissent les règles et le comportement, tandis que les "
+        "messages user fournissent les entrées et la demande utilisateur [S1].\n\n"
+        "Les embeddings représentent le texte par des vecteurs numériques dans un espace "
+        "sémantique où la similarité rapproche les contenus de sens voisin [S2].\n"
+    )
+    sources = [
+        {"source_id": "S1", "content": report, "doc_ids": ["Text_generation.md:1"]},
+        {
+            "source_id": "S2",
+            "content": report,
+            "doc_ids": ["Advanced_Retrieval_for_Retrieval-Augmented_Generat_1.md:2"],
+        },
+    ]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+    statuses = {item["id"]: item["status"] for item in result["requirements"]}
+
+    assert statuses["system_user_prompts"] == "pass"
+    assert statuses["embeddings"] == "pass"
+
+
+def test_fixed_concept_contract_accepts_explicit_known_zero_shot_gap(tmp_path: Path) -> None:
+    exercise = Path(__file__).parents[1] / "evaluations" / "exercises" / "ai-engineering-syllabus"
+    report = (
+        "Le zero-shot n'est pas documenté dans les sources du corpus fourni; cette lacune "
+        "doit être signalée plutôt que complétée depuis la mémoire du modèle [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": report, "doc_ids": ["Text_generation.md:1"]}]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+    statuses = {item["id"]: item["status"] for item in result["requirements"]}
+
+    assert statuses["zero_shot"] == "pass"
 
 
 def test_numeric_contract_fails_loudly_when_period_is_stale(tmp_path: Path) -> None:

@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import re
@@ -319,6 +320,47 @@ def _doc_key(metadata: dict, document: str) -> tuple[str, str]:
     return (document_id, chunk_id)
 
 
+def _record_retrieved_chunk(wrapper: RunContextWrapper[ResearchInfo], hit, metadata: dict) -> None:
+    """Snapshot the exact backend chunk before presentation-time normalization."""
+    text = hit.document or ""
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    document_id = metadata.get("document_id")
+    chunk_index = metadata.get("chunk_index")
+    resolved = bool(document_id) and chunk_index is not None
+    chunk_id = f"{document_id}:{chunk_index}" if resolved else None
+    storage_key = chunk_id or f"unresolved:{digest}"
+    record = {
+        "chunk_id": chunk_id,
+        "document_id": str(document_id) if document_id else None,
+        "chunk_index": chunk_index,
+        "filename": metadata.get("filename"),
+        "source": metadata.get("source"),
+        "text": text,
+        "sha256": digest,
+        "resolved": resolved,
+    }
+
+    chunks = getattr(wrapper.context, "retrieved_chunks", None)
+    if chunks is None:
+        chunks = {}
+        wrapper.context.retrieved_chunks = chunks
+    previous = chunks.get(storage_key)
+    if previous and previous.get("sha256") != digest:
+        conflicts = getattr(wrapper.context, "retrieved_chunk_conflicts", None)
+        if conflicts is None:
+            conflicts = []
+            wrapper.context.retrieved_chunk_conflicts = conflicts
+        conflicts.append(
+            {
+                "chunk_id": chunk_id,
+                "first_sha256": previous.get("sha256"),
+                "second_sha256": digest,
+            }
+        )
+        return
+    chunks[storage_key] = record
+
+
 @function_tool
 async def vector_search(
     wrapper: RunContextWrapper[ResearchInfo],
@@ -436,6 +478,8 @@ async def vector_search_impl(
         if current_doc_count >= MAX_CHUNKS_PER_DOCUMENT:
             continue
         per_doc_count[doc_bucket] = current_doc_count + 1
+
+        _record_retrieved_chunk(wrapper, hit, metadata)
 
         filtered_results.append(
             {

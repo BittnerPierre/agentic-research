@@ -54,7 +54,7 @@ def _strip_markdown_links(text: str) -> str:
     return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
 
 
-def _clean_for_rag(text: str) -> str:
+def clean_for_rag(text: str) -> str:
     cleaned = _strip_front_matter(text)
     cleaned = re.sub(r"```[\s\S]*?```", "\n", cleaned)
     cleaned = cleaned.replace(
@@ -79,6 +79,10 @@ def _clean_for_rag(text: str) -> str:
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
+
+
+# Backward-compatible private name for existing callers.
+_clean_for_rag = clean_for_rag
 
 
 def _chunk_dense_text(text: str, max_chars: int, overlap: int) -> list[str]:
