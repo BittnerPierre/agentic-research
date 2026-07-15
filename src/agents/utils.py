@@ -478,6 +478,17 @@ def apply_endpoint_model_settings(model_spec: Any, model_settings) -> None:
     if verbosity is not None:
         model_settings.verbosity = verbosity
 
+    # Per-endpoint sampling controls (campaign: each model at its recommended
+    # settings; a low temperature stabilizes tool-call argument discipline).
+    for field in ("temperature", "top_p"):
+        value = (
+            model_spec.get(field)
+            if isinstance(model_spec, dict)
+            else getattr(model_spec, field, None)
+        )
+        if value is not None:
+            setattr(model_settings, field, value)
+
 
 def adjust_model_settings_for_base_url(model_spec: Any, model_settings) -> None:
     """Apply LiteLLM-only compatibility settings for self-hosted endpoints.

@@ -128,6 +128,10 @@ class ModelEndpointConfig(BaseModel):
     api: Literal["chat_completions", "responses"] | None = None
     reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] | None = None
     verbosity: Literal["low", "medium", "high"] | None = None
+    # Per-endpoint sampling controls (campaign: run each model at its recommended
+    # settings; a low temperature stabilizes tool-call argument discipline).
+    temperature: float | None = None
+    top_p: float | None = None
 
 
 ModelSpec = str | ModelEndpointConfig
