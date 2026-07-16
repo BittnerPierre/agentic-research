@@ -821,3 +821,65 @@ solo vs 409 s duo — **+17 % de durée en solo**. Conclusion : le duo n'apporte
 que du débit, aucun gain de qualité ; Mistral est pleinement viable sur un
 seul Spark. Conséquence pour l'arbitrage matériel (§19) : l'unique apport
 irremplaçable d'un second GX10 est la classe MiniMax (~230B MoE).
+
+
+## 21. Doctrine de déploiement local (arbitrages Pierre + données campagne)
+
+### La matrice infra
+
+| Besoin | Architecture | Pourquoi |
+|---|---|---|
+| Mono-utilisateur, coupé du cloud (sécurité des données) | llama.cpp, éventuellement DEUX modèles distincts (reasoning + instruct), recette Docker | llama.cpp consomme moins de VRAM ; pas de concurrence nécessaire |
+| Concurrence (agents parallèles, multi-utilisateurs) | vLLM, UN SEUL modèle résident hybride | KV-cache optimisé ; un résident à la fois → la fusion reasoning+instruct s'impose par forfait |
+| Dual-Spark production | **Non recommandé aujourd'hui** | seul déblocage : la classe MiniMax (+6/+2 points mesurés) ; coût : parallélisme sacrifié, latence (Qwen en cluster : 160→115 t/s d'après llama-benchy ; Mistral y gagne lui 37→59), et une stabilisation pénible vécue |
+
+### Pourquoi l'index « intelligence » ne prédit pas notre terrain
+
+Artificial Analysis v4.1 : Qwen 3.6 = 32, Mistral Small 4 = 20 — un écart
+massif « qu'on n'a pas ressenti ici ». Normal : l'index agrège du savoir
+interne et du code (GPQA, HLE, SciCode, AA-Omniscience…). Notre exercice
+FOURNIT le savoir (corpus fermé) et mesure la DISCIPLINE (restituer, citer,
+s'abstenir). AA-Omniscience récompense littéralement ce que notre porte
+fabrication punit : réciter sa mémoire. C'est parce que Qwen « sait » qu'il
+comble les trous avec aplomb (0/5 aux pièges) et invente des agrégats
+plausibles — et Mistral le bat en conceptuel (43,8 vs 12,5) là où l'index le
+donne largement perdant. **L'intelligence générique ne prédit pas
+l'employabilité dans un pipeline ancré : il faut benchmarker SON workflow.**
+
+### Qwen vs Mistral : complémentaires, pas concurrents
+
+Qwen = l'utilitaire extractif (76,9 en finance, runs propres à 91-95, 2,5×
+plus rapide, mais chaîne de preuve cassée et conceptuel effondré ; perd en
+cluster). Mistral = le généraliste junior (conceptuel 43,8, chaîne tenue,
+rédaction la plus lisible, fautes coachables par prompt, gagne en cluster).
+S'il ne faut en résider qu'un pour un workflow de recherche ancrée :
+Mistral. Si la charge est extractive : Qwen. L'architecture qui ne choisit
+pas : Qwen extrait, Mistral rédige (schéma llama.cpp bi-modèle).
+
+## 22. Conclusion de campagne (Pierre) et complexité du banc d'essai
+
+**La conclusion de Pierre** : l'open-weight a franchi une nouvelle étape. On
+peut faire tourner des modèles de classe gpt-4.1 chez soi — un milestone
+inimaginable il y a un an — et avec PLUSIEURS acteurs. Pas de vainqueur
+unique : plusieurs solutions à différents problèmes, et c'est précisément ce
+qui est bien. (Nos mesures disent même : au-dessus de 4.1 sur tout, sous 5.1
+sur couverture/intégrité, à égalité — dans le zéro — sur l'honnêteté.)
+
+**Le workflow d'épreuve était-il complexe ? Oui — et voici en quoi** (avis
+de la seconde lecture) : ce n'est pas un scénario « Deep Research » simple
+(question ouverte → recherche web → synthèse jugée au doigt mouillé). C'est
+un pipeline agentique décomposé à 5-6 rôles (préparation de connaissances →
+plan de recherche structuré → recherches vectorielles parallèles → chemin de
+fer → rédaction par chapitres → assemblage), truffé de points de rupture
+réels : appels d'outils MCP (téléchargement, indexation, listing), sorties
+structurées imposées à chaque frontière de phase (schémas Pydantic), corpus
+FERMÉ avec chaîne de preuve exigible (doc_ids traçables jusqu'aux chunks
+hashés), contrat de rapport strict (chapitres, tableaux canoniques, bornes
+de longueur, calculs interdits), et pièges d'honnêteté. C'est cette densité
+d'interfaces qui a cassé Qwen cinq fois avant stabilisation et où MiniMax a
+brillé — un chat-bot n'aurait rien révélé de tout ça. La nuance honnête :
+la complexité est dans la DISCIPLINE et la VÉRIFIABILITÉ, pas dans
+l'horizon — pas de tâches longues multi-jours, pas d'actions à effets de
+bord, pas d'environnement adverse. C'est un banc d'essai exigeant de
+l'agentique de production courte — exactement la classe de tâches qu'on
+confie à de l'IA locale aujourd'hui.
