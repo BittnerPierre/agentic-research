@@ -179,7 +179,8 @@ def extract_numbers(text: str) -> list[tuple[float, str, int]]:
             # computation ("131,8 - 40,1"), not a negative value (Codex review
             # 2026-07-16: the operand fell off the whitelist as -40.1).
             before = text[: m.start("sign")].rstrip()
-            if before[-1:].isdigit() or before[-1:] in {"%", "$"}:
+            # chiffre OU lettre d'unité (« $139.5B − $131.8B ») avant le signe
+            if before[-1:].isdigit() or before[-1:].lower() in {"%", "$", "b", "m", "k"}:
                 sign = ""
         parsed = _normalize_number(
             m.group("body"),
@@ -1623,6 +1624,16 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "dans les",
         "au-dessus",
         "au dessus",
+        # anglais (MiniMax bucketise en anglais : « exceeding 50% », « 20-50% »)
+        "exceeding",
+        "above",
+        "over",
+        "under",
+        "below",
+        "more than",
+        "less than",
+        "at least",
+        "up to",
         "de l'ordre",
         "autour de",
         "around",

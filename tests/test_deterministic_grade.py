@@ -1304,3 +1304,30 @@ def test_source_attributed_unavailability_is_meta_discourse(tmp_path: Path) -> N
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["accuracy"]["wrong"] == 0
+
+
+def test_binary_minus_after_unit_letter_is_not_negative(tmp_path: Path) -> None:
+    """MiniMax capex-1 : « $139.5B − $131.8B = $7.7B » — le moins suit la
+    lettre d'unité B, pas un chiffre ; lu comme -131.8 -> hors whitelist."""
+    exercise = _amazon_exercise(tmp_path)
+    report_md = "# Calc\nAmazon FCF: $139.5B − $131.8B = $7.7B [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert all(it["value"] != -131.8 for it in result["fabrication"]["items"])
+
+
+def test_hedged_round_threshold_in_english_is_not_fabrication(tmp_path: Path) -> None:
+    """MiniMax : « Capex/OCF exceeding 50% », « capex 20-50% of OCF » — des
+    seuils de classement d'analyste ; le vocabulaire hedge était francophone."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Buckets\nAmazon capex reached 131.8B [S1].\n"
+        "Capital-extreme reinvestors show Capex/OCF exceeding 50% of OCF [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
