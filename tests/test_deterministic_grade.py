@@ -1284,3 +1284,23 @@ def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(tmp
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["accuracy"]["wrong"] == 0
+
+
+def test_source_attributed_unavailability_is_meta_discourse(tmp_path: Path) -> None:
+    """gpt-5.6-sol capex-3 (le 60.0 qui creusait sa variance) : « [S7] marks
+    all Apple metrics as unavailable, while the cross-source reconciliation
+    reports Apple's revenue... retained » — une indisponibilité ATTRIBUÉE à
+    une source ([Sx] marks/labels/indique) décrit ce que dit la source, pas le
+    fait ; le modèle décrit un conflit et garde les bonnes valeurs."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "However, [S7] marks all Amazon metrics as unavailable, while the "
+        "cross-source reconciliation reports Amazon's revenue and operating income; "
+        "these are therefore retained [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0

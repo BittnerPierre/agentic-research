@@ -1042,6 +1042,16 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 or evidence_re.search(normalized_clause)
             ):
                 continue
+            # Unavailability ATTRIBUTED to a source (« [S7] marks all Apple
+            # metrics as unavailable, while... retained ») describes what THE
+            # SOURCE says, not the fact — meta-discourse (gpt-5.6-sol capex-3
+            # perdait 2 points de médiane là-dessus).
+            if re.search(
+                r"\[s\d+[\]:][^.!?]{0,50}?"
+                r"(marks?|labels?|says?|states?|indique|mentionne|signale|reports?)",
+                normalized_clause,
+            ):
+                continue
             # A clause that SHOWS a corpus value cannot be claiming
             # unavailability — it is a documentary-discrepancy note
             # (« [S3] indique X comme indisponible, tandis que les données
