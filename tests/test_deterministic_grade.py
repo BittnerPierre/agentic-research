@@ -1331,3 +1331,21 @@ def test_hedged_round_threshold_in_english_is_not_fabrication(tmp_path: Path) ->
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_calendar_dates_are_not_fabricated_numbers(tmp_path: Path) -> None:
+    """gpt-4.1 capex-4 : « Microsoft (1er juillet 2024 – 30 juin 2025), NVIDIA
+    (1er février 2024 – 31 janvier 2025) » — les jours du mois (30, 31) lus
+    comme des chiffres financiers inventés. Un nombre suivi d'un nom de mois
+    est une date."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Calendriers\nAmazon capex reached 131.8B [S1].\n"
+        "Microsoft (1er juillet 2024 - 30 juin 2025) et NVIDIA (1er fevrier "
+        "2024 - 31 janvier 2025) ont des exercices decales [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0

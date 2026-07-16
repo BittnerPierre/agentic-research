@@ -1698,6 +1698,15 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         pre = report_md[max(0, pos - 28) : pos].lower()
         if float(val).is_integer() and val % 10 == 0 and any(h in pre for h in hedge_words):
             continue
+        # Un nombre suivi d'un nom de mois est une DATE (« 30 juin 2025 »,
+        # « 31 janvier 2025 » — gpt-4.1 décrit les calendriers fiscaux) :
+        # jamais un chiffre financier.
+        if re.match(
+            r"\s*(?:er)?\s*(janv|f[ée]vr|mars|avril|mai|juin|juil|ao[uû]t|sept|oct|nov|d[ée]c"
+            r"|jan\b|feb|mar\b|apr|may|jun|jul|aug|sep|oct|nov|dec)",
+            report_md[pos + len(str(val).rstrip("0").rstrip(".")) :][:14].lower(),
+        ):
+            continue
         # Unit-scale variant (arbitrage Pierre 2026-07-16, qwen run 15) : le
         # rapport peut définir sa propre abréviation (« milliards de dollars
         # (M$) ») que le parseur lit comme des millions. L'esprit du test
