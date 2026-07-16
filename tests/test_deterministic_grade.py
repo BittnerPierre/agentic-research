@@ -1349,3 +1349,42 @@ def test_calendar_dates_are_not_fabricated_numbers(tmp_path: Path) -> None:
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_negated_missing_wording_is_not_unavailability(tmp_path: Path) -> None:
+    """gpt-4.1 capex-2 : « l'intégralité des sept métriques a été retrouvée,
+    sans valeur manquante ni donnée non reportée » — une phrase de COMPLÉTUDE ;
+    le scanner voyait « manquante » et accusait 5 sociétés × 7 métriques."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Data Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "Pour Amazon, l'integralite des metriques attendues (chiffre d'affaires, "
+        "capex, flux de tresorerie d'exploitation) a ete retrouvee, sans valeur "
+        "manquante ni donnee non reportee pour FY2025 [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_multi_company_contrast_summary_is_judge_territory(tmp_path: Path) -> None:
+    """gpt-4.1 capex-2 (36 faux WRONG d'un coup) : « l'ensemble des métriques
+    (chiffre d'affaires, ..., Capex/OCF) sont renseignées et disponibles pour
+    Alphabet, Meta, Microsoft, NVIDIA et Apple, tandis qu'elles restent
+    manquantes pour Amazon » — une phrase de synthèse à contraste. Le scanner
+    mécanique n'accuse que les clauses simples (≤2 sociétés) ; les synthèses
+    multi-sociétés relèvent du juge."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "Pour FY2025, l'ensemble des metriques (chiffre d'affaires, capex, OCF) "
+        "sont renseignees et disponibles pour Alphabet, Meta, Microsoft, NVIDIA "
+        "et Apple, tandis qu'elles restent manquantes pour Amazon [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0

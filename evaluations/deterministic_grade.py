@@ -1068,6 +1068,13 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 for company in companies
                 if re.search(rf"\b{re.escape(company)}\b", clause, re.I)
             ] or ([current_company] if current_company else [])
+            # Une clause qui nomme PLUS DE DEUX sociétés est une synthèse à
+            # contrastes (« disponibles pour Alphabet, Meta, Microsoft…,
+            # manquantes pour Amazon ») : l'attribution mécanique y a produit
+            # 36 faux WRONG d'un coup (gpt-4.1 capex-2). Le scanner ne juge
+            # que les clauses simples ; les synthèses relèvent du juge.
+            if len(clause_companies) > 2:
+                continue
             mentioned_years = re.findall(r"\b(?:FY\s*)?(20\d{2})\b", normalized_clause, re.I)
             for company in clause_companies:
                 latest = latest_fy.get(company)
