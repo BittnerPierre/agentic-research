@@ -1071,3 +1071,11 @@ runs fait du BRUIT au lieu de disparaître, et une rectification de compte
 sans changement de score ne blanchit plus la lettre (le A* exige
 score_ajuste > score_evaluateur). La chaîne de vérification vaut aussi pour
 les outils de présentation.
+
+
+Arbitrage (17/07) : les lettres de confiance sont RETIRÉES du tableau
+conceptuel tant qu'elles ne sont pas dérivées du juge — les lettres
+actuelles ne comptent que les fautes numériques et y sont donc vides de
+sens (tout le monde est A). La couverture conceptuelle reste, en pratique,
+un score de discipline de preuve : elle mesure ce que le modèle sait
+PROUVER depuis ses sources, pas ce qu'il sait.

@@ -143,7 +143,11 @@ def main() -> None:
             )
             dur_s = f"{statistics.median(durs):5.0f}s" if durs else "?"
             tok_s = f"{statistics.median(toks) / 1000:5.0f}k" if toks else "?"
-            print(f"{i}. {label:16} {' '.join(letters):16} cov {cov_s}  {dur_s}  {tok_s}")
+            # Arbitrage Pierre (2026-07-17) : pas de lettres en conceptuel
+            # tant qu'elles ne sont pas dérivées du juge (les lettres actuelles
+            # ne comptent que les fautes numériques -> vides de sens là-bas).
+            let_s = " ".join(letters) if kind == "capex" else "(lettres: n/a)"
+            print(f"{i}. {label:16} {let_s:16} cov {cov_s}  {dur_s}  {tok_s}")
             if args.flags:
                 for n, items in flagged:
                     print(f"     ⚠ {n} :")
