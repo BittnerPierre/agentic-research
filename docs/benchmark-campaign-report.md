@@ -1,6 +1,6 @@
 # Benchmark déterministe — rapport de campagne (en cours)
 
-> Document vivant. Dernière mise à jour : 2026-07-16 (matinée).
+> Document vivant. Dernière mise à jour : 2026-07-16 (après-midi).
 > Branche : `feat/201-evidence-bound-validator` — issues #196, #201, #202, #203.
 
 ## 1. Objectif et dispositif
@@ -241,3 +241,59 @@ Lecture :
 3. **Traçabilité stats.json** (Codex #5) : SHA git, hash de config, nom de
    collection, endpoint embeddings — additif, recommandé avant la campagne large.
 4. mm27-concept-1 à 0.0 (`evaluation_failed` + 1 fab conceptuelle) non diagnostiqué.
+
+
+## 11. Compléments du 16/07 après-midi — Qwen N=5, doctrine « chaîne de preuve », Mistral lancé
+
+### Arbitrages Pierre (définitifs)
+
+- **few_shot** : arbitrage confirmé par lecture de la source primaire (pas de
+  définition, un commentaire de code avec une phrase vague — « pas de quoi
+  faire un paragraphe ») ; la contestation Codex est close.
+- **Le juge est un outil, pas un décideur** : il désigne les chunks qui l'ont
+  convaincu ; le CODE possède la table chunk→source et résout l'appariement
+  déterministiquement. La classe d'erreur de protocole « chunks non rattachés
+  à la source citée » (2 runs/10) est supprimée par construction.
+- **Casser sa chaîne de preuve = faute du candidat** : mm27-concept-1 (0.0)
+  est COMPTÉ dans la médiane — le 404 venait d'une URL recopiée avec des
+  caractères perdus par MiniMax (`…6b0bc6755799` → `…6b6755799`), pas d'un
+  incident Medium. Même doctrine pour les doc_ids absents de Qwen (1-2
+  recherches sur ~6 dans CHAQUE run conceptuel qwen, systémique) : les items
+  concernés sont invérifiables donc perdus — à reporter, pas à réparer.
+- **Fallback d'échelle d'unité** : un rapport qui définit sa propre
+  abréviation (« milliards de dollars (M$) ») puis écrit « 131,8 M$ » n'invente
+  pas un chiffre — le numéral écrit existe dans le corpus. Accepté à ×1000
+  quasi exact uniquement (les variantes tolérantes ont été retoquées par les
+  tests anti-blanchiment : 4.2x excusé par un 4202 sans rapport).
+- Vocabulaire guidance : ajout du français « guide(s) » (« guides initiaux de
+  Capex » accusé à tort).
+
+### Qwen3.6 — N=5 définitif
+
+| Exercice | Runs | Médiane |
+|---|---|---|
+| Conceptuel | 18.8 / 6.2 / 6.2 / 0.0 / 12.5 | **6.2** |
+| Finance | 91.9 / 95.0 / 40.0 / 40.0 / 76.9 | **76.9** |
+
+Pattern confirmé 3× en finance : quand Qwen sort du cadre, il invente des
+**agrégats approximatifs** (somme OCF « 733,3 » vs 731,8 réel ; « 721,8 » vs
+731,8 ; FCF « 359,9 » vs 358,4) — des erreurs d'arithmétique à 1-2 Md$ près,
+attrapées par la porte zéro-tolérance. Ses runs sobres valent 76.9-95.
+
+MiniMax conceptuel (0.0 compté) : médiane **50.0**.
+
+### Canal d'influence documenté : le LLM du dataprep
+
+Le serveur dataprep utilise gpt-4.1-mini (API OpenAI) pour extraire mots-clés
+et résumé de chaque article AU TÉLÉCHARGEMENT (stockés en base de
+connaissances). Pendant la campagne il ne tourne quasiment pas (sources déjà
+en base), mais `get_knowledge_entries_tool` expose ces titres/mots-clés/résumés
+aux candidats lors du choix des fichiers : ingrédient cloud partagé, identique
+pour tous, non indexé dans Chroma. Déclaré ici au titre de la provenance.
+
+### En cours
+
+- Mistral Small 4 (119B, NVFP4) : batterie ×5+×5 lancée — config du spike
+  (deux profils : reasoning high sur planification/agenda/orchestration/
+  chemin de fer, instruct sur recherche/rédaction ; température 0.1, Chat
+  Completions). À surveiller : reproduit-il les pertes de doc_ids de Qwen ?
