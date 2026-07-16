@@ -756,3 +756,27 @@ d'HARNAIS autant que de modèle — notre propre dispositif (porte
 déterministe + retry) en absorbe déjà une partie. Le point dur, c'est (1) :
 dire « je ne sais pas » ne s'installe pas par prompt — c'est la frontière
 générationnelle que cette campagne a rendue mesurable.
+
+
+### Perspective : où en est la frontière, où en sont les locaux (note du 16/07)
+
+Observation de Pierre, calibrée par nos mesures. Il y a encore deux ou trois
+mois, « l'IA », c'était le modèle qui écrit le rapport. Dans cette campagne,
+les rôles se sont stratifiés comme dans une équipe : les modèles locaux
+EXÉCUTENT les tâches récurrentes (extraction, brouillons, workflows), le
+déterministe CONTRÔLE, et le modèle frontière fait ce qu'on demandait hier à
+un senior humain — juger, prendre du recul, justifier, arbitrer, se méfier de
+son propre instrument. La preuve la plus concrète est réflexive : la couche
+qui a empêché ce benchmark de publier des classements faux est un modèle
+frontière relisant les notes qu'un autre modèle a attribuées aux rapports
+d'un troisième. Personne n'aurait décrit ça comme un workflow réaliste en
+avril 2026.
+
+Sur la calibration générationnelle des open-weights :
+- **Mesuré et ferme** : le cap gpt-4.1 est franchi. MiniMax le bat sur les
+  deux axes, Qwen l'égale en extraction, Mistral le talonne.
+- **Mesuré aussi** : l'écart avec la série 5.4+ demeure net (conceptuel 50
+  vs 68,8 pour le simple « mini » ; pièges d'honnêteté 0/4 vs 3/5).
+- **Hypothèse en cours de test** : « niveau début de série gpt-5 » —
+  ancrage gpt-5.1 (2025-11-13) en batterie au moment où ces lignes sont
+  écrites, pour situer précisément les open-weights entre 4.1 et 5.4.

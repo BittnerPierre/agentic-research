@@ -1,0 +1,72 @@
+# Benchmark cloud : archi CIBLE (retrieval ChromaDB) mais tout le reste en API OpenAI,
+# pour évaluer sans le cluster Spark. LLM = gpt-4.1-mini ; embeddings = API OpenAI
+# (text-embedding-3-small) au lieu de llama.cpp/Spark ; retrieval = ChromaDB local.
+# Sert à faire tourner les exercices déterministes (evaluations/exercises/*) en cloud.
+config_name: "gpt-5.1-chroma-decomposed (bench)"
+
+vector_store:
+  name: "agentic-research-default"   # overridable via --vector-store (nom de collection Chroma)
+  description: "Vector store for agentic research."
+  expires_after_days: 30
+
+# Retrieval = ChromaDB local (archi Spark). Embeddings = API OpenAI (Spark llama.cpp non lancé).
+vector_search:
+  top_k: 12
+  provider: "chroma"
+  chroma_host: "localhost"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://spark1:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+dataprep:
+  llm:
+    enabled: true
+    model: "gpt-4.1-mini"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "localhost"
+  server_port: 8001
+  client_timeout_seconds: 300.0
+
+models:
+  research_model: "openai/gpt-5.1"
+  planning_model: "openai/gpt-5.1"
+  search_model: "openai/gpt-5.1"
+  writer_model: "openai/gpt-5.1"
+  knowledge_preparation_model: "openai/gpt-5.1"
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "json"
+  file_search_rewrite_mode: "none"
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null
+  writer_strategy: "decomposed"
+  chapter_max_revisions: 1
+  writer_max_chapters: null
