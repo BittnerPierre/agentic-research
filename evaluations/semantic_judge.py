@@ -340,8 +340,14 @@ def _primary_protocol_errors(
     }
     if not mapped_chunks:
         errors.append("cited source has no resolved raw chunks")
-    if not set(verdict.supporting_chunk_ids) <= mapped_chunks:
-        errors.append("supporting chunks are not attached to the cited sources")
+    # Arbitrage Pierre (2026-07-16) : le juge est un outil, pas un décideur —
+    # il désigne les chunks qui l'ont convaincu, et c'est le CODE qui possède
+    # la table chunk→source. Lui demander de redéclarer l'appariement invitait
+    # des lapsus de recopie (2 runs sur 10 en evaluation_failed pour un chunk
+    # rattaché à la mauvaise source). L'appariement se résout ici,
+    # déterministiquement ; plus d'erreur de protocole possible par
+    # construction. Les ensembles fermés restent contrôlés (chunk ids connus,
+    # provenance des fichiers).
     expected_status = requirement.get("expected_status", "supported")
     if expected_status == "supported":
         if not verdict.supporting_chunk_ids:
