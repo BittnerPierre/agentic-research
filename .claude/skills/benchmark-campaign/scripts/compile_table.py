@@ -77,17 +77,38 @@ def main() -> None:
         rows = []
         for spec in args.models:
             label, prefix = spec.split("=", 1)
+            # alternatives acceptées ; un tag qui contient déjà le type
+            # d'exercice (schéma historique bench-capex-qwen-N) est utilisé
+            # tel quel, sinon on suffixe -<kind> (schéma camp-<tag>-<kind>-N)
+            prefixes = prefix.split("|")
+            patterns = [
+                pf if kind in pf else f"{pf}-{kind}"
+                for pf in prefixes
+                if kind in pf or not any(k in pf for k in ("capex", "concept"))
+            ]
             names = sorted(
-                n for n in runs if n.startswith(f"{prefix}-{kind}") and n not in exclusions
+                n
+                for n in runs
+                if any(n.startswith(pat) for pat in patterns) and n not in exclusions
             )
             if not names:
+                # un modèle demandé sans aucun run doit faire du BRUIT, pas
+                # disparaître (Qwen a silencieusement manqué au podium).
+                print(f"!! {label}: aucun run trouvé pour {prefix}-{kind}")
                 continue
             letters, covs, durs, toks, flagged = [], [], [], [], []
             for n in names:
                 run, det, stats = runs[n]
                 let = letter(det)
-                if n in adjustments and let in ("D", "F"):
-                    let = "A*"  # exception post-examen appliquée
+                adj = adjustments.get(n)
+                if (
+                    adj
+                    and let in ("D", "F")
+                    and adj.get("score_ajuste", 0) > adj.get("score_evaluateur", 0)
+                ):
+                    # exception post-examen EXONÉRANTE (une rectification de
+                    # compte sans changement de score ne blanchit pas la lettre)
+                    let = "A*"
                 letters.append(let)
                 cov = det.get("coverage") or {}
                 if cov.get("total"):

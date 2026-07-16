@@ -1005,7 +1005,7 @@ Batterie ×5 en cours ; DeepSeek prendra sa place au tableau à sept modèles,
 et sa comparaison directe avec MiniMax éclairera l'arbitrage du second GX10.
 
 
-## 25. DeepSeek-V4-Flash : batterie complète et tableau final à sept modèles (16/07, 23h45)
+## 25. DeepSeek-V4-Flash : batterie complète et tableau final à HUIT modèles (16/07, 23h45)
 
 Incidents de batterie documentés : capex-3 EXCLU (incident d'environnement —
 fenêtre du kill de l'arbre de processus + lancement d'une application lourde
@@ -1027,6 +1027,7 @@ contre-calcul initial était bugué).
 | 5 | gpt-4.1 | A C D C A | 90.5 % (33–100) | 89 s | 406 k |
 | 6 | Mistral Small 4 | D A A C D | 76.2 % (57–100) | 377 s | 478 k |
 | 7 | MiniMax M2.7 | A C A F A* | 100 % (93–100) | 637 s | 604 k |
+| 8 | Qwen3.6 | A A F F A | 97.6 % (43–100) | 165 s | 526 k |
 
 Nuance de lecture au sommet : DeepSeek égale les gpt-5.x en lettres, mais 2
 de ses 5 A sont des A* (exceptions post-examen sur agrégats exacts) là où
@@ -1045,7 +1046,8 @@ même le premier run « ok: all required items covered » du benchmark.
 | 4 | MiniMax | 50.0 % (44–50) |
 | 5 | Mistral | 43.8 % (19–56) |
 | 6 | DeepSeek-V4-Flash | 25.0 % (12–31) |
-| 7 | gpt-4.1 | 12.5 % (0–56) |
+| 7 | Qwen3.6 | 12.5 % (0–12) |
+| 8 | gpt-4.1 | 12.5 % (0–56) |
 
 ### Verdict DeepSeek vs MiniMax (la question du second GX10)
 
@@ -1058,3 +1060,14 @@ recherche rédigée → MiniMax), et la question « le dual-Spark vaut-il la
 chandelle » reste tranchée par la douleur opérationnelle plus que par les
 points. Skill amélioré au passage : exclusions de runs = donnée
 (adjustments.yaml), appliquées par compile_table.
+
+
+Post-scriptum contrôle qualité (Pierre) : la première compilation du podium
+final avait silencieusement PERDU Qwen (préfixe à alternative traité en
+littéral par compile_table) et affiché « sept modèles » — repéré par
+relecture humaine. Trois durcissements du skill en ont découlé : alternatives
+de préfixes gérées (les deux schémas de nommage), un modèle demandé sans
+runs fait du BRUIT au lieu de disparaître, et une rectification de compte
+sans changement de score ne blanchit plus la lettre (le A* exige
+score_ajuste > score_evaluateur). La chaîne de vérification vaut aussi pour
+les outils de présentation.
