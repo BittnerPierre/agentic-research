@@ -1365,7 +1365,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         elif company_matches:
             company = min(company_matches)[1]
         else:
-            return "unverifiable"
+            # Enumération sans société (« les ratios recalculés sont
+            # respectivement de 94,5 %, 55,5 %… ») : le fallback corpus essaie
+            # chaque société du périmètre, toujours en quasi-exact.
+            company = None
 
         metric_matches = []
         for metric, aliases in METRIC_ALIASES.items():
@@ -1392,18 +1395,19 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             # même-métrique (deltas, croissances) + valeurs même-période
             # (ratios cross-métrique, ex. capex ÷ OCF). Jamais le corpus
             # entier — sinon paires fortuites = blanchiment.
+            candidates = [company.lower()] if company else [c.lower() for c in companies]
             series: dict[str, list[float]] = {}
             by_period: dict[str, list[float]] = {}
             for (fact_company, fact_metric, period), value in facts.items():
-                if fact_company != company.lower():
+                if fact_company not in candidates:
                     continue
-                series.setdefault(fact_metric, []).append(value)
+                series.setdefault((fact_company, fact_metric), []).append(value)
                 # Ratio operands must be AMOUNTS: a percent-typed metric
                 # (Capex/OCF, Operating margin) as operand yields nonsense
                 # ratios that collide with invented figures (62.0/84.9=73.03
                 # nearly laundered a fabricated 73%).
                 if "/" not in fact_metric and "margin" not in fact_metric:
-                    by_period.setdefault(period, []).append(value)
+                    by_period.setdefault((fact_company, period), []).append(value)
 
             def _near_exact_pair(a: float, b: float, percent_typed: bool) -> bool:
                 # Operands are NOT shown in the text: the excuse must be
@@ -1418,14 +1422,41 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     candidates += [(a / b - 1.0) * 100.0, a / b * 100.0]
                 return any(close(x, c, tol_abs=0.15, tol_rel=0.002) for c in candidates)
 
-            if any(
+            # Deltas/growths need a company anchor: over ALL companies the
+            # candidate density launders (six invented growth rates all found
+            # accidental matches in tests). Company-less prose only supports
+            # same-period ratios (the observed legitimate enumeration case).
+            if company is not None and any(
                 _near_exact_pair(a, b, "/" in metric_name or "margin" in metric_name)
-                for metric_name, values in series.items()
+                for (_co, metric_name), values in series.items()
                 for a in values
                 for b in values
                 if a != b
             ):
                 return True
+            if company is None:
+                # Sans société nommée, une seule excuse subsiste : x est la
+                # recomputation PRÉCISE d'un fait ratio DÉJÀ PUBLIÉ dans le
+                # corpus (94,5 recalcule le « 94 » arrondi). Double condition
+                # — à distance d'arrondi d'un fait ratio stocké ET quasi égal
+                # au quotient des montants de la même (société, période) —
+                # sinon la densité des paires blanchit (4/6 taux inventés
+                # matchaient un ratio fortuit en test).
+                ratio_facts = {
+                    (fact_company, period): value
+                    for (fact_company, fact_metric, period), value in facts.items()
+                    if "/" in fact_metric
+                }
+                return any(
+                    abs(x - stored) <= 0.55
+                    and any(
+                        b and close(x, a / b * 100.0, tol_abs=0.15, tol_rel=0.002)
+                        for a in by_period.get(key, [])
+                        for b in by_period.get(key, [])
+                        if a != b
+                    )
+                    for key, stored in ratio_facts.items()
+                )
             # Same-period cross-metric: RATIOS only (capex ÷ OCF…), near-exact.
             # Deltas/growth make no sense within one period, and the loose
             # _is_derived tolerances over widened pairs laundered an invented
@@ -1439,7 +1470,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 if a != b
             )
 
-        if not metric_matches:
+        if not metric_matches or company is None:
             return "valid" if _company_corpus_derivation() else "unverifiable"
         prior_metrics = [item for item in metric_matches if item[1] <= relative_pos]
         metric = min(prior_metrics or metric_matches)[2]

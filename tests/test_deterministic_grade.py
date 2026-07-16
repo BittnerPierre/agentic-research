@@ -1166,3 +1166,18 @@ def test_margin_ratio_cannot_launder_invented_figure(tmp_path: Path) -> None:
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 1
+
+
+def test_respectivement_enumeration_of_recomputed_ratios_is_not_fabrication(tmp_path: Path) -> None:
+    """'Les ratios capex/OCF recalculés sont respectivement de 94,5 %, ...' —
+    an ordered enumeration names no company in the paragraph; the values are
+    exact recomputations of per-company corpus amounts. Without a named
+    company the fallback tries every company in scope (still near-exact)."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    filler = "Definitions and reconciliation notes appear here. " * 5
+    report_md = f"# Method\n{filler}\nLes ratios recalcules sont respectivement de 94,5 % [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
