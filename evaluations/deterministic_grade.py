@@ -1434,7 +1434,11 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             # typo'd operand must not find an accidental excuse in the
             # company's series. Computed figures (deltas, ratios) are never
             # period-suffixed in practice.
-            if re.search(r"\bFY\s*20\d{2}\b", report_md[pos : pos + 30], re.I):
+            fy_after = re.search(r"\bFY\s*20\d{2}\b", report_md[pos : pos + 30], re.I)
+            if fy_after and "%" not in report_md[pos : pos + fy_after.start()]:
+                # Un MONTANT daté (« $22.0B in FY2020 ») est une valeur, pas un
+                # calcul. Un POURCENTAGE suivi d'années (« 86,9 % en FY2025 par
+                # rapport à FY2020 ») est un étiquetage de croissance.
                 return False
             # Arbitrage Pierre (2026-07-16) : les opérandes vivent dans le
             # corpus, pas forcément dans le paragraphe (« Amazon affiche la
@@ -1569,7 +1573,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     if unit not in {"%", "x", "\u00d7"}
                 ]
                 if not period_positions or not raw_candidates:
-                    return "unverifiable"
+                    # Paragraphe sans opérandes bruts (que des %) : dernier
+                    # recours corpus avant de renoncer — l'erreur d'étiquetage
+                    # de période d'un chiffre VRAI est du ressort du juge.
+                    return "valid" if _company_corpus_derivation() else "unverifiable"
                 displayed_operands.append(
                     min(
                         raw_candidates,
@@ -1579,6 +1586,11 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     )[0]
                 )
             if _is_derived(x, displayed_operands):
+                return "valid"
+            # Avant de condamner : le fallback corpus (sociétés nommées,
+            # quasi-exact) — « hausses respectives de 86,9 % et 74,1 % » a des
+            # périodes dans le paragraphe mais ses opérandes dans le corpus.
+            if _company_corpus_derivation():
                 return "valid"
             expected_operands = [
                 facts.get((company.lower(), metric.lower(), period)) for period in periods
