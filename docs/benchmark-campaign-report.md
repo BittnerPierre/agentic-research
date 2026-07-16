@@ -437,3 +437,85 @@ modèles, mais de l'évaluateur.
 | Excuse trop généreuse (blanchiment) | tests rouge-d'abord + contrôle falsifié + contre-tests d'équité |
 | Cas légitime sans règle saine | tableau d'exceptions post-examen (arbitre humain) |
 | Erreur d'agrégation des campagnes | mapping autoritaire stats.json→run, provenance dans chaque pack |
+
+
+## 14. Présentation finale — la note à deux dimensions (arbitrage Pierre, 16/07 soir)
+
+Le score 0-100 unique écrasait deux informations orthogonales : la COMPÉTENCE
+(qu'a-t-il trouvé ?) et la CONFIANCE (peut-on livrer sans tout re-vérifier ?).
+Mistral capex-1 (couverture 76 %, 1 fabrication) et Qwen-13 (couverture 100 %,
+4 fabrications + 8 faux) sortaient tous deux à « 40 » — illisible. Nouvelle
+présentation officielle : **séquence de lettres de confiance + couverture**,
+sans AUCUN changement du calcul (pure couche de présentation sur det_grade).
+
+### La grille de confiance (sémantique arbitrée)
+
+| Lettre | Définition | Conséquence |
+|---|---|---|
+| A | zéro faux, zéro fabrication | livrable les yeux fermés |
+| C | ≥1 chiffre faux / dérivé raté | à relire (« claque sur les doigts ») |
+| D | UNE invention | une grosse erreur — récupérable avec relecture attentive |
+| F | inventions multiples | rapport mort, inutilisable |
+
+Avec N=5, on n'agrège pas les lettres : **on montre la séquence** — la
+variance est visible à l'œil nu (« A A A C A » = fiable, mais 1 run sur 5 à
+relire). Podium trié par gravité : nb de F, puis D, puis C, puis couverture.
+
+### Podium FINANCE (définitif, évaluateur final)
+
+| # | Modèle | Confiance | Couverture méd. (min–max) |
+|---|---|---|---|
+| 1 | gpt-5.6-sol | A A A A A | 100 % (86–100) |
+| 2 | gpt-5.4-mini | A A A A A | 85.7 % (74–100) |
+| 3 | gpt-4.1 | A C D C A | 90.5 % (33–100) |
+| 4 | Mistral Small 4 | D A A C D | 76.2 % (57–100) |
+| 5 | MiniMax M2.7 | A C A F A* | 100 % (93–100) |
+| 6 | Qwen3.6 | A A F F A | 97.6 % (43–100) |
+
+Lectures : les références sont propres 5/5 et se départagent par la couverture
+seule. Qwen = « couverture excellente, fabrique 2 runs sur 5 » (ses agrégats
+approximatifs). MiniMax = « tout trouve, un run empoisonné » (chiffres
+« hypothétisés » $73.3B/$141.2B, introuvables au corpus). Le D de gpt-4.1 :
+« 407,6 Md$ de chiffre d'affaires » Apple (vrai : 416,2) — le garbling
+générationnel. * = exception post-examen (§12).
+
+### Podium CONCEPTUEL (couverture ; lettres à dériver du juge — voir limite)
+
+| # | Modèle | Couverture méd. (min–max) |
+|---|---|---|
+| 1 | gpt-5.6-sol | 87.5 % (81–88) |
+| 2 | gpt-5.4-mini | 68.8 % (69–88) |
+| 3 | MiniMax M2.7 | 50.0 % (44–50) |
+| 4 | Mistral Small 4 | 43.8 % (19–56) |
+| 5 | Qwen3.6 | 12.5 % (0–12) |
+| 6 | gpt-4.1 | 12.5 % (0–56) |
+
+Limite ouverte : la lettre conceptuelle doit venir DU JUGE (piège d'honnêteté
+mordu = équivalent conceptuel de la fabrication → D ; mésattribution de
+citation attrapée par le contradicteur → C). Données déjà présentes dans
+chaque semantic_judge.json ; mapping à câbler en présentation.
+
+### Format et style (annexe — déjà 10 % du score via l'axe format)
+
+| Modèle | Chapitres conformes | Longueur respectée | Mots méd. | Tableaux méd. |
+|---|---|---|---|---|
+| gpt-5.6-sol | 10/10 | 6/10 | 2 070 | 4 |
+| gpt-5.4-mini | 10/10 | 9/10 | 1 612 | 1 |
+| MiniMax | 6/10 | 0/10 | 4 627 | 6 |
+| Qwen3.6 | 8/10 | 3/10 | 2 372 | 0 |
+| Mistral | 7/10 | 2/10 | 3 130 | 2 |
+| gpt-4.1 | 7/10 | 1/10 | 2 948 | 1 |
+
+MiniMax écrit 2,5× la limite demandée (cohérent avec ses 50-60 k tokens de
+sortie) ; seul mini respecte la longueur ; seules les références ont une
+structure de chapitres parfaite. La qualité littéraire n'est volontairement
+pas notée (le juge d'adéquation ne sanctionne que l'analyse trompeuse).
+
+### Doctrine « zèle » (arbitrage Pierre, management à la française)
+
+La directive du brief « ne calculez pas la variance guidance Meta » protège
+l'ÉVALUATION (bases incomparables), pas un dogme. L'analyste zélé qui la
+calcule quand même : s'il a JUSTE → ni bonus ni malus (les dérivations
+exactes sont déjà excusées mécaniquement — 4,7 / 9,7 / 7,2 % passés) ; s'il a
+FAUX → la claque (le +14,5 % de Mistral, faux sur toutes les bases, flaggé).
+Le mécanisme d'excuse-par-dérivation implémentait déjà cette doctrine.
