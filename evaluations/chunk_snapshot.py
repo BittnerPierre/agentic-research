@@ -105,7 +105,7 @@ def _resolve_stored_variant(
     filename: str,
     manifest: dict,
     roots: list[Path],
-) -> tuple[dict | None, Path | None]:
+) -> tuple[dict | None, Path | None, str | None]:
     """Match a title-renamed ingested file back to its frozen manifest entry.
 
     The ingestion pipeline renames downloads after the document title and adds a
@@ -130,12 +130,13 @@ def _resolve_stored_variant(
         frozen_file = _frozen_source_file(canonical, expected, roots)
         if frozen_file is None:
             continue
-        if _strip_ingestion_preamble(body) != frozen_file.read_text(
-            encoding="utf-8", errors="ignore"
-        ).strip():
+        if (
+            _strip_ingestion_preamble(body)
+            != frozen_file.read_text(encoding="utf-8", errors="ignore").strip()
+        ):
             continue
-        return expected, path
-    return None, None
+        return expected, path, canonical
+    return None, None, None
 
 
 def _strip_ingestion_preamble(body: str) -> str:
@@ -240,7 +241,15 @@ def validate_chunk_snapshot(
         if expected is None:
             # Title-renamed ingested copy: bridge via its frontmatter source URL,
             # accepted only when the stripped body hash-matches the frozen corpus.
-            expected, source_file = _resolve_stored_variant(chunk.filename, manifest, roots)
+            expected, source_file, canonical = _resolve_stored_variant(
+                chunk.filename, manifest, roots
+            )
+            if canonical:
+                # Propagate the CANONICAL manifest name: downstream consumers
+                # (semantic judge source_files filter) match on it — the runtime
+                # title-renamed name gave finance adequacy items zero evidence
+                # (Codex review 2026-07-16).
+                chunk = chunk.model_copy(update={"filename": canonical})
         if expected is None:
             result.violations.append(f"chunk source outside frozen manifest: {label}")
             continue

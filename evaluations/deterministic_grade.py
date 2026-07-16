@@ -173,9 +173,17 @@ def extract_numbers(text: str) -> list[tuple[float, str, int]]:
     for m in _NUM.finditer(text):
         if any(start <= m.start("body") < end for start, end in range_spans):
             continue
+        sign = m.group("sign") or ""
+        if sign in {"-", "\u2212"}:
+            # A minus PRECEDED by a digit is the binary operator of a shown
+            # computation ("131,8 - 40,1"), not a negative value (Codex review
+            # 2026-07-16: the operand fell off the whitelist as -40.1).
+            before = text[: m.start("sign")].rstrip()
+            if before[-1:].isdigit() or before[-1:] in {"%", "$"}:
+                sign = ""
         parsed = _normalize_number(
             m.group("body"),
-            sign=m.group("sign") or "",
+            sign=sign,
             unit=m.group("unit") or "",
             currency=bool(m.group("currency")),
             accounting_negative=False,
@@ -1005,7 +1013,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     guidance_re = re.compile(r"guidance|forecast|projection|prevision|orientation", re.I)
     # Meta-discourse about the RETRIEVAL ("unavailable in that evidence chunk")
     # is not a claim about the fact itself — never accuse on it.
-    evidence_re = re.compile(r"chunk|evidence|retriev|extrait|preuve|corpus fragment", re.I)
+    evidence_re = re.compile(r"chunk|evidence|retriev|extract|extrait|preuve|corpus fragment", re.I)
     contradictions = []
     current_company = None
     for line in report_body.splitlines():
@@ -1368,8 +1376,68 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     metric_matches.append(
                         (abs(match.start() - relative_pos), match.start(), metric)
                     )
+
+        def _company_corpus_derivation() -> bool:
+            # A figure immediately followed by a fiscal year ("$22.0B in
+            # FY2020") is presented as a corpus VALUE, not a computation — a
+            # typo'd operand must not find an accidental excuse in the
+            # company's series. Computed figures (deltas, ratios) are never
+            # period-suffixed in practice.
+            if re.search(r"\bFY\s*20\d{2}\b", report_md[pos : pos + 30], re.I):
+                return False
+            # Arbitrage Pierre (2026-07-16) : les opérandes vivent dans le
+            # corpus, pas forcément dans le paragraphe (« Amazon affiche la
+            # plus forte augmentation absolue (+91,7 Md$) », ratios Capex/OCF
+            # recalculés). Paires restreintes à la société nommée : séries
+            # même-métrique (deltas, croissances) + valeurs même-période
+            # (ratios cross-métrique, ex. capex ÷ OCF). Jamais le corpus
+            # entier — sinon paires fortuites = blanchiment.
+            series: dict[str, list[float]] = {}
+            by_period: dict[str, list[float]] = {}
+            for (fact_company, fact_metric, period), value in facts.items():
+                if fact_company != company.lower():
+                    continue
+                series.setdefault(fact_metric, []).append(value)
+                # Ratio operands must be AMOUNTS: a percent-typed metric
+                # (Capex/OCF, Operating margin) as operand yields nonsense
+                # ratios that collide with invented figures (62.0/84.9=73.03
+                # nearly laundered a fabricated 73%).
+                if "/" not in fact_metric and "margin" not in fact_metric:
+                    by_period.setdefault(period, []).append(value)
+
+            def _near_exact_pair(a: float, b: float) -> bool:
+                # Operands are NOT shown in the text: the excuse must be
+                # near-exact. _is_derived's display tolerances (±0.6, 2% rel)
+                # over whole corpus series laundered an invented 73% (Amazon
+                # OCF 84.9->115.9 = +73.25%).
+                candidates = [abs(a - b)]
+                if b:
+                    candidates += [(a / b - 1.0) * 100.0, a / b * 100.0]
+                return any(close(x, c, tol_abs=0.15, tol_rel=0.002) for c in candidates)
+
+            if any(
+                _near_exact_pair(a, b)
+                for values in series.values()
+                for a in values
+                for b in values
+                if a != b
+            ):
+                return True
+            # Same-period cross-metric: RATIOS only (capex ÷ OCF…), near-exact.
+            # Deltas/growth make no sense within one period, and the loose
+            # _is_derived tolerances over widened pairs laundered an invented
+            # 73% in tests — ratios recomputed from exact operands must land
+            # within rounding distance.
+            return any(
+                b != 0 and close(x, a / b * 100.0, tol_abs=0.15, tol_rel=0.002)
+                for values in by_period.values()
+                for a in values
+                for b in values
+                if a != b
+            )
+
         if not metric_matches:
-            return "unverifiable"
+            return "valid" if _company_corpus_derivation() else "unverifiable"
         prior_metrics = [item for item in metric_matches if item[1] <= relative_pos]
         metric = min(prior_metrics or metric_matches)[2]
 
@@ -1441,7 +1509,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             ]
             if len(grounded_operands) >= 2 and _is_derived(x, grounded_operands):
                 return "valid"
-        return "unverifiable"
+        return "valid" if _company_corpus_derivation() else "unverifiable"
 
     def _derivable_from_corpus(x: float, pos: int) -> bool:
         boundary = report_md.rfind("\n\n", 0, pos)
@@ -1553,6 +1621,16 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         # a reasonable summary, not an invented precise statistic.
         pre = report_md[max(0, pos - 28) : pos].lower()
         if float(val).is_integer() and val % 10 == 0 and any(h in pre for h in hedge_words):
+            continue
+        # Presentation conventions state a PRECISION, not a data value:
+        # « les montants sont arrondis à 0,1 Md$ », "rounded to 0.1B",
+        # « concordent à 0,1 Md$ près » (Codex review 2026-07-16: 8 such flags
+        # capped a clean gpt-5.6-sol run at 40). Bounded to small grains so a
+        # real fabricated figure cannot shelter behind rounding language.
+        if abs(val) <= 1 and re.search(
+            r"arrond|rounded|rounding|concorden?t|pr[ée]sent[ée]|pr[ée]s\b|precision|pr[ée]cision|d[ée]cimal",
+            report_md[max(0, pos - 70) : pos + 50].lower(),
+        ):
             continue
         # skip correct derivations shown next to their operands (growth %, delta,
         # ratio, multiple) — first-level analysis the task explicitly asks for.

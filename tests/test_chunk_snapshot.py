@@ -126,3 +126,70 @@ def test_chunk_snapshot_rejects_payload_hash_mismatch(tmp_path: Path) -> None:
     )
 
     assert result.violations == ["chunk hash mismatch: abcdef12-3456:0"]
+
+
+def test_resolved_variant_propagates_canonical_filename(tmp_path):
+    """Codex review #201 (2026-07-16, bloquant) : le juge filtre les chunks par
+    requirement.source_files contre RetrievedChunk.filename. Les fichiers
+    runtime sont renommés d'après le titre ; la validation sait les relier au
+    corpus gelé via l'URL du frontmatter, mais gardait le nom runtime — les
+    items d'adéquation finance recevaient 0 chunk de preuve. Le nom canonique
+    du manifeste doit être propagé dans valid_chunks."""
+    import hashlib
+    import json
+
+    from evaluations.chunk_snapshot import load_chunk_snapshot, validate_chunk_snapshot
+
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    body = "Amazon capex was 40.1B in FY2020.\n"
+    (corpus / "capex_reference_data.md").write_text(body, encoding="utf-8")
+    (exercise / "source_manifest.yaml").write_text(
+        "sources:\n"
+        "  - url: https://example.test/raw/capex_reference_data.md\n"
+        "    file_pattern: capex_reference_data.md\n"
+        f"    sha256: {hashlib.sha256(body.encode()).hexdigest()}\n",
+        encoding="utf-8",
+    )
+    run = tmp_path / "run"
+    raw = run / "raw_sources"
+    raw.mkdir(parents=True)
+    stored = (
+        "---\n"
+        'title: "Capital Expenditure Reference Data"\n'
+        "source: https://example.test/raw/capex_reference_data.md\n"
+        "---\n\n"
+        "# Capital Expenditure Reference Data\n\n"
+        "**Source:** [https://example.test/raw/capex_reference_data.md](https://example.test/raw/capex_reference_data.md)\n\n"
+        "## Contenu\n\n" + body
+    )
+    runtime_name = "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md"
+    (raw / runtime_name).write_text(stored, encoding="utf-8")
+    chunk_text = "Amazon capex was 40.1B in FY2020."
+    (run / "chunks.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "chunks": [
+                    {
+                        "chunk_id": "doc-1:0",
+                        "document_id": "doc-1",
+                        "chunk_index": 0,
+                        "filename": runtime_name,
+                        "source": "https://example.test/raw/capex_reference_data.md",
+                        "text": chunk_text,
+                        "sha256": hashlib.sha256(chunk_text.encode()).hexdigest(),
+                        "resolved": True,
+                    }
+                ],
+                "conflicts": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = validate_chunk_snapshot(load_chunk_snapshot(run / "chunks.json"), exercise, run)
+
+    assert result.passed, result.violations
+    assert result.valid_chunks["doc-1:0"].filename == "capex_reference_data.md"

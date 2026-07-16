@@ -918,3 +918,202 @@ def test_deterministic_scoring_is_invariant_across_rescores(tmp_path: Path) -> N
 
     baseline = json.dumps(results[0], sort_keys=True)
     assert all(json.dumps(r, sort_keys=True) == baseline for r in results[1:])
+
+
+def _amazon_exercise(tmp_path: Path) -> Path:
+    """Corpus with a multi-year capex series for one company (Amazon)."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Amazon capex was 40.1B in FY2020 and 131.8B in FY2025.\n", encoding="utf-8"
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2020,40.1,USD_billions\n"
+        "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return exercise
+
+
+def test_company_scoped_delta_far_from_operands_is_not_fabrication(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16): a synthesis sentence lists deltas FAR from
+    their operands ("Amazon (+91.7B), ahead of Alphabet (+69.1B)...") — the
+    ±160-char window cannot see the source table. When the clause names a
+    company, the derivation is checked against THAT company's corpus values
+    (same-metric pairs), not the surrounding text. Observed live: all 5
+    gpt-5.6-sol finance runs falsely accused on exact corpus deltas."""
+    exercise = _amazon_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Trends\n{filler}\nAmazon shows the largest increase (+91.7B) [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without the operand numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_company_scoped_growth_percent_is_not_fabrication(tmp_path: Path) -> None:
+    exercise = _amazon_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Trends\n{filler}\nAmazon grew by +228.7% over the period [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without the operand numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_invented_number_next_to_company_name_is_still_fabricated(tmp_path: Path) -> None:
+    """The company-scoped check must not become a laundering hole: an invented
+    figure near a company name stays fabricated when no same-metric pair of
+    that company derives it."""
+    exercise = _amazon_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Trends\n{filler}\nAmazon shows the largest increase (+80.3B) [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without the operand numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 1
+
+
+def test_rounding_precision_convention_is_not_fabrication(tmp_path: Path) -> None:
+    """Codex review #201 (2026-07-16): 'les montants sont arrondis à 0,1 Md$'
+    is a presentation convention, not a data claim — 8 such flags capped a
+    clean gpt-5.6-sol run at 40."""
+    exercise = _amazon_exercise(tmp_path)
+    report_md = (
+        "# Method\nAmazon capex reached 131.8B [S1].\n"
+        "Les montants sont arrondis à 0,1 Md$ et les marges à 0,1 point [S1].\n"
+        "Amounts are rounded to 0.1B for presentation [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_binary_minus_between_operands_is_not_a_negative_number(tmp_path: Path) -> None:
+    """Codex review #201 (2026-07-16): the minus in '131,8 - 40,1' is a binary
+    operator; parsing it as negative -40.1 pushed a shown operand off the
+    whitelist."""
+    exercise = _amazon_exercise(tmp_path)
+    # \u2212 = vrai signe moins Unicode des rapports (un tiret serait parse comme une plage)
+    report_md = "# Calc\nAmazon FCF check: 131,8 \u2212 40,1 = 91,7 Md$ [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def _amazon_ratio_exercise(tmp_path: Path) -> Path:
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Amazon FY2025: capex 131.8B, operating cash flow 139.4B, ratio 94 percent.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n"
+        "Amazon,Dec,Operating cash flow,FY2025,139.4,USD_billions\n"
+        "Amazon,Dec,Operating income,FY2025,70.0,USD_billions\n"
+        "Amazon,Dec,Capex/OCF,FY2025,94,percent\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return exercise
+
+
+def test_recomputed_cross_metric_ratio_is_not_fabrication(tmp_path: Path) -> None:
+    """gpt-5.6-sol recomputed the requested Capex/OCF ratios at higher precision
+    than the corpus rounding (94.5% vs corpus 94) — the exercise explicitly
+    asks for this division. Same-company same-period cross-metric ratios are a
+    legitimate derivation class."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Ratios\n{filler}\nAmazon Capex/OCF recalcule est de 94,5 % [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_extraction_meta_statement_is_not_a_false_unavailability(tmp_path: Path) -> None:
+    """'One corpus extraction states that Apple operating income is unavailable'
+    reports what a retrieval extraction said — meta-discourse, not a claim
+    about the fact (same family as the evidence-chunk guard)."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "One corpus extraction states that Amazon operating income is unavailable [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_presentation_precision_wording_is_not_fabrication(tmp_path: Path) -> None:
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Method\nAmazon capex reached 131.8B [S1].\n"
+        "Les montants sont présentés à 0,1 Md$ dans les tableaux [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
