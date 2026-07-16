@@ -242,7 +242,12 @@ def test_grade_scores_declared_length_constraint(tmp_path: Path) -> None:
     assert result["score"] == 80.0
 
 
-def test_conceptual_number_must_exist_in_cited_source(tmp_path: Path) -> None:
+def test_conceptual_numbers_are_judge_territory_not_mechanical(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16, révélé par Mistral) : renverse l'ancienne
+    doctrine « conceptual number must exist in cited source ». Les constantes
+    techniques du conceptuel (tailles de chunks, dimensions, S&P 500) relèvent
+    du juge evidence-bound, qui vérifie déjà l'ancrage aux preuves — la porte
+    numérique mécanique produisait des faux positifs en double peine."""
     exercise = _write_exercise(tmp_path, mode="conceptual")
     (exercise / "corpus" / "article.md").write_text(
         "Another section mentions 500 tokens and a 20% rate.\n",
@@ -260,7 +265,7 @@ def test_conceptual_number_must_exist_in_cited_source(tmp_path: Path) -> None:
 
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
-    assert [item["value"] for item in result["fabrication"]["items"]] == [200.0, 500.0, 20.0]
+    assert result["fabrication"]["count"] == 0
 
 
 def test_derivation_uses_claimed_company_metric_and_periods(tmp_path: Path) -> None:
@@ -1388,3 +1393,106 @@ def test_multi_company_contrast_summary_is_judge_territory(tmp_path: Path) -> No
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["accuracy"]["wrong"] == 0
+
+
+def test_citation_locators_are_not_numbers(tmp_path: Path) -> None:
+    """Mistral : « [S1:22,25] » lu comme 22,25 et « [S1:9,30,53] » devenu
+    93053 — les localisateurs de citation ne sont pas des chiffres."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Body\nAmazon capex reached 131.8B [S1:22,25].\n"
+        "Les mecanismes sont decrits en production [S1:9,30,53].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_respective_growth_enumeration_tries_all_named_companies(tmp_path: Path) -> None:
+    """Mistral : « Meta et Alphabet, avec des hausses respectives de 86,9 % et
+    74,1 % » — chaque valeur appartient à UNE des sociétés nommées ; le
+    fallback n'essayait que la plus proche."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Meta capex was 37.3B in FY2024 and 69.7B in FY2025. "
+        "Alphabet capex was 52.5B in FY2024 and 91.4B in FY2025.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Meta,Dec,Capex,FY2024,37.3,USD_billions\n"
+        "Meta,Dec,Capex,FY2025,69.7,USD_billions\n"
+        "Alphabet,Dec,Capex,FY2024,52.5,USD_billions\n"
+        "Alphabet,Dec,Capex,FY2025,91.4,USD_billions\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Meta", "Alphabet"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_md = (
+        "# Trends\nMeta et Alphabet ont accru leurs investissements sur la periode, "
+        "avec des hausses respectives de 86,9% et 74,1% [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_hedged_threshold_multiple_of_five_is_not_fabrication(tmp_path: Path) -> None:
+    """Mistral : « des ratios inférieurs à 15% » — seuil d'analyste hedgé ;
+    le garde exigeait un multiple de 10."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Buckets\nAmazon capex reached 131.8B [S1].\n"
+        "Certaines societes se distinguent par des ratios inférieurs à 15% [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_conceptual_mode_has_no_mechanical_numeric_gate(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16, révélé par Mistral) : en conceptuel, les
+    constantes techniques (« vecteurs de 384 ou 768 dimensions », « chunks de
+    200-500 tokens », « S&P 500 ») relèvent du juge evidence-bound, pas d'une
+    whitelist de chiffres pensée pour la finance. La porte numérique mécanique
+    est désactivée en mode conceptuel."""
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    report_md = (
+        "# Retrieval\nAgent memory relies on embeddings [S1].\n"
+        "Les embeddings produisent des vecteurs de 384 ou 768 dimensions, et les "
+        "chunks de 200-500 tokens equilibrent precision et contexte [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0

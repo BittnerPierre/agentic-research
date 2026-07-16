@@ -1125,7 +1125,16 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             )
 
     # ---- fabrication gate (ZERO TOLERANCE) ----
-    report_nums = extract_numbers(report_md)
+    # Arbitrage Pierre (2026-07-16, révélé par Mistral) : la porte numérique
+    # mécanique est réservée au mode numeric. En conceptuel, les constantes
+    # techniques (« 384 ou 768 dimensions », « 200-500 tokens », « S&P 500 »)
+    # relèvent du juge evidence-bound — double peine et faux positifs sinon.
+    # Les localisateurs de citation « [S1:22,25] » ne sont pas des chiffres
+    # (Mistral : lus 22,25 et 93053). Masqués par des espaces — offsets intacts.
+    masked_report = re.sub(
+        r"\[S\d+[^\]]*\]", lambda m: " " * len(m.group(0)), report_md, flags=re.I
+    )
+    report_nums = extract_numbers(masked_report) if mode == "numeric" else []
     # Spans where numbers are NOT grounding claims: fenced/inline code (example data)
     # and heading numbering prefixes such as "## 3.1". Skip fabrication checks there.
     _ignore = []
@@ -1434,7 +1443,11 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             # même-métrique (deltas, croissances) + valeurs même-période
             # (ratios cross-métrique, ex. capex ÷ OCF). Jamais le corpus
             # entier — sinon paires fortuites = blanchiment.
-            candidates = [company.lower()] if company else [c.lower() for c in companies]
+            # Toutes les sociétés nommées du paragraphe (« hausses respectives
+            # de 86,9 % et 74,1 % » : chaque valeur appartient à L'UNE d'elles),
+            # pas seulement la plus proche. Ensemble borné, quasi-exact inchangé.
+            named = list(dict.fromkeys(c for _pos, c in company_matches))
+            candidates = [c.lower() for c in named] if named else [c.lower() for c in companies]
             series: dict[str, list[float]] = {}
             by_period: dict[str, list[float]] = {}
             for (fact_company, fact_metric, period), value in facts.items():
@@ -1703,7 +1716,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         # skip round-ten integers used as a hedge/threshold ("marges > 30%"):
         # a reasonable summary, not an invented precise statistic.
         pre = report_md[max(0, pos - 28) : pos].lower()
-        if float(val).is_integer() and val % 10 == 0 and any(h in pre for h in hedge_words):
+        if float(val).is_integer() and val % 5 == 0 and any(h in pre for h in hedge_words):
             continue
         # Un nombre suivi d'un nom de mois est une DATE (« 30 juin 2025 »,
         # « 31 janvier 2025 » — gpt-4.1 décrit les calendriers fiscaux) :
