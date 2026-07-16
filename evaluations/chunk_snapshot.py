@@ -288,7 +288,18 @@ def resolve_chunk_id(raw_id: str, valid_chunks: dict[str, RetrievedChunk]) -> st
         if chunk_id.rsplit(":", 1)[1] == chunk_index
         and chunk_id.rsplit(":", 1)[0].startswith(document_prefix)
     ]
-    return matches[0] if len(matches) == 1 else None
+    if len(matches) == 1:
+        return matches[0]
+    # Notation « filename:index » (arbitrage Pierre 2026-07-17, DeepSeek) :
+    # l'agent transcode l'UUID en identifiant lisible. La référence est
+    # complète et non ambiguë — le pack porte filename et chunk_index — donc
+    # le code résout déterministiquement. Refusé si plusieurs candidats.
+    by_file = [
+        chunk_id
+        for chunk_id, chunk in valid_chunks.items()
+        if chunk.filename == document_prefix and str(chunk.chunk_index) == chunk_index
+    ]
+    return by_file[0] if len(by_file) == 1 else None
 
 
 def source_chunk_map(

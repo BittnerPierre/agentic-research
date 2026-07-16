@@ -193,3 +193,45 @@ def test_resolved_variant_propagates_canonical_filename(tmp_path):
 
     assert result.passed, result.violations
     assert result.valid_chunks["doc-1:0"].filename == "capex_reference_data.md"
+
+
+def test_resolve_chunk_id_accepts_filename_index_notation():
+    """Arbitrage Pierre (2026-07-17, investigation DeepSeek) : l'agent de
+    recherche de DeepSeek transcode les identifiants de chunks en notation
+    lisible « Agents_1.md:56 » au lieu de recopier les UUID. La référence est
+    complète, correcte et non ambiguë — le pack contient filename et
+    chunk_index pour chaque chunk : le CODE possède la table et résout
+    déterministiquement (même doctrine que l'appariement chunk→source).
+    Résolution acceptée seulement si le couple (filename, index) désigne UN
+    unique chunk."""
+    from evaluations.chunk_snapshot import RetrievedChunk, resolve_chunk_id
+
+    valid = {
+        "967e61d4-de9b:56": RetrievedChunk(
+            chunk_id="967e61d4-de9b:56",
+            document_id="967e61d4-de9b",
+            chunk_index=56,
+            filename="Agents_1.md",
+            text="chunk text",
+            sha256="0" * 64,
+            resolved=True,
+        ),
+        "abcd1234-ffff:56": RetrievedChunk(
+            chunk_id="abcd1234-ffff:56",
+            document_id="abcd1234-ffff",
+            chunk_index=56,
+            filename="Text_generation.md",
+            text="other",
+            sha256="1" * 64,
+            resolved=True,
+        ),
+    }
+
+    assert resolve_chunk_id("Agents_1.md:56", valid) == "967e61d4-de9b:56"
+    assert resolve_chunk_id("Text_generation.md:56", valid) == "abcd1234-ffff:56"
+    # ambigu (deux chunks même filename+index) -> refusé
+    valid["dupe:56"] = RetrievedChunk(
+        chunk_id="dupe:56", document_id="dupe", chunk_index=56,
+        filename="Agents_1.md", text="dup", sha256="2" * 64, resolved=True,
+    )
+    assert resolve_chunk_id("Agents_1.md:56", valid) is None

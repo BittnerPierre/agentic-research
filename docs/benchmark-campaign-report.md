@@ -1079,3 +1079,57 @@ actuelles ne comptent que les fautes numériques et y sont donc vides de
 sens (tout le monde est A). La couverture conceptuelle reste, en pratique,
 un score de discipline de preuve : elle mesure ce que le modèle sait
 PROUVER depuis ses sources, pas ce qu'il sait.
+
+
+## 26. L'investigation DeepSeek : le transcodeur d'identifiants (nuit du 16 au 17/07)
+
+Pierre : « il doit y avoir une raison pour ce loupé, d'autant que c'est
+systématique. » Il y en avait une. L'enquête, couche par couche :
+
+1. Hypothèse « il ne cite pas » → FAUSSE : 67 citations [Sx], bien réparties.
+2. Hypothèse « numérotation décalée » → FAUSSE : la table des sources du
+   rapport correspond exactement aux source_ids du pack.
+3. Cause réelle : **l'agent de recherche transcode les identifiants de
+   chunks** — « Agents_1.md:56 » au lieu de l'UUID « 967e61d4-…:56 ». Le
+   résolveur ne les retrouvait pas → chaque source perdait ses preuves → le
+   juge ne pouvait rien entailler (8 « citation_missing »/16) alors que le
+   contenu était jugé JUSTE et les citations présentes.
+
+**Arbitrage Pierre** : « on ne peut pas ne pas l'accepter — tout est là. »
+Contrairement aux doc_ids ABSENTS de Qwen (rien à résoudre → faute), la
+référence « filename:index » est complète, correcte et non ambiguë : le pack
+porte filename et chunk_index de chaque chunk, le CODE possède la table et
+résout déterministiquement (même doctrine que l'appariement chunk→source).
+Extension de resolve_chunk_id (test rouge d'abord, refus si ambigu),
+garde-fous verts (suite + contrôle falsifié 3/3), re-notation des 5 packs.
+
+### Effet : DeepSeek conceptuel 25.0 → médiane 75.0 (62.5–87.5)
+
+| # | CONCEPTUEL (podium final v2) | Couverture méd. (min–max) |
+|---|---|---|
+| 1 | gpt-5.6-sol | 87.5 % (81–88) |
+| 2 | **DeepSeek-V4-Flash** | **75.0 % (62–88)** |
+| 3 | gpt-5.4-mini | 68.8 % (69–88) |
+| 4 | gpt-5.1 | 62.5 % (38–75) |
+| 5 | MiniMax | 50.0 % (44–50) |
+| 6 | Mistral | 43.8 % (19–56) |
+| 7 | Qwen3.6 | 12.5 % (0–12) |
+| 8 | gpt-4.1 | 12.5 % (0–56) |
+
+Et son run 3 (87.5) a même déclaré les DEUX pièges d'honnêteté (zero-shot ✓,
+few-shot ✓) — première fois qu'un open-weight en déclare un seul, a fortiori
+les deux (score pièges : 1/5 et 1/5, niveau gpt-5.6-sol sur few-shot).
+
+### Conclusion réécrite par l'enquête
+
+**DeepSeek-V4-Flash est le premier open-weight COMPLET de la campagne** :
+2e mondial en conceptuel (75 %, devant gpt-5.4-mini et gpt-5.1), 1er en
+finance (A* A A* A A, 100 %), harnais tenu sans un seul tweak, et des
+étincelles d'honnêteté épistémique. La « frontière locale » n'est plus une
+extrapolation : elle est mesurée — il ne lui manque que la constance des
+pièges (1/5) et la vitesse (373-427 s). Les conclusions du §19 (« aucun
+open-weight ne combine les deux ») et du §25 sont RÉVISÉES par ce résultat ;
+celles sur MiniMax/Qwen/Mistral tiennent. Leçon d'instrumentation, une fois
+de plus : le score d'un modèle est borné par la fidélité de l'évaluateur à
+SES conventions — chaque nouveau venu apporte les siennes, et la seconde
+lecture reste le seul filet.
