@@ -333,3 +333,19 @@ introuvables — vraie faute maintenue) ; Qwen écrit plat, restitue des chiffre
 justes quand il reste dans le cadre, invente des agrégats quand il en sort, et
 casse sa chaîne de preuve en conceptuel. gpt-4.1 (ancrage bas) en cours pour
 positionner chaque open-weight entre les générations.
+
+
+### Ressources par run (médiane N=5 ; tokens = total toutes phases)
+
+| Modèle | Concept : durée / tokens (in+out) | Finance : durée / tokens (in+out) |
+|---|---|---|
+| gpt-5.6-sol | 202 s / 300 k (270+30) | 166 s / 613 k (574+37) |
+| gpt-5.4-mini | 74 s / 416 k (389+25) | 58 s / 612 k (585+28) |
+| MiniMax M2.7 | 519 s / 374 k (324+50) | 637 s / 604 k (550+62) |
+| Qwen3.6 | 140 s / 340 k (317+22) | 165 s / 526 k (497+29) — outlier 1406 s (run 14, agrégats inventés) |
+
+Lectures : volumes de tokens proches entre modèles et dominés ~90 % par
+l'input (le retrieval coûte, pas la génération — le pipeline égalise bien) ;
+la SORTIE trahit le style (MiniMax 50-62 k = verbosité frontier, cohérent avec
+sa signature réconciliation) ; gpt-5.6-sol consomme MOINS que mini en
+conceptuel (recherches plus efficaces).
