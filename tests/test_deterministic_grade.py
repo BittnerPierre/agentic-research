@@ -1252,3 +1252,18 @@ def test_source_discrepancy_note_with_value_is_not_false_unavailability(tmp_path
     result = grade(tmp_path / "run", exercise, report_md, [])
 
     assert result["accuracy"]["wrong"] == 0
+
+
+def test_unit_scale_variant_of_corpus_number_is_not_fabrication(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16, qwen run 15) : le rapport définit sa propre
+    abréviation « milliards de dollars (M$) » puis écrit « de 40,1 M$ à
+    131,8 M$ ». Le scorer lisait M$ = millions -> 0.1318 Md$ hors corpus ->
+    fabrication. L'esprit du test d'existence : le NOMBRE écrit existe dans le
+    corpus ; l'ambiguïté d'échelle d'unité n'est pas une invention."""
+    exercise = _amazon_exercise(tmp_path)
+    report_md = "# Trends\nAmazon capex rose from 40,1 M$ in FY2020 to 131,8 M$ in FY2025 [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0

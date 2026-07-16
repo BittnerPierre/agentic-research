@@ -1677,6 +1677,17 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         pre = report_md[max(0, pos - 28) : pos].lower()
         if float(val).is_integer() and val % 10 == 0 and any(h in pre for h in hedge_words):
             continue
+        # Unit-scale variant (arbitrage Pierre 2026-07-16, qwen run 15) : le
+        # rapport peut définir sa propre abréviation (« milliards de dollars
+        # (M$) ») que le parseur lit comme des millions. L'esprit du test
+        # d'existence porte sur le NOMBRE écrit : si le même numéral existe
+        # dans le corpus à l'échelle voisine (x1000 ou /1000), ce n'est pas
+        # une invention.
+        # Une seule direction (nombre lu en millions, écrit en milliards) et
+        # quasi exact en relatif : la direction inverse avec tolérance absolue
+        # excusait presque tout (0.022 ~ n'importe quelle petite valeur).
+        if any(close(val * 1000.0, w, tol_abs=0.01, tol_rel=0.0) for w in whitelist):
+            continue
         # Presentation conventions state a PRECISION, not a data value:
         # « les montants sont arrondis à 0,1 Md$ », "rounded to 0.1B",
         # « concordent à 0,1 Md$ près » (Codex review 2026-07-16: 8 such flags
