@@ -608,3 +608,69 @@ n'est illisible, mal conçu ou inexploitable — tous sont structurés, titrés,
 sourcés, utilisables pour l'étape de rédaction client. Différences de
 finition réelles (logorrhée MiniMax 4 600 mots, chapitres manquants sur
 certains runs Qwen conceptuels) mais hors du périmètre jugé, par design.
+
+
+## 18. Avis de lecture par modèle (qualitatif, non scoré)
+
+Notes de la seconde lecture (couche 3) après lecture des ~60 rapports de
+campagne. NON SCORÉ, à dessein : le livrable jugé est un document
+préparatoire (§17), la qualité éditoriale est subjective, et la calibrer
+coûterait une itération de durcissement de plus pour un axe hors périmètre.
+Les aspects mécaniques (structure, longueur, ton promotionnel) sont déjà
+dans le score (10+5+5 %). Consigné ici pour ne pas perdre l'observation —
+utile si un axe « transmissibilité » est un jour ajouté, ou pour rédiger
+les conclusions de l'exercice.
+
+**gpt-5.6-sol — le vérificateur.** Les rapports les plus proches d'un vrai
+document d'analyste : conventions de précision annoncées, réconciliations
+FCF = OCF − capex vérifiées et dites, incohérences entre sources signalées
+AVEC la valeur retenue (« [S3] indique X indisponible, tandis que les
+données donnent 133,1 »). Structure parfaite (10/10), tableaux riches.
+Défauts : mélange FR/EN d'une section à l'autre selon les runs, méta-détail
+parfois excessif (« in that specific evidence chunk » — la tuyauterie
+affleure), déborde la longueur 4 fois sur 10. Le meilleur document
+préparatoire du lot.
+
+**gpt-5.4-mini — le formulaire bien rempli.** Sec, court (1 612 mots méd.),
+discipliné (longueur 9/10, chapitres 10/10), zéro digression, zéro
+méta-discours. Se lit comme un template correctement rempli : aucune voix
+d'analyste, aucune réconciliation spontanée — mais rien à couper et rien à
+corriger. Le plus directement exploitable pour un rédacteur pressé.
+
+**gpt-4.1 — lisible mais daté.** Prose correcte, structure convenable
+(7/10), mais les défauts de sa génération transparaissent à la lecture :
+valeurs garblées dans les tableaux mêmes (407,6 pour 416,2), sections qui se
+contredisent (« toutes les métriques disponibles » puis un Data Gaps qui dit
+l'inverse), narration répétée de ses échecs de récupération. Mélange FR/EN
+également.
+
+**Qwen3.6 — le tableur qui parle.** Restitution tabulaire propre et
+française cohérente ; les rapports finance sobres sont concis et justes.
+Mais dès qu'il « analyse », il dérape : agrégats inventés dans les sections
+de synthèse, abréviations personnelles (« M$ » pour milliards), citations
+saupoudrées sans lien réel avec les chunks (visible en conceptuel), zéro
+tableau en conceptuel et chapitres parfois manquants. Bon extracteur,
+mauvais narrateur.
+
+**MiniMax M2.7 — l'analyste bavard.** La voix la plus « senior » du lot :
+classifications maison (« capital-extreme reinvestors »), réconciliations
+systématiques, executive summaries. Mais 2,5-3× la longueur demandée,
+répétitif, fuites de cuisine interne (raconte son erreur 404 dans le
+livrable), et surtout des digressions « hypothétiques » chiffrées dites avec
+l'aplomb du reste — le défaut le plus dangereux à la lecture, car rien ne
+distingue visuellement ses inventions de ses faits. Le plus coûteux à
+dépouiller.
+
+**Mistral Small 4 — le junior zélé.** Décompositions année par année
+soignées (ses séries FY2020→FY2025 par société sont les plus lisibles du
+lot), style de citation unique et précis ([S1:22,25] — non standard mais
+traçable), français homogène. Défauts : zèle hors consigne (calculs
+interdits), dérapages arithmétiques dans les statistiques dérivées, 1,7× la
+longueur, structure 7/10. Se relit bien, se corrige vite.
+
+**Synthèse transversale** : personne ne livre du prêt-à-envoyer client ;
+tout le monde livre de l'exploitable préparatoire. Les deux axes de
+différenciation à la lecture sont (1) le rapport signal/volume — mini et les
+rapports sobres de qwen en tête, MiniMax en queue — et (2) la fiabilité de la
+voix d'analyste : seul 5.6-sol commente SES sources ; les open-weights
+commentent LEUR mémoire.
