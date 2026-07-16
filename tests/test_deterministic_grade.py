@@ -1117,3 +1117,52 @@ def test_presentation_precision_wording_is_not_fabrication(tmp_path: Path) -> No
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_margin_ratio_cannot_launder_invented_figure(tmp_path: Path) -> None:
+    """Falsified control regression (2026-07-16): a planted 137 was laundered
+    by the ratio of two operating margins (37.3/27.2*100 = 137.13) — a
+    dimensional nonsense. Percent-typed metrics only support DELTAS
+    (percentage points) in the corpus fallback."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "NVIDIA operating margin was 27.2 percent in FY2021 and 37.3 percent in FY2022.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "NVIDIA,Jan,Operating margin,FY2021,27.2,percent\n"
+        "NVIDIA,Jan,Operating margin,FY2022,37.3,percent\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["NVIDIA"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_md = "# Analysis\nNVIDIA revenue grew by an impressive 137% [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 1

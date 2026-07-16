@@ -1405,19 +1405,22 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 if "/" not in fact_metric and "margin" not in fact_metric:
                     by_period.setdefault(period, []).append(value)
 
-            def _near_exact_pair(a: float, b: float) -> bool:
+            def _near_exact_pair(a: float, b: float, percent_typed: bool) -> bool:
                 # Operands are NOT shown in the text: the excuse must be
                 # near-exact. _is_derived's display tolerances (±0.6, 2% rel)
                 # over whole corpus series laundered an invented 73% (Amazon
-                # OCF 84.9->115.9 = +73.25%).
+                # OCF 84.9->115.9 = +73.25%). For percent-typed metrics
+                # (margins, capex/OCF) only the DELTA makes sense (percentage
+                # points): a ratio of two margins laundered a planted 137
+                # (37.3/27.2*100 = 137.13) on the falsified control.
                 candidates = [abs(a - b)]
-                if b:
+                if b and not percent_typed:
                     candidates += [(a / b - 1.0) * 100.0, a / b * 100.0]
                 return any(close(x, c, tol_abs=0.15, tol_rel=0.002) for c in candidates)
 
             if any(
-                _near_exact_pair(a, b)
-                for values in series.values()
+                _near_exact_pair(a, b, "/" in metric_name or "margin" in metric_name)
+                for metric_name, values in series.items()
                 for a in values
                 for b in values
                 if a != b
