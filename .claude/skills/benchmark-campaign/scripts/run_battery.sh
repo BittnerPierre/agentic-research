@@ -1,0 +1,69 @@
+#!/bin/bash
+# Batterie de campagne : N runs séquentiels par exercice, correction complète
+# après chaque run, résolution AUTORITAIRE du dossier de run (stats.json
+# output_dir — jamais « le dernier dossier », une collision entre batteries
+# parallèles a déjà été observée).
+#
+# Usage: run_battery.sh <config.yaml> <tag> <finance|concept|both> [N=5] [--skip-judge]
+#   tag     : préfixe des runs (ex: camp-mistral) → collections/output camp-mistral-capex-1…
+#   N       : nombre de runs par exercice (1 à n, défaut 5)
+# Sortie   : benchmarks/summaries/<tag>_results.txt (+ echo à la fin)
+#
+# Séquentiel par design : vLLM ne sert qu'un modèle, et deux batteries
+# parallèles ne posent problème QUE si elles partagent le tag (collections
+# distinctes par run sinon). Cloud + Spark en parallèle : OK.
+set -u
+CFG="$1"; TAG="$2"; WHICH="$3"; N="${4:-5}"; JUDGE_FLAG="${5:-}"
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+mkdir -p benchmarks/summaries
+SUMMARY="benchmarks/summaries/${TAG}_results.txt"
+: > "$SUMMARY"
+
+find_run() { # retrouve le dossier de run par son output_dir (autoritaire)
+  uv run python -c "
+import json, glob, os
+for sp in sorted(glob.glob('benchmarks/runs/*/stats.json'), key=os.path.getmtime, reverse=True):
+    try: d = json.load(open(sp))
+    except Exception: continue
+    if os.path.basename((d.get('output_dir') or '').rstrip('/')) == '$1':
+        print(os.path.dirname(sp)); break"
+}
+
+do_run() {
+  local name="$1" syllabus="$2" exercise="$3"
+  local t0=$SECONDS
+  echo "[battery] $name : début $(date '+%H:%M:%S')" >> "$SUMMARY"
+  uv run agentic-research --config "$CFG" --syllabus "$syllabus" \
+    --output-dir "output/$name" --vector-store "$name" > "benchmarks/summaries/${name}.log" 2>&1
+  if [ $? -ne 0 ]; then
+    echo "[battery] ÉCHEC run $name — voir benchmarks/summaries/${name}.log" >> "$SUMMARY"
+    return 1
+  fi
+  local run; run=$(find_run "$name")
+  if [ -z "$run" ]; then echo "[battery] $name : dossier de run introuvable" >> "$SUMMARY"; return 1; fi
+  echo "=== $name ($run) wall=$((SECONDS - t0))s" >> "$SUMMARY"
+  local extra=""
+  [ "$JUDGE_FLAG" = "--skip-judge" ] && extra="--skip-semantic-judge"
+  uv run python -m evaluations.deterministic_grade "$run" \
+    --exercise "evaluations/exercises/$exercise" $extra 2>&1 | grep -v Pydantic | tail -12 >> "$SUMMARY"
+  echo >> "$SUMMARY"
+}
+
+run_series() {
+  local kind="$1" syllabus="$2" exercise="$3"
+  for i in $(seq 1 "$N"); do
+    do_run "${TAG}-${kind}-${i}" "$syllabus" "$exercise"
+  done
+}
+
+case "$WHICH" in
+  finance) run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity" ;;
+  concept) run_series "concept" "test_files/syllabus.md" "ai-engineering-syllabus" ;;
+  both)
+    run_series "concept" "test_files/syllabus.md" "ai-engineering-syllabus"
+    run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity"
+    ;;
+  *) echo "exercice inconnu: $WHICH (finance|concept|both)"; exit 2 ;;
+esac
+echo "[battery] terminé : $(date '+%H:%M:%S')" >> "$SUMMARY"
+cat "$SUMMARY"

@@ -1,0 +1,23 @@
+{
+  "skill_name": "benchmark-campaign",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "vérifie que tout est prêt pour benchmarker un modèle sur le spark et dis-moi ce qui manque",
+      "expected_output": "Exécute check_services.sh --spark et restitue l'état de chaque service avec les remèdes, sans rien démarrer lui-même.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "fais-moi le tableau de campagne à jour avec gpt-5.6-sol, gpt-5.4-mini, MiniMax et Mistral, et montre-moi ce qui a été flaggé sur les runs pas propres",
+      "expected_output": "Utilise compile_table.py --flags : podium lettres+couverture trié F>D>C>couverture, ajustements * appliqués, items accusés listés pour les runs non-A.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "j'ai modifié le scorer, re-note les packs mistral et vérifie que rien n'est cassé",
+      "expected_output": "Utilise regrade.py --prefixes camp-mistral : suite de tests + contrôle falsifié 3/3 AVANT re-notation, puis re-note les packs et affiche les scores.",
+      "files": []
+    }
+  ]
+}
