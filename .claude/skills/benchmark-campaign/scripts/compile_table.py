@@ -40,12 +40,14 @@ def load_runs() -> dict[str, tuple[str, dict, dict]]:
     return out
 
 
-def load_adjustments() -> dict[str, dict]:
+def load_adjustments() -> tuple[dict[str, dict], set[str]]:
     path = Path("evaluations/adjustments.yaml")
     if not path.is_file():
-        return {}
+        return {}, set()
     payload = yaml.safe_load(path.read_text()) or {}
-    return {a["campagne"]: a for a in payload.get("adjustments") or []}
+    adjustments = {a["campagne"]: a for a in payload.get("adjustments") or []}
+    exclusions = {e["campagne"] for e in payload.get("exclusions") or []}
+    return adjustments, exclusions
 
 
 def letter(det: dict) -> str:
@@ -62,18 +64,22 @@ def letter(det: dict) -> str:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--models", nargs="+", required=True, help="Label=prefix (ex: Mistral=camp-mistral)")
+    p.add_argument(
+        "--models", nargs="+", required=True, help="Label=prefix (ex: Mistral=camp-mistral)"
+    )
     p.add_argument("--flags", action="store_true", help="lister les items accusés des runs non-A")
     args = p.parse_args()
 
     runs = load_runs()
-    adjustments = load_adjustments()
+    adjustments, exclusions = load_adjustments()
 
     for kind, title in (("concept", "CONCEPTUEL"), ("capex", "FINANCE")):
         rows = []
         for spec in args.models:
             label, prefix = spec.split("=", 1)
-            names = sorted(n for n in runs if n.startswith(f"{prefix}-{kind}"))
+            names = sorted(
+                n for n in runs if n.startswith(f"{prefix}-{kind}") and n not in exclusions
+            )
             if not names:
                 continue
             letters, covs, durs, toks, flagged = [], [], [], [], []
@@ -110,7 +116,9 @@ def main() -> None:
         print(f"\n===== {title} =====")
         for i, (_k, label, letters, covs, durs, toks, flagged) in enumerate(sorted(rows), 1):
             cov_s = (
-                f"{statistics.median(covs):5.1f}% ({min(covs):.0f}-{max(covs):.0f})" if covs else "?"
+                f"{statistics.median(covs):5.1f}% ({min(covs):.0f}-{max(covs):.0f})"
+                if covs
+                else "?"
             )
             dur_s = f"{statistics.median(durs):5.0f}s" if durs else "?"
             tok_s = f"{statistics.median(toks) / 1000:5.0f}k" if toks else "?"

@@ -82,3 +82,14 @@ adjustments:
     verification: "Somme capex FY2025 recalculée = 373.4 exact."
     arbitre: "Pierre"
     date: "2026-07-16"
+
+exclusions:
+  - campagne: "camp-dsv4-capex-3"
+    motif: >-
+      Incident d'environnement suspecté : le run a couru dans la fenêtre du
+      kill de l'arbre de processus (nettoyage différé ~23h06) et du lancement
+      d'une application lourde sur la machine hôte. Profil d'effondrement du
+      writer (retrieval OK, 2/7 chapitres, 0 tableau, couverture 0/42) non
+      attribuable au modèle. Remplacé par camp-dsv4-capex-6.
+    arbitre: "Pierre"
+    date: "2026-07-16"

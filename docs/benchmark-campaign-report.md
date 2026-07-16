@@ -1003,3 +1003,58 @@ masquage d'une fragilité réelle du candidat.
 
 Batterie ×5 en cours ; DeepSeek prendra sa place au tableau à sept modèles,
 et sa comparaison directe avec MiniMax éclairera l'arbitrage du second GX10.
+
+
+## 25. DeepSeek-V4-Flash : batterie complète et tableau final à sept modèles (16/07, 23h45)
+
+Incidents de batterie documentés : capex-3 EXCLU (incident d'environnement —
+fenêtre du kill de l'arbre de processus + lancement d'une application lourde
+sur l'hôte ; effondrement du writer non attribuable au modèle), remplacé par
+capex-6 ; capex-4 tué en vol et re-run. Série officielle : {1*, 2, 4*, 5, 6}.
+Trois entrées d'exceptions arbitrées (agrégats exacts 731.8/373.4, doctrine
+« approximation couverte ≤4 % au cas par cas », rectification qwen-14 sans
+effet de score — la seconde lecture s'applique sa propre médecine : le
+contre-calcul initial était bugué).
+
+### FINANCE — podium final
+
+| # | Modèle | Confiance | Couverture méd. (min–max) | Durée | Tokens |
+|---|---|---|---|---|---|
+| 1 | DeepSeek-V4-Flash | A* A A* A A | 100 % (83–100) | 427 s | 766 k |
+| 2 | gpt-5.1 | A A A A A | 100 % (95–100) | 159 s | 555 k |
+| 3 | gpt-5.6-sol | A A A A A | 100 % (86–100) | 166 s | 613 k |
+| 4 | gpt-5.4-mini | A A A A A | 85.7 % (74–100) | 58 s | 612 k |
+| 5 | gpt-4.1 | A C D C A | 90.5 % (33–100) | 89 s | 406 k |
+| 6 | Mistral Small 4 | D A A C D | 76.2 % (57–100) | 377 s | 478 k |
+| 7 | MiniMax M2.7 | A C A F A* | 100 % (93–100) | 637 s | 604 k |
+
+Nuance de lecture au sommet : DeepSeek égale les gpt-5.x en lettres, mais 2
+de ses 5 A sont des A* (exceptions post-examen sur agrégats exacts) là où
+gpt-5.1/5.6-sol sont A purs sans arbitrage. Le puriste classera les A purs
+devant ; l'un dans l'autre, **un open-weight tient le niveau série 5 en
+intégrité financière** — c'est inédit dans cette campagne. Son capex-6 est
+même le premier run « ok: all required items covered » du benchmark.
+
+### CONCEPTUEL — podium final
+
+| # | Modèle | Couverture méd. (min–max) |
+|---|---|---|
+| 1 | gpt-5.6-sol | 87.5 % (81–88) |
+| 2 | gpt-5.4-mini | 68.8 % (69–88) |
+| 3 | gpt-5.1 | 62.5 % (38–75) |
+| 4 | MiniMax | 50.0 % (44–50) |
+| 5 | Mistral | 43.8 % (19–56) |
+| 6 | DeepSeek-V4-Flash | 25.0 % (12–31) |
+| 7 | gpt-4.1 | 12.5 % (0–56) |
+
+### Verdict DeepSeek vs MiniMax (la question du second GX10)
+
+Deux profils inversés : MiniMax = le conceptuel (50 %) sans la discipline des
+chiffres (F) ; DeepSeek = la discipline des chiffres (A×5) sans le conceptuel
+(25 %). AUCUN open-weight ne combine encore les deux — c'est la combinaison,
+pas l'une ou l'autre, qui définit la famille gpt-5. Pour l'arbitrage
+matériel : la réponse dépend du workflow cible (data packs → DeepSeek ;
+recherche rédigée → MiniMax), et la question « le dual-Spark vaut-il la
+chandelle » reste tranchée par la douleur opérationnelle plus que par les
+points. Skill amélioré au passage : exclusions de runs = donnée
+(adjustments.yaml), appliquées par compile_table.
