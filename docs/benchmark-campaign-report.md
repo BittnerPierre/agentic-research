@@ -349,3 +349,91 @@ l'input (le retrieval coûte, pas la génération — le pipeline égalise bien)
 la SORTIE trahit le style (MiniMax 50-62 k = verbosité frontier, cohérent avec
 sa signature réconciliation) ; gpt-5.6-sol consomme MOINS que mini en
 conceptuel (recherches plus efficaces).
+
+
+## 13. Addendum méthodologie — la notation à trois couches et la seconde lecture
+
+Le benchmark précédent reposait sur un LLM-as-judge « classique » : un modèle
+notait librement les rapports, personne ne challengeait ses notes, et la
+campagne avait fini par mesurer surtout les artefacts du juge (cf. mémoire du
+spike : gpt-4.1-mini « 0.95 » vs gpt-4.1 « 0.40 » sur fabrication non
+détectée). La méthodologie actuelle superpose trois couches, chacune couvrant
+l'angle mort de la précédente.
+
+### Couche 1 — le scorer déterministe (les chiffres)
+
+Python ne juge que des ensembles fermés : hashes de chunks, IDs, provenance
+des fichiers, existence des nombres dans le corpus gelé, dérivations
+quasi-exactes bornées (deltas/croissances/ratios de la société nommée,
+recomputation de faits publiés). Invariance prouvée par test (3 rescores →
+JSON identiques). Il est rapide, reproductible — et aveugle au sens : seul,
+il sur-accuse le texte libre.
+
+### Couche 2 — le LLM-as-judge « outil » (le texte)
+
+Un bistouri, pas un couteau suisse : juge épinglé (gpt-5.4-2026-03-05, jamais
+de reasoning), verdicts catégoriels sur une grille fermée, evidence-bound (un
+pass exige des chunks bruts qui entaillent l'explication), protocole
+juge→contradicteur, appariements chunk→source résolus par le code (le juge
+désigne, il ne comptabilise pas), fail-closed sur tout imprévu. Stabilité
+mesurée : 14/16 verdicts identiques sur 3 passes du même pack, le bruit
+concentré sur les items « rapport entier ».
+
+### Couche 3 — la seconde lecture frontier (la cohérence)
+
+C'est la couche nouvelle, tenue pendant cette campagne par un modèle frontier
+(Claude « Fable ») : après chaque batterie, AUCUN score n'est accepté sans
+lecture de ce qui l'a causé. La boucle, appliquée mécaniquement :
+
+1. **Lire les items accusés** de chaque pack (jamais le chiffre seul).
+2. **Re-vérifier contre la vérité terrain à la main** — recalculs jetables
+   depuis le corpus : « 86,9 % est-il la vraie croissance du capex Meta ? »
+   (oui) ; « la somme fait-elle 357,5 ? » (oui) ; « 77,0 existe-t-il ? » (non).
+3. **Classer** : vraie faute du candidat (gardée, documentée) vs faux positif
+   de l'évaluateur (nouvelle famille).
+4. **Durcir sous triple verrou** : test rouge d'abord (le cas réel en
+   fixture), garde minimal, puis (a) suite complète, (b) **contrôle falsifié**
+   — un rapport piégé qui doit rester bloqué à exactement 2 fabrications ; il
+   a retoqué DEUX élargissements trop généreux dans la journée —, (c)
+   contre-test d'équité (les vraies fautes des autres modèles doivent tenir).
+5. **Re-noter les packs archivés** (jamais relancer les candidats) et pousser.
+
+Quand le cas est légitime mais qu'aucune règle générale saine n'existe
+(« plus de 357 Md$ combinés », vrai mais les sommes multi-sociétés sont une
+surface de blanchiment), la couche 3 ne code pas : elle escalade à
+**l'arbitre humain** via le tableau d'exceptions post-examen (§12) — la
+contestation de copie, l'évaluateur restant figé.
+
+### Ce que la seconde lecture a produit sur cette campagne (16/07)
+
+Une quinzaine de familles de faux positifs découvertes et corrigées, chacune
+révélée par un modèle différent — preuve que le texte libre a une traîne de
+formes sans fin et qu'aucune calibration préalable ne l'épuise :
+
+| Révélée par | Famille (extrait réel) |
+|---|---|
+| gpt-5.6-sol | deltas de synthèse loin des opérandes (« Amazon (+91,7 Md$), devant Alphabet (+69,1)… ») ; ratios recalculés (« respectivement de 94,5 %… ») ; « arrondis à 0,1 Md$ » ; « [S7] marks all Apple metrics as unavailable, while… retained » ; tableau guidance (« Environ 75 ») accusé contre l'actual 91,4 |
+| gpt-4.1 | dates (« 30 juin 2025 » → 30 flaggé) ; synthèses à contrastes (« disponibles pour Alphabet, Meta…, manquantes pour Amazon » → 36 faux WRONG d'un coup) |
+| Qwen3.6 | « 131,8 M$ » avec abréviation définie (M$ = milliards) ; « guides initiaux de Capex » (vocabulaire guidance français) |
+| MiniMax | « $139.5B − $131.8B » (moins après lettre d'unité) ; « exceeding 50 % » (seuils hedgés anglais) |
+| Mistral | « [S1:22,25] » lu 22,25 et « [S1:9,30,53] » lu 93053 (localisateurs de citation) ; « hausses respectives de 86,9 % et 74,1 % » (énumération multi-sociétés) ; « inférieurs à 15 % » (seuil multiple de 5) |
+
+Chaque famille est ancrée par un test de non-régression écrit rouge d'abord
+(74 tests au total) ; le contrôle falsifié a été re-vérifié après chaque
+changement. Constat central : **plus le modèle est fort, plus il frappe les
+angles morts de l'évaluateur** (le méta-texte riche de gpt-5.6-sol l'avait
+mis SOUS gpt-5.4-mini avant seconde lecture : pire run 60,0 → 86,4 après).
+Sans cette couche, le classement publié aurait été faux — non pas à cause des
+modèles, mais de l'évaluateur.
+
+### Résumé de la pile de garanties
+
+| Risque | Couvert par |
+|---|---|
+| Chiffre inventé | scorer déterministe (porte zéro-tolérance) + contrôle falsifié |
+| Texte non ancré aux preuves | juge evidence-bound + contradicteur |
+| Juge qui divague | grille fermée, pas de reasoning, appariements résolus par le code, fail-closed |
+| Évaluateur qui sur-accuse | seconde lecture frontier (lecture des items + re-vérification terrain) |
+| Excuse trop généreuse (blanchiment) | tests rouge-d'abord + contrôle falsifié + contre-tests d'équité |
+| Cas légitime sans règle saine | tableau d'exceptions post-examen (arbitre humain) |
+| Erreur d'agrégation des campagnes | mapping autoritaire stats.json→run, provenance dans chaque pack |
