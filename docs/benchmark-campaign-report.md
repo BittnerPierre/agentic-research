@@ -1,6 +1,6 @@
 # Benchmark déterministe — rapport de campagne (en cours)
 
-> Document vivant. Dernière mise à jour : 2026-07-16 (nuit du 15 au 16).
+> Document vivant. Dernière mise à jour : 2026-07-16 (matinée).
 > Branche : `feat/201-evidence-bound-validator` — issues #196, #201, #202, #203.
 
 ## 1. Objectif et dispositif
@@ -157,6 +157,16 @@ fallback décimales FR 3 chiffres dans le scorer.
 - [ ] Résidu « judge protocol validation failed » historique (qwen10 finance) — différé.
 - [ ] Verdicts d'adéquation finance jamais relus systématiquement — différé post-campagne.
 - [ ] Idée v-suivante : LLM-mappeur d'en-têtes de tableaux (#201).
+- [ ] Post-campagne : basculer les endpoints Spark en Responses API (`api: "responses"`
+  par endpoint, déjà supporté — ajouté pour gpt-oss/harmony). Historique : Qwen et GLM
+  testés OK sur Responses à l'époque, Mistral incompatible, bugs de parsing connus
+  (gist d074ae2a421292a07c68667a26b8aa41). Aujourd'hui tous les modèles Spark sont en
+  Chat Completions (défaut base_url, issue #158) — cohérent entre eux, on ne change
+  rien en cours de campagne.
+- [ ] Post-campagne : réutiliser une collection Chroma par couple (corpus × modèle
+  d'embeddings) au lieu d'une par run — le corpus gelé est ré-embeddé à chaque run
+  (~275 chunks), ce qui sature llama.cpp pendant les batteries parallèles. L'isolation
+  des preuves resterait garantie par les hashes de chunks du pack.
 - [ ] Warnings Pydantic (sérialisation des réponses SDK dans judge_io) — cosmétique.
 
 ## 8. Prochaines étapes (passe propre campagne)
@@ -170,3 +180,64 @@ exercice**, médiane/min/max + temps et tokens par étape :
 - [ ] MiniMax 2.7 (Spark, lancé par Pierre) — concept ×5 + finance ×5
 - [ ] Qwen3.6 — compléter à 5 sur pipeline gelé
 - [ ] Mistral Small 4 (au swap Spark), Qwen3.5-122B quand servi
+
+
+## 9. Passe propre N=5 (2026-07-16 matin) — résultats après durcissement complet
+
+Embeddings Qwen pour tous, collection dédiée par run, correction ré-exécutée sur
+packs archivés après chaque fix (les packs sont re-corrigeables sans relancer les
+candidats — la propriété clé du dispositif).
+
+### La revue Codex et l'itération de durcissement
+
+Codex (revue statique, PR #197) a confirmé les fausses fabrications et trouvé
+deux bloquants supplémentaires, tous corrigés dans la foulée (tests rouge→vert à
+chaque fois) :
+
+| Faux positif | Cas réel observé | Garde ajouté |
+|---|---|---|
+| Juge finance sans preuves | fichiers runtime renommés vs manifeste canonique → 0 chunk sur les items d'adéquation | nom canonique propagé aux chunks résolus |
+| Deltas de synthèse loin des opérandes | « Amazon (+91,7 Md$), devant Alphabet (+69,1)… » | dérivation vérifiée contre les valeurs corpus de la société nommée (quasi-exact) |
+| Ratios recalculés | « les Capex/OCF recalculés sont respectivement de 94,5 %… » (aucune société dans le paragraphe) | recomputation précise d'un fait ratio DÉJÀ publié (double condition anti-fortuite) |
+| Signe moins binaire | « 131,8 − 40,1 » lu comme −40,1 | moins précédé d'un chiffre = opérateur |
+| Convention de précision | « montants arrondis/présentés à 0,1 Md$ » | valeurs ≤1 + vocabulaire d'arrondi |
+| Note d'incohérence documentaire | « [S3] indique X indisponible, tandis que les données donnent 133,1 » | une clause qui MONTRE la valeur n'affirme pas une indisponibilité |
+| Tableau guidance | « Alphabet, Environ 75, 4 fév. 2025 » accusé contre l'actual 91,4 | en-tête guidance = aucune autorité d'accusation |
+
+À chaque élargissement d'excuse, le filet anti-blanchiment a été re-testé : deux
+tentatives d'élargissement ont été retoquées par les tests (un 73 % inventé excusé
+par paires fortuites, 4/6 taux inventés par ratios multi-sociétés) et resserrées.
+Le contrôle falsifié reste bloqué à 2/2 fabrications attrapées.
+
+### Tableau de campagne (médiane / min / max sur N=5, sauf qwen N=3)
+
+| Modèle | Conceptuel | Finance | Durée méd./run |
+|---|---|---|---|
+| gpt-5.6-sol (référence) | **81.2** (75.0–87.5) | **95.0** (60.0–97.5) | 202 s / 167 s |
+| gpt-5.4-mini | **68.8** (62.5–81.2) | **87.9** (81.8–96.5) | 74 s / 58 s |
+| Qwen3.6 (Spark) | **6.2** (6.2–18.8, N=3, 15/07) | **91.9** (40.0–95.0, N=3) | ~150 s / ~160 s |
+| MiniMax M2.7 (Spark) | **50.0** (0.0–62.5) | **40.0** (40.0–88.3) | ~550 s / ~650 s |
+
+Lecture :
+- **Finance** : qwen3.6 rivalise avec les références quand il reste sobre ; ses 40
+  et ceux de MiniMax sont de VRAIES fabrications (agrégats faux, vérifiés à la main
+  contre le corpus). MiniMax fabrique dans 3 runs sur 5 — c'est un signal modèle.
+- **Conceptuel** : hiérarchie nette 5.6-sol > mini > MiniMax >> qwen3.6. Les échecs
+  qwen sont dominés par la discipline de citation (blanchiment, pièges d'honnêteté
+  mordus) — le rapport se lit bien mais n'est pas ancré aux preuves.
+- Le WRONG résiduel 56sol-capex-3 (2) et les fabs MiniMax méritent une lecture de
+  confirmation avant publication.
+
+## 10. Décisions en attente (Pierre)
+
+1. **Politique `evaluation_failed` dans les médianes** (Codex #3) : retry ciblé
+   avec feedback de protocole, re-correction, ou exclusion explicite. La doc
+   disait « score 0 » ; le code garde un score diagnostique + `qualified=false`.
+   Cas observés : erreurs de protocole du juge (chunks non rattachés à la source
+   citée) sur ~2 runs conceptuels sur 10.
+2. **Contestation few-shot** (Codex #4) : la vérité terrain doit-elle se juger sur
+   le contenu brut (Codex) ou sur ce que le pipeline peut récupérer (arbitrage en
+   vigueur) ? Statu quo maintenu sauf contre-ordre.
+3. **Traçabilité stats.json** (Codex #5) : SHA git, hash de config, nom de
+   collection, endpoint embeddings — additif, recommandé avant la campagne large.
+4. mm27-concept-1 à 0.0 (`evaluation_failed` + 1 fab conceptuelle) non diagnostiqué.
