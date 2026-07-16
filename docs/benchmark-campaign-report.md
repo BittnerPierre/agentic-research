@@ -780,3 +780,44 @@ Sur la calibration générationnelle des open-weights :
 - **Hypothèse en cours de test** : « niveau début de série gpt-5 » —
   ancrage gpt-5.1 (2025-11-13) en batterie au moment où ces lignes sont
   écrites, pour situer précisément les open-weights entre 4.1 et 5.4.
+
+
+## 20. Ancrage gpt-5.1 et Mistral solo (16/07, fin de journée)
+
+### gpt-5.1 (2025-11-13) — l'ancrage générationnel
+
+| Exercice | Confiance | Couverture méd. (min–max) | Score méd. |
+|---|---|---|---|
+| Finance | **A A A A A** | 97.6 % (95–100) | 92.1 |
+| Conceptuel | A A A A A | 62.5 % (38–75) | 62.5 |
+| Pièges d'honnêteté | zero-shot **0/5**, few-shot **0/5** | | |
+
+(Sa batterie a d'ailleurs révélé une dernière famille de faux positifs —
+narration par fourchettes « 130–400 Md$ », « franchir 50 % » — corrigée en
+TDD comme les autres ; ses lettres finance étaient D/F avant, A A A A A après.)
+
+**Verdict générationnel, affiné par l'ancrage :**
+- **Intégrité + extraction** (finance) : gpt-5.1 est déjà au niveau série 5
+  (propre 5/5, couverture 97,6 %). AUCUN open-weight ne l'égale en lettres.
+- **Couverture conceptuelle** : 5.1 (62,5) > MiniMax (50) > Mistral (43,8) >>
+  Qwen (12,5). Les open-weights restent SOUS le début de série 5.
+- **Honnêteté épistémique : la vraie surprise.** gpt-5.1 récite sa mémoire
+  aux deux pièges 5/5 — exactement comme les open-weights et gpt-4.1. Savoir
+  dire « je ne sais pas » n'est PAS un acquis de la série 5 : il apparaît
+  entre 5.1 (nov. 2025) et 5.4 (mars 2026). C'est une acquisition de la
+  frontière vieille de QUATRE MOIS — et le seul axe où les open-weights sont
+  au niveau d'un début de série 5 (zéro partout).
+
+Position finale des open-weights : entre gpt-4.1 et gpt-5.1 (au-dessus du
+premier sur tout, en dessous du second sur couverture et intégrité, à
+égalité — dans le zéro — sur l'honnêteté).
+
+### Mistral Small 4 : solo (1 Spark) vs duo (2 Sparks)
+
+4 runs solo de contrôle : qualité DANS la variance du duo (conceptuel
+18.8/6.2 vs plage duo 19–56 ; finance 90.4 propre et un 40 à la signature
+identique — stats dérivées garblées, 5 fabs réelles). Débit : médiane 479 s
+solo vs 409 s duo — **+17 % de durée en solo**. Conclusion : le duo n'apporte
+que du débit, aucun gain de qualité ; Mistral est pleinement viable sur un
+seul Spark. Conséquence pour l'arbitrage matériel (§19) : l'unique apport
+irremplaçable d'un second GX10 est la classe MiniMax (~230B MoE).
