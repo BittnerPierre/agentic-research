@@ -883,3 +883,85 @@ l'horizon — pas de tâches longues multi-jours, pas d'actions à effets de
 bord, pas d'environnement adverse. C'est un banc d'essai exigeant de
 l'agentique de production courte — exactement la classe de tâches qu'on
 confie à de l'IA locale aujourd'hui.
+
+
+## 23. Le banc d'essai en perspective : anatomie, pertinence, enjeux, synthèse
+
+### Anatomie du workflow d'épreuve
+
+Un pipeline agentique décomposé, cinq à six rôles se passant le relais sur un
+même endpoint, avec une sortie structurée imposée à chaque frontière :
+
+1. **Préparation de connaissances** — l'agent lit la demande, télécharge et
+   indexe les sources via les outils MCP (`download_and_store_url`,
+   `upload_files_to_vectorstore`, `get_knowledge_entries`) ; premier point de
+   rupture : la fidélité des URLs et des noms de fichiers (c'est ici que
+   MiniMax a corrompu une URL et que Qwen a exigé trois correctifs).
+2. **Planification** — un plan de recherche TYPÉ (FileSearchPlan Pydantic) ;
+   deuxième rupture : la sortie structurée.
+3. **Recherches parallèles** — ~8 requêtes vectorielles (Chroma, top-k 12,
+   275 chunks indexés), chacune produisant un résumé sourcé PLUS les
+   identifiants des chunks qui le fondent (doc_ids) ; troisième rupture : la
+   chaîne de preuve (c'est ici que Qwen perd 1-2 recherches par run).
+4. **Chemin de fer puis rédaction par chapitres** — sous contrat strict :
+   chapitres imposés, tableaux canoniques, bornes de longueur, calculs
+   interdits, corpus fermé.
+5. **Émission du pack de preuves** — report.md, stats.json (provenance,
+   timings, tokens), sources.json, chunks.json hashés, raw_sources/ : le run
+   est re-corrigeable à jamais sans relancer le modèle.
+
+Volumes typiques par run : 300-620 k tokens, 40-60 chunks de preuve,
+1 500-4 600 mots produits, 1 à 10 minutes selon le modèle.
+
+### Pourquoi ce banc est pertinent
+
+- **C'est le cas d'usage réel de l'IA locale en entreprise** : une base de
+  connaissances privée, un document préparatoire d'analyste, des données qui
+  ne doivent pas sortir. Pas un puzzle, pas un quiz.
+- **Il teste ce qui casse vraiment les agents en production** : la
+  robustesse d'interface (tool calls, sorties typées), la chaîne de preuve,
+  la tenue de contrat, l'honnêteté face aux trous — et non le savoir interne.
+  La divergence avec l'index Artificial Analysis (Qwen 32 vs Mistral 20,
+  inversé sur notre terrain) le démontre : **ce banc mesure une dimension
+  que les benchmarks génériques ne voient pas.**
+- **Chaque affirmation est vérifiable** : corpus gelé et hashé, chunks
+  traçables, scorer déterministe invariant (prouvé par test), packs
+  re-corrigeables. Quand l'évaluateur s'est trompé — une vingtaine de
+  familles de faux positifs — on a pu le prouver, le corriger et re-noter
+  70 packs en minutes.
+- **Il discrimine finement** : l'échelle générationnelle y est lisible
+  (4.1 < open-weights < 5.1 < 5.4+), les profils émergent (l'extracteur, le
+  rédacteur, l'analyste), et deux items de grille bien placés (les pièges)
+  suffisent à dater l'apparition d'une capacité à quatre mois près.
+
+### Les enjeux
+
+1. **Souveraineté et confidentialité** : ce banc répond OUI à « peut-on
+   traiter des données sensibles chez soi » — en mode supervisé, avec porte
+   déterministe en sortie.
+2. **Économie** : le partage local-volume / frontière-supervision divise la
+   facture cloud sans sacrifier la confiance ; le coût est désormais chiffré
+   (durées, tokens, matériel — jusqu'à l'arbitrage du second GX10).
+3. **Confiance dans la mesure elle-même** : un benchmark au juge non fiable
+   fabrique des réputations fausses (« Mistral hallucine » — faux à 75 %).
+   La méthodologie trois couches (déterministe / juge-outil / seconde
+   lecture frontier) est un livrable en soi, réutilisable au-delà de cet
+   exercice.
+4. **La frontière de l'autonomie** : l'honnêteté épistémique — dire « je ne
+   sais pas » — n'existe ni chez les open-weights ni chez gpt-5.1 ; elle
+   apparaît à la frontière entre novembre 2025 et mars 2026. C'est LE
+   bloquant mesurable de l'IA locale autonome, et ce banc sait le mesurer.
+
+### Synthèse
+
+L'open-weight a franchi une nouvelle étape : **faire tourner des modèles de
+classe gpt-4.1 — et au-delà — chez soi, un milestone inimaginable il y a un
+an, avec plusieurs acteurs crédibles.** Pas de vainqueur unique : un
+extracteur rapide (Qwen), un généraliste coachable (Mistral), un analyste
+ambitieux (MiniMax) — plusieurs solutions à différents problèmes, et c'est
+précisément ce qui est bien. Au-dessus, la frontière n'a pas ralenti : elle
+a déplacé sa valeur du « savoir écrire » vers le « savoir juger » — la
+constance, l'abstention honnête, la supervision. Le partage des rôles qui en
+découle (le local exécute, le déterministe contrôle, la frontière arbitre)
+n'était pas ce qu'on attendait de l'IA il y a trois mois ; c'est pourtant le
+workflow qui a produit ce rapport.
