@@ -1496,3 +1496,20 @@ def test_conceptual_mode_has_no_mechanical_numeric_gate(tmp_path: Path) -> None:
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_range_and_threshold_narration_is_not_fabrication(tmp_path: Path) -> None:
+    """gpt-5.1 : « fourchette 130-400 Md$ », « avant de franchir 50 % » —
+    narration par fourchettes et seuils, bornes arrondies de valeurs réelles ;
+    le vocabulaire hedge ne connaissait ni fourchette ni franchir."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Bands\nAmazon capex reached 131.8B [S1].\n"
+        "Les revenus se repartissent dans une fourchette 130-400 Md$ [S1]. "
+        "Le ratio a evolue en fourchette 20 %/30 % avant de franchir 50 % [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0

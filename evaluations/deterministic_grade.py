@@ -1656,6 +1656,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "dans les",
         "au-dessus",
         "au dessus",
+        # fourchettes et seuils (gpt-5.1 : « fourchette 130-400 », « franchir 50 % »)
+        "fourchette",
+        "franchir",
+        "franchi",
+        "crossed",
+        "crossing",
+        "band",
+        "entre ",
         # anglais (MiniMax bucketise en anglais : « exceeding 50% », « 20-50% »)
         "exceeding",
         "above",
