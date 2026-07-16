@@ -1267,3 +1267,20 @@ def test_unit_scale_variant_of_corpus_number_is_not_fabrication(tmp_path: Path) 
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(tmp_path: Path) -> None:
+    """qwen run 15 : « Microsoft, NVIDIA et Apple n'ont pas fourni de guides
+    initiaux de Capex pour le FY2025 » — statement TRUE about guidance, but
+    the guidance vocabulary lacked the French word « guide »."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Guidance\nAmazon capex reached 131.8B [S1].\n"
+        "Amazon n'a pas fourni de guides initiaux de Capex pour le FY2025, "
+        "ces donnees etant indisponibles [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0

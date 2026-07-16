@@ -1021,7 +1021,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         r"absence (?:de|d')|non divulgue|pas disponibles?",
         re.I,
     )
-    guidance_re = re.compile(r"guidance|forecast|projection|prevision|orientation", re.I)
+    guidance_re = re.compile(r"guidance|guide|forecast|projection|prevision|orientation", re.I)
     # Meta-discourse about the RETRIEVAL ("unavailable in that evidence chunk")
     # is not a claim about the fact itself — never accuse on it.
     evidence_re = re.compile(r"chunk|evidence|retriev|extract|extrait|preuve|corpus fragment", re.I)
