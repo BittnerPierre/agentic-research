@@ -965,3 +965,41 @@ constance, l'abstention honnête, la supervision. Le partage des rôles qui en
 découle (le local exécute, le déterministe contrôle, la frontière arbitre)
 n'était pas ce qu'on attendait de l'IA il y a trois mois ; c'est pourtant le
 workflow qui a produit ce rapport.
+
+
+## 24. Stretch goal : DeepSeek-V4-Flash (16/07 soir)
+
+Contexte (Pierre) : la recette de déploiement était sous la main, et les
+conclusions MiniMax restaient indécises (approche-t-il vraiment la famille
+gpt-5, le second Spark vaut-il le coup ?). Tester un AUTRE open-weight
+« soi-disant frontière » permet une opinion plus ferme sur ces deux points.
+
+### Smoke N=1 (config instruct, temp 0.3, Chat Completions)
+
+| Exercice | Confiance | Couverture | Score | Durée |
+|---|---|---|---|---|
+| Finance | A | 42/42 (100 %) | 83.0 | 591 s |
+| Conceptuel | A | 4/16 (25 %) | 25.0 | 417 s |
+
+Premier modèle Spark à passer TOUT le harnais du premier coup sans un seul
+tweak (téléchargements, tool calls, sorties structurées, doc_ids) ET sans un
+seul chiffre faux ni inventé en finance. Ses pertes : 3 distracteurs cités
+(dividendes Apple, R&D, effectifs — les valeurs-pièges hors périmètre) et
+des exigences non chiffrées omises. Discipline de périmètre, pas fiabilité.
+
+### Incident consigné : reasoning + sortie structurée (à investiguer plus tard)
+
+Le smoke HYBRIDE (reasoning high sur les agents structurants, pattern
+37958b7) : conceptuel identique à l'instruct (25.0 — aucun gain), et le run
+finance MORT sur un JSON malformé émis par le planner en mode reasoning —
+plan excellent sur le fond, enveloppe corrompue (`{"{"searches":[…`,
+accolade parasite en tête, rejetée par la validation stricte FileSearchPlan).
+N=1 : accident stochastique non exclu, mais c'est la TROISIÈME occurrence
+indépendante du motif « reasoning + sortie structurée sur modèle servi =
+fragile » (juge gpt-5.4 tronqué, xgrammar Qwen). Le batch officiel court en
+instruct ; l'investigation reasoning est différée. Question d'harnais
+ouverte (non tranchée) : retry unique sur JSON invalide — robustesse contre
+masquage d'une fragilité réelle du candidat.
+
+Batterie ×5 en cours ; DeepSeek prendra sa place au tableau à sept modèles,
+et sa comparaison directe avec MiniMax éclairera l'arbitrage du second GX10.
