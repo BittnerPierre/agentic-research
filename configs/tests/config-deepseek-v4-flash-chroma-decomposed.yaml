@@ -1,0 +1,82 @@
+# Campagne modèles medium — Qwen 3.6 (nvidia/Qwen3.6-35B-A3B-NVFP4) sur vLLM spark1.
+# = config-spark1-decomposed, modèle Qwen. vLLM lancé avec --reasoning-parser qwen3,
+# donc reasoning ACTIF : high sur les plans, none (instruct) sur recherche/chapitres —
+# même topologie que le profil Mistral, pour comparer à armes égales.
+# Retrieval ChromaDB local + embeddings Qwen3-Embedding @ spark1:8003 (inchangés).
+config_name: "deepseek-v4-flash-decomposed"
+
+vector_store:
+  name: "agentic-research-dgx"
+  description: "Vector store for qwen3.6 campaign"
+  expires_after_days: 30
+
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "localhost"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://spark1:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 12
+  score_threshold: null
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "localhost"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+# Qwen 3.6 hybride (thinking + instruct), vLLM lancé avec --reasoning-parser qwen3.
+# À armes égales avec le profil Mistral : reasoning high sur les PLANS, none (instruct)
+# sur recherche/chapitres. Qwen3 pense par DÉFAUT → "none" désactive explicitement le
+# thinking sur l'exécution (vitesse/débit).
+models:
+  # INSTRUCT PUR partout (reasoning none). Qwen3 pense par défaut ; le thinking
+  # contaminait la sortie JSON structurée (FileSearchPlan) -> ModelBehaviorError.
+  # "none" désactive explicitement le thinking sur tous les agents.
+  # temperature 0.2 : discipline des tool-calls (runs 4/5 : arguments inventés,
+  # URLs corrompues, basenames — pathologies d'échantillonnage, différentes à
+  # chaque run). Réglage par modèle, légitime en campagne.
+  # DeepSeek-V4-Flash : premier passage prudent — instruct pur partout,
+  # température 0.3 (recommandation DeepSeek chat). À affiner après smoke run.
+  search_model: &dsv4
+    name: "openai/deepseek-ai/DeepSeek-V4-Flash"
+    base_url: "http://spark1:8000/v1"
+    api_key: "dummy"
+    reasoning_effort: "none"
+    temperature: 0.3
+  writer_model: *dsv4
+  chapter_writer_model: *dsv4
+  planning_model: *dsv4
+  knowledge_preparation_model: *dsv4
+  research_model: *dsv4
+  outline_model: *dsv4
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"
+  writer_strategy: "decomposed"
+  chapter_max_revisions: 1
