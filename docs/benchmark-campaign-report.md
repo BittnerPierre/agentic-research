@@ -297,3 +297,39 @@ pour tous, non indexé dans Chroma. Déclaré ici au titre de la provenance.
   (deux profils : reasoning high sur planification/agenda/orchestration/
   chemin de fer, instruct sur recherche/rédaction ; température 0.1, Chat
   Completions). À surveiller : reproduit-il les pertes de doc_ids de Qwen ?
+
+
+## 12. Tableau d'exceptions post-examen (arbitrage Pierre, 16/07)
+
+Nouveau mécanisme, inspiré de la contestation de copie : quand la relecture
+humaine établit qu'une réponse acceptée a été mal notée, **l'évaluateur n'est
+pas modifié** (il est figé, reproductible, et referait la même erreur — c'est
+assumé). La note est ajustée à la main dans `benchmarks/adjustments.yaml`
+(motif, vérification, arbitre, date), et les tableaux de campagne l'appliquent
+avec un renvoi. On n'implémente pas de règle pour une exception ; les copies
+non contestées ne sont pas revues.
+
+Première entrée : camp-mm27-capex-5, 40.0 → 88.3* — « plus de $357B combinés »
+est vrai (357,5 exact, vérifié à la main) mais les sommes de sociétés restent
+volontairement hors du catalogue de dérivations (surface de blanchiment) ;
+les seuils de bucketing (« capex > 50 % de l'OCF ») excusés de même.
+
+### Classement à jour (médianes N=5, * = ajustement appliqué)
+
+| Rang | Conceptuel | Finance |
+|---|---|---|
+| 1 | gpt-5.6-sol **81.2** | gpt-5.6-sol **95.0** |
+| 2 | gpt-5.4-mini **68.8** | gpt-5.4-mini **87.9** |
+| 3 | MiniMax **50.0** | MiniMax **79.2*** (79.2/60.0/88.3/40.0/88.3*) |
+| 4 | Qwen3.6 **6.2** | Qwen3.6 **76.9** |
+
+Signature comportementale (marqueurs par 5 rapports finance — réconciliation /
+méta-discours / agrégats / conventions de précision / énumérations) :
+gpt-5.6-sol 25/2/0/28/4 · MiniMax 21/1/2/1/11 · Qwen 7/0/7/1/13 ·
+gpt-5.4-mini 1/0/0/0/1. Lecture : MiniMax écrit comme un gpt-5.x (riche
+méta-analyse, d'où sa sensibilité aux mêmes angles morts de l'évaluateur que
+la référence) mais « hypothétise » des chiffres (capex-4 : $73.3B/$141.2B
+introuvables — vraie faute maintenue) ; Qwen écrit plat, restitue des chiffres
+justes quand il reste dans le cadre, invente des agrégats quand il en sort, et
+casse sa chaîne de preuve en conceptuel. gpt-4.1 (ancrage bas) en cours pour
+positionner chaque open-weight entre les générations.
