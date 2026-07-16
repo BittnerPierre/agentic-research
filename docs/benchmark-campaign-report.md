@@ -674,3 +674,85 @@ différenciation à la lecture sont (1) le rapport signal/volume — mini et les
 rapports sobres de qwen en tête, MiniMax en queue — et (2) la fiabilité de la
 voix d'analyste : seul 5.6-sol commente SES sources ; les open-weights
 commentent LEUR mémoire.
+
+
+## 19. Verdict open-weight : lequel choisir, et peut-on lâcher les frontières ?
+
+*(Avis argumenté de la seconde lecture, sur les données de cette campagne.)*
+
+### Le classement open-weight
+
+**1. MiniMax M2.7 — le favori, avec muselière.** Seul des trois à exister sur
+les deux exercices : 3e absolu en conceptuel (50 %, devant gpt-4.1), 100 % de
+couverture finance, la seule vraie voix d'analyste. Ses deux défauts majeurs
+— chiffres « hypothétisés » et logorrhée (2,5× la longueur) — sont des
+comportements, pas des limites de capacité : ils se briment par instruction
+et post-contrôle. Plafond le plus haut du lot ; prix : ~10 min par run.
+
+**2. Qwen3.6 — le spécialiste extractif.** Meilleur rapport qualité/prix en
+restitution pure (97,6 % de couverture finance, 165 s, propre 3/5). Mais il
+ne doit JAMAIS rédiger l'analyse (agrégats inventés) ni faire de recherche
+citée (0/5 aux deux pièges, chaîne de preuve systématiquement cassée,
+conceptuel au niveau gpt-4.1). En pipeline : Qwen extrait, un autre rédige.
+
+**3. Mistral Small 4 — le junior à coacher.** Rédaction la plus équilibrée,
+conceptuel honnête (43,8 %), et les fautes les plus diagnosticables du lot
+(dérapages arithmétiques sur stats dérivées + zèle hors consigne —
+interdisables par prompt). Mais 2 runs finance empoisonnés sur 5 et la
+couverture la plus faible : le plus d'encadrement pour un plafond plus bas.
+
+Expérience discriminante à faire (mesurable telle quelle par le dispositif) :
+rejouer MiniMax et Mistral avec gardes-fous prompt (« aucune estimation,
+aucun chiffre hors sources », longueur stricte). Si les D/F de MiniMax
+disparaissent par simple instruction, le débat est clos.
+
+### Avec MiniMax, arrêterait-on les modèles frontière ? Non — et voici le partage exact
+
+Ce que la campagne montre, c'est que **la prime frontière n'est plus la
+connaissance ni la couverture** (Qwen égale les références en extraction,
+MiniMax dépasse gpt-4.1 partout). La prime frontière, mesurée ici, c'est :
+
+1. **Savoir ce qu'on ne sait pas.** Le tableau des pièges (§16) est sans
+   appel : 0/4 et 0/5 pour TOUS les open-weights, 5/5 pour gpt-5.6-sol sur le
+   trou total. Un modèle qui comble systématiquement les trous avec sa
+   mémoire, en l'habillant d'une citation, ne peut pas être AUTONOME sur de
+   la recherche — il faut un humain ou un vérificateur derrière chaque run.
+2. **La constance.** A A A A A dix fois sur dix pour les deux gpt-5.x. En
+   autonomie, on livre ce qui sort : la séquence de lettres est LA métrique
+   d'autonomie, et aucun open-weight n'a une séquence propre en finance.
+3. **La capacité de supervision.** La couche 3 de cette campagne (seconde
+   lecture, arbitrages, détection des faux positifs de l'évaluateur) a été
+   tenue par un modèle frontière. C'est un rôle qu'aucun des trois locaux ne
+   sait tenir aujourd'hui — ils ne se relisent même pas eux-mêmes.
+
+### Coût, privacy, et le partage réaliste en juillet 2026
+
+Pour les charges où la donnée ne doit pas sortir, le local est DÉJÀ justifié
+— à condition de l'encadrer. L'architecture réaliste n'est pas « local OU
+frontière », c'est : **le local fait le volume, le déterministe fait la
+porte, la frontière fait la supervision rare.** Concrètement : extraction et
+brouillons par modèle local ; porte déterministe en sortie (couverture,
+fabrication, chaîne de preuve — ce que notre scorer fait) qui rejette et
+relance les runs D/F ; et un modèle frontière qui n'intervient que là où le
+jugement est irremplaçable (juge sémantique, arbitrages, seconde lecture).
+La facture frontière tombe à une fraction, la confiance reste.
+
+### « On y est » ? Verdict en deux temps
+
+- **IA locale SUPERVISÉE : oui, on y est.** Cette campagne le prouve : des
+  documents préparatoires exploitables, une extraction au niveau des
+  références (Qwen sobre : 91,9-95,0), sur un exercice non trivial (RAG
+  fermé, contrat strict, pièges), avec du matériel de bureau.
+- **IA locale AUTONOME : non, pas encore.** Il manque, dans l'ordre :
+  (1) l'honnêteté épistémique — 0 % aux pièges, LE bloquant ; (2) la fiabilité
+  de la chaîne de preuve (doc_ids perdus, URLs corrompues — la fragilité
+  d'interface des petits modèles) ; (3) la tenue des consignes (longueur,
+  périmètre, calculs interdits) ; (4) la constance (aucune séquence propre) ;
+  (5) un superviseur local — tant que la couche de vérification exige un
+  frontière, l'autonomie n'est pas locale, elle est hybride.
+
+Le point encourageant : (2), (3) et une partie de (4) sont des problèmes
+d'HARNAIS autant que de modèle — notre propre dispositif (porte
+déterministe + retry) en absorbe déjà une partie. Le point dur, c'est (1) :
+dire « je ne sais pas » ne s'installe pas par prompt — c'est la frontière
+générationnelle que cette campagne a rendue mesurable.
