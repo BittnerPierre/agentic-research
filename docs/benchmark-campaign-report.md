@@ -304,7 +304,7 @@ pour tous, non indexé dans Chroma. Déclaré ici au titre de la provenance.
 Nouveau mécanisme, inspiré de la contestation de copie : quand la relecture
 humaine établit qu'une réponse acceptée a été mal notée, **l'évaluateur n'est
 pas modifié** (il est figé, reproductible, et referait la même erreur — c'est
-assumé). La note est ajustée à la main dans `benchmarks/adjustments.yaml`
+assumé). La note est ajustée à la main dans `evaluations/adjustments.yaml`
 (motif, vérification, arbitre, date), et les tableaux de campagne l'appliquent
 avec un renvoi. On n'implémente pas de règle pour une exception ; les copies
 non contestées ne sont pas revues.

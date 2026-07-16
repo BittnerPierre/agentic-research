@@ -1,0 +1,37 @@
+# Tableau d'exceptions post-examen (arbitrage Pierre, 2026-07-16).
+#
+# Principe : l'évaluateur n'est JAMAIS modifié pour une exception — il est figé
+# et reproductible, et re-noterait la même copie avec la même erreur. Quand une
+# relecture humaine post-publication établit qu'une réponse acceptée a été mal
+# notée, la note est ajustée ICI, à la main, avec justification — comme un
+# étudiant qui conteste sa copie auprès du professeur. L'ajustement est de la
+# DONNÉE, pas du code. Les copies non contestées ne sont pas revues (« c'est la
+# vie »). Les tableaux de campagne appliquent ces ajustements avec un renvoi.
+#
+# Champs : run (dossier benchmarks/runs), campagne (output_dir), exercice,
+# score_evaluateur, score_ajuste, motif, verification, arbitre, date.
+
+adjustments:
+  - run: "20260716_095802_minimax27-decomposed_decomposed"
+    campagne: "camp-mm27-capex-5"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 88.3
+    motif: >-
+      4 « fabrications » excusées après relecture : 2× « plus de $357B
+      combinés » (Amazon+Alphabet+Meta+Microsoft, capex FY2025) — la somme
+      exacte du corpus est 357,5, l'affirmation est vraie et couverte ; 2×
+      seuils de classement d'analyste (« capex > 50 % de l'OCF »,
+      « 20-50 % ») — des buckets, pas des données. L'évaluateur n'a
+      volontairement PAS de dérivation « somme de sociétés » (surface de
+      blanchiment : ~63 sous-ensembles × métriques × années) et cette ligne
+      dure est maintenue : l'exception est notée ici au lieu d'élargir le
+      code.
+    verification: >-
+      Somme recalculée à la main depuis key_metrics.csv
+      (131.8+91.4+69.7+64.6=357.5). Note ajustée par analogie avec le jumeau
+      propre camp-mm27-capex-3 (même couverture 42/42, 0 faux chiffre,
+      unverifiable 5 vs 4, même profil de longueur) noté 88.3 par
+      l'évaluateur.
+    arbitre: "Pierre"
+    date: "2026-07-16"
