@@ -458,6 +458,11 @@ def _canonical_metrics(text: str) -> list[str]:
     return metrics
 
 
+_GUIDANCE_RE = re.compile(
+    r"guidance|forecast|projection|prevision|pr\u00e9vision|orientation", re.I
+)
+
+
 def _content_table_claims(
     tables, companies: list[str]
 ) -> list[tuple[str, str, str | None, float | None, str]]:
@@ -472,6 +477,12 @@ def _content_table_claims(
     cmap = {c.lower(): c for c in companies}
     out = []
     for tbl in tables:
+        # Un tableau dont l'EN-TÊTE annonce de la guidance ne porte aucune
+        # autorité d'accusation : « | Alphabet | Environ 75 | 4 fév. 2025 | »
+        # est un fait guidance du pack gelé, pas un capex réel (faux WRONG
+        # observé sur gpt-5.6-sol : guidance 75 accusée contre l'actual 91.4).
+        if tbl and any(_GUIDANCE_RE.search(cell) for cell in tbl[0]):
+            continue
         current_company = None
         for row in tbl[1:]:
             if not row:
@@ -1029,6 +1040,16 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 not unavailable_re.search(normalized_clause)
                 or guidance_re.search(normalized_clause)
                 or evidence_re.search(normalized_clause)
+            ):
+                continue
+            # A clause that SHOWS a corpus value cannot be claiming
+            # unavailability — it is a documentary-discrepancy note
+            # (« [S3] indique X comme indisponible, tandis que les données
+            # donnent 133,1 Md$ ») : exemplary analyst behavior, not an error.
+            if any(
+                in_whitelist(value, whitelist)
+                for value, _u, _p in extract_numbers(clause)
+                if not _is_year(value)
             ):
                 continue
             clause_companies = [

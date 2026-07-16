@@ -1181,3 +1181,74 @@ def test_respectivement_enumeration_of_recomputed_ratios_is_not_fabrication(tmp_
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_guidance_table_rows_never_accuse_actuals(tmp_path: Path) -> None:
+    """gpt-5.6-sol run: the guidance table row '| Alphabet | Environ 75 |
+    4 fev. 2025 |' (a frozen-pack guidance FACT, correctly reported in the
+    guidance section) was attributed as Alphabet Capex FY2025 actual and
+    accused vs 91.4. A table whose header matches guidance markers carries no
+    accusation authority."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Alphabet capex was 91.4B in FY2025. Initial FY2025 guidance: approximately 75B.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Alphabet,Dec,Capex,FY2025,91.4,USD_billions\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Alphabet"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_md = (
+        "# Guidance\n\n"
+        "| Societe | Guidance capex initiale FY2025 | Date de publication | Base indiquee |\n"
+        "|---|---:|---|---|\n"
+        "| Alphabet | Environ 75 | 4 fev. 2025 | Capex publie; variabilite possible [S2] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_source_discrepancy_note_with_value_is_not_false_unavailability(tmp_path: Path) -> None:
+    """gpt-5.6-sol flagged a documentary inconsistency — '[S3] indique
+    l'operating income d'Apple comme indisponible, tandis que les données
+    structurées donnent 133,1 Md$' — exemplary analyst behavior: the clause
+    SHOWS the corpus value, so it cannot be claiming unavailability."""
+    exercise = _write_exercise(tmp_path)
+    report_md = (
+        "# Gaps\n"
+        "Une incoherence documentaire doit etre signalee : [S3] indique le revenue "
+        "d'Apple comme indisponible, tandis que les donnees structurees donnent "
+        "416.2 Md$ pour FY2025 [S4].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
