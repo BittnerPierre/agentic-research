@@ -519,3 +519,51 @@ calcule quand même : s'il a JUSTE → ni bonus ni malus (les dérivations
 exactes sont déjà excusées mécaniquement — 4,7 / 9,7 / 7,2 % passés) ; s'il a
 FAUX → la claque (le +14,5 % de Mistral, faux sur toutes les bases, flaggé).
 Le mécanisme d'excuse-par-dérivation implémentait déjà cette doctrine.
+
+
+## 15. TABLEAU FINAL DE CAMPAGNE (atterrissage, 2026-07-16 soir)
+
+N=5 par modèle et exercice, embeddings identiques (Qwen3-Embedding@spark1),
+pipeline et évaluateur figés, podium trié F > D > C > couverture.
+Durées et tokens = médianes par run (toutes phases).
+
+### FINANCE
+
+| # | Modèle | Confiance | Couverture méd. (min–max) | Durée | Tokens (sortie) |
+|---|---|---|---|---|---|
+| 1 | gpt-5.6-sol | A A A A A | 100 % (86–100) | 166 s | 613 k (37 k) |
+| 2 | gpt-5.4-mini | A A A A A | 85.7 % (74–100) | 58 s | 612 k (28 k) |
+| 3 | gpt-4.1 | A C D C A | 90.5 % (33–100) | 89 s | 406 k (33 k) |
+| 4 | Mistral Small 4 | D A A C D | 76.2 % (57–100) | 377 s | 478 k (48 k) |
+| 5 | MiniMax M2.7 | A C A F A* | 100 % (93–100) | 637 s | 604 k (62 k) |
+| 6 | Qwen3.6 | A A F F A | 97.6 % (43–100) | 165 s | 526 k (29 k) |
+
+### CONCEPTUEL
+
+| # | Modèle | Confiance | Couverture méd. (min–max) | Durée | Tokens (sortie) |
+|---|---|---|---|---|---|
+| 1 | gpt-5.6-sol | A A A A A | 87.5 % (81–88) | 202 s | 300 k (30 k) |
+| 2 | gpt-5.4-mini | A A A A A | 68.8 % (69–88) | 74 s | 416 k (25 k) |
+| 3 | MiniMax M2.7 | A A A A A | 50.0 % (44–50) | 519 s | 374 k (50 k) |
+| 4 | Mistral Small 4 | A A A A A | 43.8 % (19–56) | 519 s | 507 k (72 k) |
+| 5 | Qwen3.6 | A A A A A | 12.5 % (0–12) | 140 s | 340 k (22 k) |
+| 6 | gpt-4.1 | A A A A A | 12.5 % (0–56) | 93 s | 240 k (21 k) |
+
+(* exception post-examen §12 ; lettres conceptuelles = fautes numériques
+uniquement — la dérivation depuis le juge est le point ouvert connu.)
+
+### La photo finale
+
+Les deux gpt-5.x sont propres 10 runs sur 10 et ne se départagent que par la
+couverture et la vitesse. Les trois open-weights Spark ENCADRENT gpt-4.1 :
+MiniMax le dépasse nettement en conceptuel, Qwen l'égale en couverture
+finance — mais tous trois portent les stigmates de sa génération (inventions
+ponctuelles chez Mistral, agrégats approximatifs chez Qwen, chiffres
+« hypothétisés » chez MiniMax). Le coût est désormais lisible : gpt-5.4-mini
+fait le travail en ~1 minute, MiniMax en ~10, à volume de tokens comparable.
+
+Réputation et instrument : « Mistral hallucine beaucoup » (impression du
+premier benchmark) s'est avéré faux à ~75 % — l'essentiel venait du juge
+non fiable d'alors et de son style de citation unique ([S1:22,25]) qui
+piégeait nos parseurs. Profil réel : un junior brouillon et zélé, pas un
+mythomane.
