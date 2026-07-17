@@ -2,7 +2,7 @@
 """Compile le tableau de campagne à deux dimensions : confiance + couverture.
 
 Usage:
-    uv run python .claude/skills/benchmark-campaign/scripts/compile_table.py \
+    uv run python evaluations/campaign/scripts/compile_table.py \
         --models "gpt-5.6-sol=camp-56sol" "Mistral=camp-mistral" [...]
         [--flags]   # affiche aussi les items accusés de chaque run non-A (seconde lecture)
 

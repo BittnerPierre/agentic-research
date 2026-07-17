@@ -6,7 +6,7 @@ semantic_judge, answer keys). Ne relance JAMAIS les candidats : les packs de
 preuves sont re-corrigeables à jamais — c'est la propriété clé du dispositif.
 
 Usage:
-    uv run python .claude/skills/benchmark-campaign/scripts/regrade.py \
+    uv run python evaluations/campaign/scripts/regrade.py \
         --prefixes camp-mistral camp-56sol [--skip-judge] [--control-only]
 
 Garde-fous exécutés systématiquement AVANT la re-notation :

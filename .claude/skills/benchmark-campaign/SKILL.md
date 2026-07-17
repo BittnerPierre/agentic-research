@@ -25,13 +25,17 @@ doctrines qui suivent y sont documentées avec leurs exemples.
 ## Vue d'ensemble d'une campagne pour UN modèle
 
 ```
-1. Pré-vol        scripts/check_services.sh [--spark]
+1. Pré-vol        evaluations/campaign/scripts/check_services.sh [--spark]
 2. Config         configs/tests/config-<modele>-chroma-decomposed.yaml
-3. Batterie       scripts/run_battery.sh <config> <tag> <finance|concept|both> [N]
+3. Batterie       evaluations/campaign/scripts/run_battery.sh <config> <tag> <finance|concept|both> [N]
 4. Seconde lecture   (voir section dédiée — OBLIGATOIRE avant de publier)
 5. Exceptions     evaluations/adjustments.yaml (décision utilisateur)
-6. Tableau        scripts/compile_table.py --models "Label=tag" ... [--flags]
+6. Tableau        evaluations/campaign/scripts/compile_table.py --models "Label=tag" ... [--flags]
 ```
+
+> L'outillage vit dans `evaluations/campaign/` (il fait partie du projet et se
+> distribue avec — sans lui le benchmark ne s'exécute pas) ; ce SKILL.md n'est
+> que le déclencheur/mode d'emploi pour Claude Code.
 
 Après toute MODIFICATION de l'évaluateur : `scripts/regrade.py` (qui exécute
 d'abord la suite de tests ET le contrôle falsifié, puis re-note les packs).
@@ -39,8 +43,8 @@ d'abord la suite de tests ET le contrôle falsifié, puis re-note les packs).
 ## 1. Pré-vol (services)
 
 ```bash
-.claude/skills/benchmark-campaign/scripts/check_services.sh          # campagne cloud
-.claude/skills/benchmark-campaign/scripts/check_services.sh --spark  # modèle Spark
+evaluations/campaign/scripts/check_services.sh          # campagne cloud
+evaluations/campaign/scripts/check_services.sh --spark  # modèle Spark
 ```
 
 Règles :
@@ -71,7 +75,7 @@ Une config par modèle dans `configs/tests/` (copier la plus proche) :
 ## 3. Batterie
 
 ```bash
-.claude/skills/benchmark-campaign/scripts/run_battery.sh \
+evaluations/campaign/scripts/run_battery.sh \
   configs/tests/config-<modele>.yaml camp-<modele> both 5
 ```
 
@@ -103,7 +107,7 @@ run non-A (`compile_table.py --flags` liste les items) :
    des AUTRES modèles tiennent toujours (leurs 40 doivent rester des 40).
 
 Familles de faux positifs déjà rencontrées (ne pas re-découvrir — voir
-`references/false-positive-catalog.md` pour le détail et les extraits) :
+`evaluations/campaign/false-positive-catalog.md` pour le détail et les extraits) :
 deltas loin des opérandes, ratios recalculés, signe moins binaire,
 conventions d'arrondi, méta-discours sur les sources, tableaux guidance,
 dates, synthèses multi-sociétés, localisateurs de citation, échelles
@@ -127,7 +131,7 @@ ajustements automatiquement (marqués `*`).
 ## 6. Tableau et lecture des résultats
 
 ```bash
-uv run python .claude/skills/benchmark-campaign/scripts/compile_table.py \
+uv run python evaluations/campaign/scripts/compile_table.py \
   --models "gpt-5.6-sol=camp-56sol" "Mistral=camp-mistral" --flags
 ```
 
@@ -158,10 +162,10 @@ le plus fort les angles morts de l'évaluateur), pas le modèle.
 
 ## Fichiers
 
-- `scripts/check_services.sh` — pré-vol
-- `scripts/run_battery.sh` — batterie N runs + correction
-- `scripts/regrade.py` — garde-fous (tests + contrôle falsifié) + re-notation
-- `scripts/compile_table.py` — tableau lettres+couverture (+ --flags)
-- `references/false-positive-catalog.md` — catalogue des familles connues
+- `evaluations/campaign/scripts/check_services.sh` — pré-vol
+- `evaluations/campaign/scripts/run_battery.sh` — batterie N runs + correction
+- `evaluations/campaign/scripts/regrade.py` — garde-fous (tests + contrôle falsifié) + re-notation
+- `evaluations/campaign/scripts/compile_table.py` — tableau lettres+couverture (+ --flags)
+- `evaluations/campaign/false-positive-catalog.md` — catalogue des familles connues
 - `evaluations/controls/fabricated_report.md` + `host_run/` — le contrôle falsifié (3 chiffres plantés, hôte épinglé)
 - `evaluations/adjustments.yaml` — registre des exceptions post-examen
