@@ -2,6 +2,8 @@
 
 > Document vivant. Dernière mise à jour : 2026-07-16 (après-midi).
 > Branche : `feat/201-evidence-bound-validator` — issues #196, #201, #202, #203.
+> Vue d'architecture et article public :
+> [Benchmarker un système de recherche agentique sans se mentir](reliable-agentic-research-benchmark.md).
 
 ## 1. Objectif et dispositif
 
