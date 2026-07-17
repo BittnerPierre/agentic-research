@@ -18,7 +18,7 @@ description: >-
 
 # Benchmark Campaign
 
-Workflow éprouvé sur la campagne de juillet 2026 (~80 packs, 7 modèles).
+Workflow éprouvé sur la campagne de juillet 2026 (~90 packs, 8 modèles).
 Le rapport de référence est `docs/benchmark-campaign-report.md` ; les
 doctrines qui suivent y sont documentées avec leurs exemples.
 
@@ -37,7 +37,7 @@ doctrines qui suivent y sont documentées avec leurs exemples.
 > distribue avec — sans lui le benchmark ne s'exécute pas) ; ce SKILL.md n'est
 > que le déclencheur/mode d'emploi pour Claude Code.
 
-Après toute MODIFICATION de l'évaluateur : `scripts/regrade.py` (qui exécute
+Après toute MODIFICATION de l'évaluateur : `evaluations/campaign/scripts/regrade.py` (qui exécute
 d'abord la suite de tests ET le contrôle falsifié, puis re-note les packs).
 
 ## 1. Pré-vol (services)
@@ -90,8 +90,12 @@ evaluations/campaign/scripts/run_battery.sh \
 
 ## 4. Seconde lecture (OBLIGATOIRE avant publication)
 
-AUCUN score n'est accepté sans lire ce qui l'a causé. La boucle, pour chaque
-run non-A (`compile_table.py --flags` liste les items) :
+AUCUN score n'est accepté sans lire ce qui l'a causé — y compris les A et
+les échecs sémantiques (revue Codex #3). `compile_table.py --flags` liste
+pour CHAQUE run son verdict root-cause, ses accusations numériques et ses
+exigences échouées ; la lettre E signale une évaluation non aboutie (échec
+technique, provenance) qui ne doit jamais passer pour un A. La boucle
+d'audit, pour chaque run non-A ET pour tout verdict inattendu d'un run A :
 
 1. **Lire** les items accusés (fabrications, WRONG) dans le résumé ou
    `det_grade.json`.

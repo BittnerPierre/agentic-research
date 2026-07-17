@@ -12,7 +12,7 @@ Usage:
 Garde-fous exécutés systématiquement AVANT la re-notation :
 1. Suite de tests complète (uv run pytest) — rouge = on s'arrête.
 2. CONTRÔLE FALSIFIÉ (evaluations/controls/fabricated_report.md) : le rapport
-   piégé doit rester bloqué à EXACTEMENT 2 fabrications. S'il passe à 1, le
+   piégé doit rester bloqué à EXACTEMENT 3 fabrications. S'il passe à 1, le
    dernier « fix » vient de blanchir un chiffre inventé (déjà arrivé deux
    fois : un 137 via ratio de marges, un 210.5 via paire fortuite).
 """
@@ -38,7 +38,10 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess:
 def check_suite() -> bool:
     r = run(["uv", "run", "pytest", "-q"])
     ok = " failed" not in r.stdout and "error" not in r.stdout.lower()
-    print(("✓" if ok else "✗") + " suite de tests :", r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr[-200:])
+    print(
+        ("✓" if ok else "✗") + " suite de tests :",
+        r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr[-200:],
+    )
     return ok
 
 
@@ -50,26 +53,53 @@ def check_control() -> bool:
     if not Path(host_run, "sources.json").is_file() or not Path(CONTROL_REPORT).is_file():
         print("✗ contrôle falsifié : rapport ou hôte épinglé introuvable")
         return False
-    r = run([
-        "uv", "run", "python", "-m", "evaluations.deterministic_grade", host_run,
-        "--exercise", "evaluations/exercises/ai-capex-intensity",
-        "--report", CONTROL_REPORT, "--skip-semantic-judge",
-    ])
+    r = run(
+        [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "evaluations.deterministic_grade",
+            host_run,
+            "--exercise",
+            "evaluations/exercises/ai-capex-intensity",
+            "--report",
+            CONTROL_REPORT,
+            "--skip-semantic-judge",
+        ]
+    )
     m = re.search(r"ZERO TOL\): (\d+)", r.stdout)
     fabs = int(m.group(1)) if m else -1
     ok = fabs == CONTROL_EXPECTED_FABS
-    print(("✓" if ok else "✗") + f" contrôle falsifié : {fabs} fabrications attrapées (attendu {CONTROL_EXPECTED_FABS})")
+    print(
+        ("✓" if ok else "✗")
+        + f" contrôle falsifié : {fabs} fabrications attrapées (attendu {CONTROL_EXPECTED_FABS})"
+    )
     if not ok:
-        print("  → un garde vient probablement de blanchir un chiffre inventé. NE PAS re-noter avant d'avoir compris.")
+        print(
+            "  → un garde vient probablement de blanchir un chiffre inventé. NE PAS re-noter avant d'avoir compris."
+        )
     return ok
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--prefixes", nargs="*", default=[], help="préfixes output_dir à re-noter (ex: camp-mistral)")
+    p.add_argument(
+        "--prefixes",
+        nargs="*",
+        default=[],
+        help="préfixes output_dir à re-noter (ex: camp-mistral)",
+    )
     p.add_argument("--skip-judge", action="store_true")
     p.add_argument("--control-only", action="store_true")
     args = p.parse_args()
+
+    # revue Codex #5 : zéro préfixe sans --control-only = zéro re-notation
+    # silencieuse — on refuse au lieu de laisser croire que tout est re-noté.
+    if not args.control_only and not args.prefixes:
+        p.error(
+            "aucun préfixe fourni : rien ne serait re-noté (utiliser --prefixes ou --control-only)"
+        )
 
     if not check_suite() or not check_control():
         sys.exit(1)
@@ -86,16 +116,38 @@ def main() -> None:
             continue
         run_dir = str(Path(sp).parent)
         ex = "ai-engineering-syllabus" if "concept" in name else "ai-capex-intensity"
-        cmd = ["uv", "run", "python", "-m", "evaluations.deterministic_grade", run_dir,
-               "--exercise", f"evaluations/exercises/{ex}"]
+        cmd = [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "evaluations.deterministic_grade",
+            run_dir,
+            "--exercise",
+            f"evaluations/exercises/{ex}",
+        ]
         if args.skip_judge:
             cmd.append("--skip-semantic-judge")
+        # revue Codex #2 : vérifier le rc ET la fraîcheur du fichier — sinon on
+        # affiche un det_grade PÉRIMÉ comme si la re-notation avait réussi.
+        before = Path(f"{run_dir}/det_grade.json")
+        mtime_before = before.stat().st_mtime if before.is_file() else 0
         r = run(cmd)
+        if r.returncode != 0:
+            print(
+                f"{name:30} ✗ ÉCHEC de la correction (rc={r.returncode}) — {r.stderr.strip()[-160:]}"
+            )
+            continue
+        if before.is_file() and before.stat().st_mtime <= mtime_before:
+            print(f"{name:30} ✗ det_grade.json NON régénéré — résultat périmé, non affiché")
+            continue
         d = json.load(open(f"{run_dir}/det_grade.json"))
         fab = d["fabrication"]["count"]
         wrong = d["accuracy"]["wrong"]
         cov = d["coverage"]
-        print(f"{name:30} score={d['score']:5} cov={cov['hit']}/{cov['total']} fab={fab} wrong={wrong}")
+        print(
+            f"{name:30} score={d['score']:5} cov={cov['hit']}/{cov['total']} fab={fab} wrong={wrong}"
+        )
 
 
 if __name__ == "__main__":

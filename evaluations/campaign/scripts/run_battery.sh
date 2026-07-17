@@ -12,7 +12,7 @@
 # Séquentiel par design : vLLM ne sert qu'un modèle, et deux batteries
 # parallèles ne posent problème QUE si elles partagent le tag (collections
 # distinctes par run sinon). Cloud + Spark en parallèle : OK.
-set -u
+set -u -o pipefail
 CFG="$1"; TAG="$2"; WHICH="$3"; N="${4:-5}"; JUDGE_FLAG="${5:-}"
 cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 mkdir -p benchmarks/summaries
@@ -44,8 +44,15 @@ do_run() {
   echo "=== $name ($run) wall=$((SECONDS - t0))s" >> "$SUMMARY"
   local extra=""
   [ "$JUDGE_FLAG" = "--skip-judge" ] && extra="--skip-semantic-judge"
-  uv run python -m evaluations.deterministic_grade "$run" \
-    --exercise "evaluations/exercises/$exercise" $extra 2>&1 | grep -v Pydantic | tail -12 >> "$SUMMARY"
+  # revue Codex #2 : le code retour du scorer ne doit pas être avalé par le
+  # pipeline — correction dans un fichier temporaire, rc vérifié, puis filtrage.
+  local gout="benchmarks/summaries/${name}.grade.out"
+  if uv run python -m evaluations.deterministic_grade "$run" \
+    --exercise "evaluations/exercises/$exercise" $extra > "$gout" 2>&1; then
+    grep -v Pydantic "$gout" | tail -12 >> "$SUMMARY"
+  else
+    echo "[battery] ÉCHEC CORRECTION $name (rc≠0) — voir $gout" >> "$SUMMARY"
+  fi
   echo >> "$SUMMARY"
 }
 

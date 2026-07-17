@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import statistics
 from glob import glob
 from pathlib import Path
@@ -26,7 +27,7 @@ import yaml
 
 def load_runs() -> dict[str, tuple[str, dict, dict]]:
     """name -> (run_dir, det_grade, stats) pour tout pack corrigé."""
-    out = {}
+    out: dict[str, tuple[float, str, dict, dict]] = {}
     for sp in glob("benchmarks/runs/*/stats.json"):
         run = str(Path(sp).parent)
         try:
@@ -35,9 +36,18 @@ def load_runs() -> dict[str, tuple[str, dict, dict]]:
         except Exception:
             continue
         name = Path((stats.get("output_dir") or "").rstrip("/")).name
-        if name:
-            out[name] = (run, det, stats)
-    return out
+        if not name:
+            continue
+        mtime = Path(sp).stat().st_mtime
+        if name in out:
+            # règle déterministe (revue Codex #4) : le pack le plus RÉCENT
+            # gagne, et le doublon fait du bruit au lieu d'un écrasement
+            # silencieux dans l'ordre de glob.
+            print(f"!! doublon de tag « {name} » : pack le plus récent retenu")
+            if mtime <= out[name][0]:
+                continue
+        out[name] = (mtime, run, det, stats)
+    return {k: v[1:] for k, v in out.items()}
 
 
 def load_adjustments() -> tuple[dict[str, dict], set[str]]:
@@ -50,7 +60,17 @@ def load_adjustments() -> tuple[dict[str, dict], set[str]]:
     return adjustments, exclusions
 
 
-def letter(det: dict) -> str:
+def letter(det: dict, stats: dict) -> str:
+    # E = évaluation non aboutie (revue Codex #1) : un échec technique, une
+    # panne de provenance ou un run non terminé ne doit JAMAIS s'afficher
+    # comme un A propre.
+    verdict = (det.get("root_cause") or {}).get("verdict") or ""
+    if (
+        stats.get("success") is False
+        or verdict == "evaluation_failed"
+        or verdict.startswith("input/provenance")
+    ):
+        return "E"
     fab = det.get("fabrication", {}).get("count", 0)
     wrong = det.get("accuracy", {}).get("wrong", 0)
     if fab >= 2:
@@ -89,7 +109,8 @@ def main() -> None:
             names = sorted(
                 n
                 for n in runs
-                if any(n.startswith(pat) for pat in patterns) and n not in exclusions
+                if any(re.fullmatch(re.escape(pat) + r"-?\d+", n) for pat in patterns)
+                and n not in exclusions
             )
             if not names:
                 # un modèle demandé sans aucun run doit faire du BRUIT, pas
@@ -99,7 +120,7 @@ def main() -> None:
             letters, covs, durs, toks, flagged = [], [], [], [], []
             for n in names:
                 run, det, stats = runs[n]
-                let = letter(det)
+                let = letter(det, stats)
                 adj = adjustments.get(n)
                 if (
                     adj
@@ -120,18 +141,32 @@ def main() -> None:
                 tok = sum((ph or {}).get("total_tokens", 0) for ph in u.values())
                 if tok:
                     toks.append(tok)
-                if let not in ("A", "A*"):
-                    items = [
-                        f"fab {it.get('value')} «{(it.get('context') or '')[:60]}»"
-                        for it in det.get("fabrication", {}).get("items", [])[:3]
-                    ] + [str(w)[:80] for w in det.get("accuracy", {}).get("wrong_details", [])[:3]]
-                    flagged.append((n, items))
-            key = (
-                sum(le == "F" for le in letters),
-                sum(le == "D" for le in letters),
-                sum(le == "C" for le in letters),
-                -(statistics.median(covs) if covs else 0),
-            )
+                # revue Codex #3 : « aucun score accepté sans lire ce qui l'a
+                # causé » — --flags expose le verdict de CHAQUE run (A compris),
+                # les accusations numériques ET les exigences échouées.
+                items = [f"verdict: {(det.get('root_cause') or {}).get('verdict')}"]
+                items += [
+                    f"fab {it.get('value')} «{(it.get('context') or '')[:60]}»"
+                    for it in det.get("fabrication", {}).get("items", [])[:3]
+                ]
+                items += [str(w)[:80] for w in det.get("accuracy", {}).get("wrong_details", [])[:3]]
+                failed_reqs = (det.get("root_cause") or {}).get("failed_requirements") or []
+                if failed_reqs:
+                    items.append(f"exigences échouées: {', '.join(failed_reqs[:5])}")
+                flagged.append((n, items))
+            # tri : gravité E>F>D>C puis couverture en finance ; couverture
+            # SEULE en conceptuel (lettres n/a par arbitrage — un E y reste
+            # visible via --flags mais ne classe pas).
+            if kind == "capex":
+                key = (
+                    sum(le == "E" for le in letters),
+                    sum(le == "F" for le in letters),
+                    sum(le == "D" for le in letters),
+                    sum(le == "C" for le in letters),
+                    -(statistics.median(covs) if covs else 0),
+                )
+            else:
+                key = (-(statistics.median(covs) if covs else 0),)
             rows.append((key, label, letters, covs, durs, toks, flagged))
 
         print(f"\n===== {title} =====")
