@@ -61,15 +61,15 @@ def load_adjustments() -> tuple[dict[str, dict], set[str]]:
 
 
 def letter(det: dict, stats: dict) -> str:
-    # E = évaluation non aboutie (revue Codex #1) : un échec technique, une
-    # panne de provenance ou un run non terminé ne doit JAMAIS s'afficher
-    # comme un A propre.
+    # E = évaluation NON ABOUTIE uniquement (revue Codex #1 + arbitrage Pierre
+    # 17/07) : run mort ou validation impossible. Un échec de provenance DU
+    # CANDIDAT dont l'évaluation a abouti (ex. gpt-4.1 déclarant honnêtement
+    # « non trouvé » ce qu'il aurait pu trouver) n'est PAS un E : il n'a ni
+    # halluciné ni publié de faux chiffre — ses erreurs vs corpus comptent
+    # par le chemin normal (C/D/F). E doit rester distinguable d'un vrai
+    # échec de contenu.
     verdict = (det.get("root_cause") or {}).get("verdict") or ""
-    if (
-        stats.get("success") is False
-        or verdict == "evaluation_failed"
-        or verdict.startswith("input/provenance")
-    ):
+    if stats.get("success") is False or verdict == "evaluation_failed":
         return "E"
     fab = det.get("fabrication", {}).get("count", 0)
     wrong = det.get("accuracy", {}).get("wrong", 0)

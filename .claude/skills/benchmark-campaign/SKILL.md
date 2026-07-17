@@ -93,8 +93,10 @@ evaluations/campaign/scripts/run_battery.sh \
 AUCUN score n'est accepté sans lire ce qui l'a causé — y compris les A et
 les échecs sémantiques (revue Codex #3). `compile_table.py --flags` liste
 pour CHAQUE run son verdict root-cause, ses accusations numériques et ses
-exigences échouées ; la lettre E signale une évaluation non aboutie (échec
-technique, provenance) qui ne doit jamais passer pour un A. La boucle
+exigences échouées ; la lettre E signale une évaluation NON ABOUTIE (run
+mort, validation impossible) — et elle seule : un échec de provenance du
+candidat dont l'évaluation a abouti compte par les lettres normales
+(arbitrage 17/07 : déclarer honnêtement « non trouvé » = C, pas E). La boucle
 d'audit, pour chaque run non-A ET pour tout verdict inattendu d'un run A :
 
 1. **Lire** les items accusés (fabrications, WRONG) dans le résumé ou
