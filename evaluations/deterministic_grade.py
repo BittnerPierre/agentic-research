@@ -179,7 +179,7 @@ def extract_numbers(text: str) -> list[tuple[float, str, int]]:
             # computation ("131,8 - 40,1"), not a negative value (Codex review
             # 2026-07-16: the operand fell off the whitelist as -40.1).
             before = text[: m.start("sign")].rstrip()
-            # chiffre OU lettre d'unité (« $139.5B − $131.8B ») avant le signe
+            # chiffre OU lettre d'unité avant le signe moins Unicode
             if before[-1:].isdigit() or before[-1:].lower() in {"%", "$", "b", "m", "k"}:
                 sign = ""
         parsed = _normalize_number(
