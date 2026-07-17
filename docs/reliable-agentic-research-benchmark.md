@@ -18,6 +18,9 @@ La nouvelle version combine deux voies :
 - une voie Conceptuelle, où un LLM puissant vérifie une grille fermée à partir des
   chunks réellement récupérés, puis un second passage tente de réfuter chaque succès.
 
+Dans les deux voies, une seconde lecture frontier audite ensuite les décisions de
+l'évaluateur avant publication, sans se substituer à lui.
+
 Le principe central est simple : un score n'est crédible que si l'on peut reconstruire
 ce que le système a vu, ce qu'il a écrit, comment il a été jugé et pourquoi il a échoué.
 
@@ -578,7 +581,84 @@ Pour une publication, la lecture recommandée est donc :
 3. **coût opérationnel** en temps, tokens et appels ;
 4. **modes d'échec qualitatifs** observés dans les packs.
 
-## 11. Protocole de campagne
+## 11. La troisième couche : une seconde lecture frontier
+
+Les deux évaluateurs techniques ne suffisent pas à eux seuls. Le scorer déterministe
+est reproductible, mais il ne comprend pas toute la variété de la prose. Le juge
+evidence-bound comprend le texte, mais il reste probabiliste. Nous leur ajoutons donc
+une troisième couche : **avant publication, aucun score n'est accepté sans relire ce
+qui l'a causé**.
+
+Cette seconde lecture est réalisée avec un modèle frontier. Elle ne remplace ni le
+scorer ni le juge et ne renote pas librement les rapports. Elle audite leurs décisions
+selon une boucle stable :
+
+1. lire les items accusés dans le pack, et non le score seul ;
+2. recalculer ou vérifier manuellement l'affirmation contre la vérité terrain ;
+3. distinguer une vraie faute du candidat d'un faux positif de l'évaluateur ;
+4. pour un faux positif généralisable, écrire d'abord un test rouge, ajouter la garde
+   minimale, puis rejouer toute la suite, le contrôle falsifié et les contre-tests
+   d'équité ;
+5. re-noter les packs archivés, sans relancer les modèles candidats.
+
+```mermaid
+flowchart TB
+    S[Score et items accusés] --> L[Seconde lecture frontier]
+    L --> V[Vérification contre la vérité terrain]
+    V --> C{Cause ?}
+    C -->|Faute candidat| KEEP[Verdict conservé et documenté]
+    C -->|Faux positif généralisable| RED[Test rouge puis garde minimale]
+    RED --> REG[Suite complète + contrôle falsifié + équité]
+    REG --> RESCORE[Re-scoring des packs archivés]
+    C -->|Cas vrai sans règle sûre| EX[Exception post-examen versionnée]
+```
+
+Cette campagne a ainsi révélé **environ 18 familles** de faux positifs ou de
+conventions d'interface : deltas éloignés de leurs opérandes, ratios recalculés,
+localisateurs de citation pris pour des nombres, tableaux de guidance, dates, seuils
+hedgés, échelles d'unités ou encore identifiants de chunks transcodés. Chaque famille
+a été exposée par une manière d'écrire différente.
+
+L'effet n'était pas marginal. Avant seconde lecture, le pire run de gpt-5.6-sol
+obtenait 60,0 et plaçait ce modèle sous gpt-5.4-mini. Après correction des faux
+positifs de l'évaluateur, le même pack atteint 86,4. **Sans cette troisième couche, le
+classement publié aurait été faux à cause de l'instrument de mesure, pas des modèles.**
+
+### Le contrôle falsifié : tester aussi les permissions accordées au scorer
+
+Corriger une sur-accusation peut ouvrir une échappatoire plus grave : une règle conçue
+pour accepter une formulation correcte peut aussi blanchir un chiffre inventé. Le
+benchmark contient donc un rapport falsifié avec trois valeurs plantées : 88,7 de
+revenu data-center, 137 de croissance et 210,5 de carnet de commandes.
+
+Après chaque modification de l'évaluateur, le résultat attendu reste **exactement 3/3** :
+ni moins, ce qui signalerait un blanchiment, ni plus, ce qui signalerait une nouvelle
+sur-accusation. Ce test symétrique a notamment rejeté deux élargissements trop
+généreux : des tolérances de dérivation lâches et la recherche combinatoire de paires
+ou sous-ensembles multi-sociétés. Le pack hôte du contrôle est épinglé, car une des
+détections dépendait sinon du corpus hôte utilisé pour la comparaison.
+
+Le contrôle falsifié n'est donc pas un exemple décoratif. C'est le test de
+non-régression du filet anti-blanchiment.
+
+### Les exceptions sont des données, pas de nouvelles règles
+
+Certains rapports sont exacts sans qu'il existe de règle générique assez sûre pour les
+créditer. Une somme de plusieurs entreprises peut être vérifiée à la main, mais
+autoriser toutes les sommes de sous-ensembles créerait une vaste surface de
+blanchiment.
+
+Nous traitons ce cas comme une **contestation de copie auprès du professeur** : la
+copie est revue, mais le barème gelé n'est pas réécrit pour fabriquer une règle à
+partir d'un cas particulier. L'ajustement est enregistré dans
+`evaluations/adjustments.yaml` avec son motif, la vérification manuelle, l'arbitre et
+la date. La couche de présentation l'applique avec un astérisque ; les autres copies
+ne sont pas renotées arbitrairement.
+
+Ce choix conserve à la fois l'équité, la reproductibilité de l'évaluateur et la trace
+explicite d'une décision humaine irréductible.
+
+## 12. Protocole de campagne
 
 Pour comparer honnêtement plusieurs modèles :
 
@@ -609,6 +689,11 @@ moins une erreur, D une invention et F plusieurs inventions. A* désigne un run 
 après une exception post-examen explicitement versionnée. Les lettres ne sont pas
 moyennées : leur séquence expose directement la variance.
 
+Ces lettres s'appliquent **uniquement à la Finance**, où leur définition repose sur la
+porte numérique déterministe. Le Conceptuel est publié en couverture seulement ; il
+ne recevra des lettres que lorsqu'elles pourront être dérivées des verdicts du juge
+sémantique et du contradicteur.
+
 | Modèle | Finance : confiance | Finance : couverture médiane | Conceptuel : couverture médiane |
 |---|---|---:|---:|
 | DeepSeek-V4-Flash | A* A A* A A | 100 % | 75,0 % |
@@ -637,7 +722,7 @@ mission Finance, mais fabrique dans deux runs sur cinq. MiniMax atteint 100 % de
 couverture médiane, avec un run F. Ces systèmes sont capables ; ils ne sont pas encore
 uniformément fiables sans contrôle.
 
-## 12. Ce que nous avons appris
+## 13. Ce que nous avons appris
 
 ### Ne jamais faire confiance au score seul
 
@@ -677,7 +762,22 @@ une injection. Cela devient catastrophique lorsque le rapport doit justement exp
 les system prompts. La sécurité d'ingestion doit reposer sur la provenance et la
 structure, pas sur une liste de mots interdits qui peut recouvrir le sujet étudié.
 
-## 13. Pourquoi cette architecture a été difficile à faire atterrir
+### Chaque modèle apporte ses propres conventions
+
+DeepSeek a fourni la démonstration la plus nette. Ses rapports contenaient les bonnes
+explications et 67 citations cohérentes, mais ses agents utilisaient des identifiants
+`filename:index` là où le résolveur attendait des UUID. Huit exigences sur seize ont
+alors été déclarées sans citation exploitable, masquant **50 points conceptuels** : la
+médiane est passée de 25 à 75 après ajout d'une résolution déterministe, non ambiguë,
+sans aucun nouveau run candidat.
+
+La leçon dépasse DeepSeek : le score d'un modèle est borné par la fidélité de
+l'évaluateur à ses conventions d'écriture et d'interface. Chaque nouveau modèle peut
+en introduire une que les modèles précédents n'avaient jamais produite. La seconde
+lecture frontier reste le filet qui permet de distinguer une incapacité du candidat
+d'une incapacité de l'instrument à lire sa réponse.
+
+## 14. Pourquoi cette architecture a été difficile à faire atterrir
 
 La difficulté n'est pas venue d'un algorithme unique. Elle est venue de frontières
 d'autorité qui ne deviennent visibles qu'en confrontant le score au rapport réel.
@@ -759,7 +859,7 @@ corpus gelé. Une optimisation future pourra partager une collection par couple
 corpus × modèle d'embeddings, à condition de conserver la preuve exacte des chunks
 utilisés par chaque run.
 
-## 14. Checklist de publication
+## 15. Checklist de publication
 
 - [x] Commit, prompts, answer keys, corpus, embeddings et paramètres gelés.
 - [x] Chaque pack enregistre le SHA Git, l'état dirty et le hash de config résolue.
@@ -767,14 +867,17 @@ utilisés par chaque run.
 - [x] Dry-run de récupérabilité pour chaque exigence conceptuelle.
 - [x] Les noms runtime sont résolus vers une identité canonique unique.
 - [x] Les rapports corrects de calibration ne déclenchent plus les faux positifs connus.
-- [x] Le contrôle falsifié reste bloqué.
+- [x] Le contrôle falsifié reste à exactement trois fabrications sur trois, sur un
+  hôte épinglé.
 - [x] Les dérivations correctes, répétées et arrondies sont couvertes par tests.
 - [x] Les signes unaires et opérateurs binaires sont distingués.
+- [x] Les exceptions post-examen sont versionnées comme données et non codées comme règles.
 - [x] La politique des `evaluation_failed` et des exclusions est explicite et versionnée.
 - [x] Le bruit du juge est mesuré séparément de la variance du candidat.
 - [x] Cinq runs par modèle et par exercice sont disponibles.
 - [x] Médiane, min, max, taux d'échec, temps et tokens sont publiés.
 - [x] Les meilleurs, pires et cas limites ont été relus manuellement.
+- [x] Chaque score publié a fait l'objet de la seconde lecture frontier.
 - [x] Tous les packs de preuves sont archivés et re-scorables.
 
 ## Conclusion
