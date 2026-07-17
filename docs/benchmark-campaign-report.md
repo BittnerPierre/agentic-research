@@ -1206,10 +1206,14 @@ pour une prochaine campagne.
 `det_grade.json` PÉRIMÉ — noté 40.0 avec 2 fabrications par un scorer
 antérieur aux corrections de familles de faux positifs, jamais re-noté ; le
 scorer committé actuel (avant même les changements du jour) donne 93.3 avec
-0 fabrication. Si ce run fait partie de la série Qwen publiée (A A F F A),
-l'un des deux F de Qwen en finance serait un artefact d'instrument — même
-mécanique que « Mistral hallucine à 75 % ». Re-noter changerait un résultat
-publié : décision Pierre, rien n'a été modifié.
+0 fabrication. **Résolu le 17/07** : la série
+publiée A A F F A est qwen-11..15 — qwen10 n'en fait PAS partie (lot de
+calibration antérieur), et les deux F publiés (13, 14) re-notent à
+l'identique avec le scorer durci : fabrications réelles, podium inchangé.
+Pierre a re-noté qwen10 (93.3 / A, garde-fous verts) par hygiène disque —
+aucun tableau publié n'en dépend. Leçon retenue : après chaque durcissement
+du scorer, re-noter TOUS les packs (pas seulement la campagne en cours),
+sinon les det_grade périmés minent les comparaisons futures.
 
 **Preuve d'invariance des changements du jour** : re-notation en mémoire des
 92 packs (aucun fichier touché) — 0 changement de score, fabrication, erreur
