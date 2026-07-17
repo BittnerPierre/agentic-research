@@ -119,7 +119,7 @@ def main() -> None:
                 continue
             letters, covs, durs, toks, flagged = [], [], [], [], []
             for n in names:
-                run, det, stats = runs[n]
+                _run, det, stats = runs[n]
                 let = letter(det, stats)
                 adj = adjustments.get(n)
                 if (

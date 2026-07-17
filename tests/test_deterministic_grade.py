@@ -1274,7 +1274,9 @@ def test_unit_scale_variant_of_corpus_number_is_not_fabrication(tmp_path: Path) 
     assert result["fabrication"]["count"] == 0
 
 
-def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(tmp_path: Path) -> None:
+def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(
+    tmp_path: Path,
+) -> None:
     """qwen run 15 : « Microsoft, NVIDIA et Apple n'ont pas fourni de guides
     initiaux de Capex pour le FY2025 » — statement TRUE about guidance, but
     the guidance vocabulary lacked the French word « guide »."""
@@ -1312,10 +1314,10 @@ def test_source_attributed_unavailability_is_meta_discourse(tmp_path: Path) -> N
 
 
 def test_binary_minus_after_unit_letter_is_not_negative(tmp_path: Path) -> None:
-    """MiniMax capex-1 : « $139.5B − $131.8B = $7.7B » — le moins suit la
+    """MiniMax capex-1 : le signe moins Unicode suit la
     lettre d'unité B, pas un chiffre ; lu comme -131.8 -> hors whitelist."""
     exercise = _amazon_exercise(tmp_path)
-    report_md = "# Calc\nAmazon FCF: $139.5B − $131.8B = $7.7B [S1].\n"
+    report_md = "# Calc\nAmazon FCF: $139.5B \u2212 $131.8B = $7.7B [S1].\n"
     sources = [{"source_id": "S1", "content": "Summary without numbers."}]
 
     result = grade(tmp_path / "run", exercise, report_md, sources)
@@ -1339,8 +1341,8 @@ def test_hedged_round_threshold_in_english_is_not_fabrication(tmp_path: Path) ->
 
 
 def test_calendar_dates_are_not_fabricated_numbers(tmp_path: Path) -> None:
-    """gpt-4.1 capex-4 : « Microsoft (1er juillet 2024 – 30 juin 2025), NVIDIA
-    (1er février 2024 – 31 janvier 2025) » — les jours du mois (30, 31) lus
+    """gpt-4.1 capex-4 : « Microsoft (1er juillet 2024 - 30 juin 2025), NVIDIA
+    (1er février 2024 - 31 janvier 2025) » - les jours du mois (30, 31) lus
     comme des chiffres financiers inventés. Un nombre suivi d'un nom de mois
     est une date."""
     exercise = _amazon_ratio_exercise(tmp_path)
@@ -1359,7 +1361,7 @@ def test_calendar_dates_are_not_fabricated_numbers(tmp_path: Path) -> None:
 def test_negated_missing_wording_is_not_unavailability(tmp_path: Path) -> None:
     """gpt-4.1 capex-2 : « l'intégralité des sept métriques a été retrouvée,
     sans valeur manquante ni donnée non reportée » — une phrase de COMPLÉTUDE ;
-    le scanner voyait « manquante » et accusait 5 sociétés × 7 métriques."""
+    le scanner voyait « manquante » et accusait 5 sociétés x 7 métriques."""
     exercise = _amazon_ratio_exercise(tmp_path)
     report_md = (
         "# Data Gaps\nAmazon capex reached 131.8B [S1].\n"

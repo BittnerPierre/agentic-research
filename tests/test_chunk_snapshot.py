@@ -231,7 +231,12 @@ def test_resolve_chunk_id_accepts_filename_index_notation():
     assert resolve_chunk_id("Text_generation.md:56", valid) == "abcd1234-ffff:56"
     # ambigu (deux chunks même filename+index) -> refusé
     valid["dupe:56"] = RetrievedChunk(
-        chunk_id="dupe:56", document_id="dupe", chunk_index=56,
-        filename="Agents_1.md", text="dup", sha256="2" * 64, resolved=True,
+        chunk_id="dupe:56",
+        document_id="dupe",
+        chunk_index=56,
+        filename="Agents_1.md",
+        text="dup",
+        sha256="2" * 64,
+        resolved=True,
     )
     assert resolve_chunk_id("Agents_1.md:56", valid) is None
