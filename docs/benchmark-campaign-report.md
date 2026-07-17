@@ -1135,3 +1135,83 @@ celles sur MiniMax/Qwen/Mistral tiennent. Leçon d'instrumentation, une fois
 de plus : le score d'un modèle est borné par la fidélité de l'évaluateur à
 SES conventions — chaque nouveau venu apporte les siennes, et la seconde
 lecture reste le seul filet.
+
+## 27. Revue Codex de l'exécution du benchmark — traitement (17/07)
+
+Après la revue du code de l'évaluateur puis celle du skill, Codex a livré une
+troisième passe : le benchmark **en tant qu'exécution** (chaîne de preuve,
+provenance, fiabilité des diagnostics, précision des classements). Sept
+findings. Contrainte posée par Pierre : ne rien ré-exécuter — toute
+modification s'applique aux runs ultérieurs. Traitement point par point :
+
+**#1 (critique) — chaîne citation→chunk non garantie.** Confirmé, et pire :
+le commentaire du code PROMETTAIT une résolution déterministe (« l'appariement
+se résout ici ») que le code ne faisait pas — un commentaire-mensonge attrapé
+par la revue. Implémenté : `_audit_citation_chain` dans le juge résout la
+chaîne côté code — localisation de la citation dans le rapport (`exact` /
+`normalized` / `unlocalized`, avec gestion des citations recousues « … ») et
+propriétaire RÉEL de chaque chunk probant via la table chunk→source
+(`resolved_source_ids`, `source_mismatch`). Audit archivé sur chaque verdict
+(`citation_chain`), NON bloquant : les jugements de texte restent au juge
+(arbitrage du 15/07), mais l'écart devient visible au lieu d'invisible.
+
+**#2 (critique) — `_fact_attribution_is_valid` mort, prose = existence
+seule.** Confirmé (défini, jamais appelé ; `prose_contradictions` déclaré,
+jamais peuplé). Le détecteur est désormais câblé en **consultatif** : chaque
+chiffre whitelisté en prose porte `attribution: verified / ambiguous /
+contradicted`, et `grounded_ambiguous.attribution_suspects` compte les
+contradictions résolues avec confiance. AUCUN effet sur le score : l'activer
+en sanction reviendrait sur l'arbitrage « fin du devineur d'années » sans
+validation. Le dry-run sur la campagne le justifie : 3 packs suspects, et les
+2 inspectés ressemblent à des faux positifs du détecteur lui-même (72,215 =
+virgule française déjà résolue ailleurs ; 27.3B = période mal liée). À
+calibrer avant toute promotion en sanction — décision Pierre.
+
+**#3 (élevé) — provenance incomplète.** Confirmé : `cfg.config_path`
+n'existe pas sur le modèle `Config` (c'est un attribut du `ConfigManager`),
+donc `config_sha256` restait None sur TOUS les packs. Corrigé :
+`get_config_path()` expose le chemin résolu du singleton ; les packs futurs
+porteront le vrai fichier + son sha256. Les 43 packs sans provenance et les
+git_dirty archivés restent en l'état (pas de ré-exécution).
+
+**#4 (élevé) — root-cause peu fiable.** Confirmé : le diagnostic
+search-vs-writer se fondait sur les RÉSUMÉS de sources.json — générés par le
+candidat. Un résumé qui omet le chiffre faisait accuser la recherche à la
+place du writer. Corrigé : quand `chunks.json` (texte brut archivé) existe,
+c'est lui l'évidence autoritaire (`evidence_origin: raw_chunks`) ; les
+résumés ne restent qu'un repli pour les packs antérieurs au snapshot.
+Dry-run : 59/92 verdicts de root-cause changeraient d'étiquette en re-notation
+— **zéro changement de score, lettre ou couverture**. Les étiquettes
+root-cause historiques sont donc à lire avec prudence ; les scores publiés
+tiennent.
+
+**#5 (modéré) — format canonique non entièrement contrôlé.** Assumé : la
+couverture ancrée au contenu (tableaux larges/assistés) est l'arbitrage
+« zèle exact toléré ». Un compteur diagnostique du taux de format strict
+reste un chantier possible, non prioritaire.
+
+**#6 (modéré) — classements conceptuels adjacents au-delà de la précision du
+juge.** Corrigé côté présentation : la granularité du juge est de 6.25 pts
+(16 exigences) ; `compile_table` marque désormais « ≈ » tout rang conceptuel
+dont la médiane est à ≤ 6.25 du précédent (DeepSeek ≈ mini ≈ 5.1 : ex æquo
+statistique, pas un ordre).
+
+**#7 (modéré) — généralisation hors-campagne non validée.** Documenté comme
+limite connue — l'épisode DeepSeek en est la preuve empirique (chaque nouveau
+modèle apporte ses conventions et fait apparaître de nouvelles familles).
+Un holdout de modèles jamais vus pendant la calibration est le bon protocole
+pour une prochaine campagne.
+
+**Découverte collatérale du dry-run** : `bench-capex-qwen10` a un
+`det_grade.json` PÉRIMÉ — noté 40.0 avec 2 fabrications par un scorer
+antérieur aux corrections de familles de faux positifs, jamais re-noté ; le
+scorer committé actuel (avant même les changements du jour) donne 93.3 avec
+0 fabrication. Si ce run fait partie de la série Qwen publiée (A A F F A),
+l'un des deux F de Qwen en finance serait un artefact d'instrument — même
+mécanique que « Mistral hallucine à 75 % ». Re-noter changerait un résultat
+publié : décision Pierre, rien n'a été modifié.
+
+**Preuve d'invariance des changements du jour** : re-notation en mémoire des
+92 packs (aucun fichier touché) — 0 changement de score, fabrication, erreur
+ou couverture imputable aux modifications ; garde-fous verts (suite complète
++ contrôle falsifié 3/3).

@@ -7,6 +7,7 @@ import fnmatch
 import hashlib
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol, TypeVar
@@ -104,6 +105,11 @@ class RequirementAdjudication(BaseModel):
     adversary: AdversaryVerdict | None = None
     evidence_chunk_count: int = 0
     protocol_errors: list[str] = Field(default_factory=list)
+    # Revue Codex (exécution) #1 : audit NON BLOQUANT de la chaîne
+    # citation→chunk, résolu par le code (localisation de la citation dans le
+    # rapport + propriétaire réel des chunks probants). Archivé pour la
+    # seconde lecture ; ne change pas le verdict.
+    citation_chain: dict | None = None
 
 
 class ConceptualAdjudication(BaseModel):
@@ -303,6 +309,71 @@ def _rubric_payload(requirement: dict, require_citation: bool) -> dict:
     }
 
 
+_QUOTE_STITCH_RE = re.compile(r"\s*(?:\[?(?:\.\.\.|\u2026)\]?)\s*")
+
+
+def _canon_light(text: str) -> str:
+    """Canonisation légère : markdown d'emphase et blancs repliés, casse et
+    accents préservés — ce qu'un juge honnête cite « exactement »."""
+    text = re.sub(r"[*_`#>|]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _canon_aggressive(text: str) -> str:
+    text = unicodedata.normalize("NFD", _canon_light(text).lower())
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return re.sub(r"\s+", " ", text)
+
+
+def _audit_citation_chain(
+    verdict: PrimaryVerdict,
+    report: str,
+    source_to_chunks: dict[str, list[str]],
+    valid_chunks: dict[str, RetrievedChunk],
+) -> dict:
+    """Résolution déterministe de la chaîne de preuve (revue Codex #1).
+
+    Le juge désigne une citation et des chunks ; le code, qui possède le
+    rapport et la table chunk→source, vérifie où la citation se localise
+    (exacte / normalisée / non localisable) et à quelles sources les chunks
+    probants appartiennent réellement. L'audit est archivé sur le verdict ;
+    il ne bloque pas (les jugements de texte restent au juge — arbitrage
+    2026-07-15), mais rend l'écart visible au lieu d'invisible.
+    """
+    fragments = [f for f in _QUOTE_STITCH_RE.split(verdict.report_quote or "") if f.strip()]
+    if not fragments:
+        localization = "absent"
+    else:
+        light_report = _canon_light(report)
+        aggressive_report = _canon_aggressive(report)
+        levels = []
+        for frag in fragments:
+            if _canon_light(frag) in light_report:
+                levels.append("exact")
+            elif _canon_aggressive(frag) in aggressive_report:
+                levels.append("normalized")
+            else:
+                levels.append("unlocalized")
+        order = ("exact", "normalized", "unlocalized")
+        localization = max(levels, key=order.index)
+    chunk_owner = {
+        chunk_id: source_id
+        for source_id, chunk_ids in source_to_chunks.items()
+        for chunk_id in chunk_ids
+    }
+    owners = {chunk_owner[c] for c in verdict.supporting_chunk_ids if c in chunk_owner}
+    mismatch = sorted(
+        c
+        for c in verdict.supporting_chunk_ids
+        if c in chunk_owner and chunk_owner[c] not in verdict.cited_source_ids
+    )
+    return {
+        "quote_localization": localization,
+        "resolved_source_ids": sorted(owners),
+        "source_mismatch": mismatch,
+    }
+
+
 def _primary_protocol_errors(
     verdict: PrimaryVerdict,
     requirement: dict,
@@ -465,6 +536,7 @@ async def _adjudicate_requirement(
         )
 
     primary = primary_call.parsed
+    chain = _audit_citation_chain(primary, report, source_to_chunks, valid_chunks)
     errors = _primary_protocol_errors(
         primary,
         requirement,
@@ -482,6 +554,7 @@ async def _adjudicate_requirement(
                 final_status="indeterminate",
                 stage="adjudication",
                 primary=primary,
+                citation_chain=chain,
                 evidence_chunk_count=evidence_count,
                 protocol_errors=errors,
             ),
@@ -497,6 +570,7 @@ async def _adjudicate_requirement(
                 final_status="fail",
                 stage=stage,
                 primary=primary,
+                citation_chain=chain,
                 evidence_chunk_count=evidence_count,
             ),
             io,
@@ -510,6 +584,7 @@ async def _adjudicate_requirement(
                 final_status="indeterminate",
                 stage="adjudication",
                 primary=primary,
+                citation_chain=chain,
                 evidence_chunk_count=evidence_count,
             ),
             io,
@@ -549,6 +624,7 @@ async def _adjudicate_requirement(
                 final_status="needs_review",
                 stage="adjudication",
                 primary=primary,
+                citation_chain=chain,
                 evidence_chunk_count=evidence_count,
                 protocol_errors=[error],
             ),
@@ -572,6 +648,7 @@ async def _adjudicate_requirement(
             final_status=final_status,
             stage="ok" if final_status == "pass" else "adjudication",
             primary=primary,
+            citation_chain=chain,
             adversary=adversary,
             evidence_chunk_count=evidence_count,
             protocol_errors=adversary_errors,

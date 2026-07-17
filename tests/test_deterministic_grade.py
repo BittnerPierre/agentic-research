@@ -1274,7 +1274,9 @@ def test_unit_scale_variant_of_corpus_number_is_not_fabrication(tmp_path: Path) 
     assert result["fabrication"]["count"] == 0
 
 
-def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(tmp_path: Path) -> None:
+def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(
+    tmp_path: Path,
+) -> None:
     """qwen run 15 : « Microsoft, NVIDIA et Apple n'ont pas fourni de guides
     initiaux de Capex pour le FY2025 » — statement TRUE about guidance, but
     the guidance vocabulary lacked the French word « guide »."""
@@ -1513,3 +1515,77 @@ def test_range_and_threshold_narration_is_not_fabrication(tmp_path: Path) -> Non
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
     assert result["fabrication"]["count"] == 0
+
+
+def test_provenance_records_config_sha256(tmp_path: Path) -> None:
+    """Revue Codex (exécution) #3 : la provenance lisait cfg.config_path qui
+    n'existe pas sur le modèle Config -> config_sha256 restait None sur TOUS
+    les packs. Le chemin résolu est exposé par le module config."""
+    from src import config as config_module
+
+    assert hasattr(config_module, "get_config_path"), "accesseur get_config_path manquant"
+
+
+def test_grounded_ambiguous_carries_attribution_annotation(tmp_path: Path) -> None:
+    """Revue Codex (exécution) #2 : _fact_attribution_is_valid était défini
+    mais jamais appelé — la prose whitelistée restait un angle mort total.
+    Câblage CONSULTATIF : chaque item grounded_ambiguous porte une annotation
+    attribution (verified / ambiguous / contradicted) pour la seconde lecture,
+    SANS effet sur le score (arbitrage « fin du devineur d'années » maintenu)."""
+    exercise = _write_exercise(tmp_path)
+    # 416.2 est whitelisté (revenue Apple) mais la prose l'affirme avec
+    # confiance comme ratio Capex/OCF Apple FY2025 -> contradiction résolue.
+    report_md = (
+        "# Rapport\n\nLe ratio Capex/OCF de Apple atteint 416.2% en FY2025 selon "
+        "les données consolidées du corpus étudié pour cet exercice de synthèse "
+        "financière comparative annuelle.\n"
+    )
+    result = grade(tmp_path / "run", exercise, report_md, [])
+    items = result["grounded_ambiguous"]["items"]
+    assert items, "la valeur whitelistée en prose doit être capturée"
+    assert items[0].get("attribution") == "contradicted"
+    assert result["grounded_ambiguous"]["attribution_suspects"] == 1
+    assert result["fabrication"]["count"] == 0
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_root_cause_uses_raw_chunks_over_summaries(tmp_path: Path) -> None:
+    """Revue Codex (exécution) #4 : le root-cause s'appuyait sur les résumés
+    de sources.json (générés par le candidat, non fiables). Quand chunks.json
+    existe, le texte BRUT des chunks est l'évidence autoritaire : un fait
+    présent dans un chunk mais absent du résumé doit être classé
+    « retrieved but absent from report » (faute writer), pas « not retrieved »
+    (faute search)."""
+    exercise = _write_exercise(tmp_path)
+    run = tmp_path / "run"
+    run.mkdir()
+    # résumé du candidat SANS le chiffre — l'ancien root-cause accusait search
+    sources = [{"file_name": "capex_reference_data.md", "content": "Apple financial overview."}]
+    chunk_text = "Apple revenue was 416.2B in FY2025."
+    (run / "chunks.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "chunks": [
+                    {
+                        "chunk_id": "c1",
+                        "filename": "capex_reference_data.md",
+                        "text": chunk_text,
+                        "sha256": hashlib.sha256(chunk_text.encode()).hexdigest(),
+                        "resolved": True,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    # rapport qui NE mentionne PAS le fait -> il est missing
+    report_md = (
+        "# Rapport\n\nSynthèse générale du positionnement des acteurs sans données "
+        "chiffrées précises, volontairement incomplète pour isoler la question du "
+        "diagnostic de cause racine dans cet exercice de test unitaire.\n"
+    )
+    result = grade(run, exercise, report_md, sources)
+    rc = result["root_cause"]
+    assert rc["missing_retrieved_but_absent_from_report"] == ["Apple Revenue"]
+    assert rc["missing_not_retrieved"] == []

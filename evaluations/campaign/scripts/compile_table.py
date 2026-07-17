@@ -119,7 +119,7 @@ def main() -> None:
                 continue
             letters, covs, durs, toks, flagged = [], [], [], [], []
             for n in names:
-                run, det, stats = runs[n]
+                _run, det, stats = runs[n]
                 let = letter(det, stats)
                 adj = adjustments.get(n)
                 if (
@@ -170,6 +170,10 @@ def main() -> None:
             rows.append((key, label, letters, covs, durs, toks, flagged))
 
         print(f"\n===== {title} =====")
+        # Revue Codex (exécution) #6 : en conceptuel la granularité du juge est
+        # de 6.25 pts (16 exigences) — deux médianes à ≤ 6.25 d'écart sont un
+        # ex æquo statistique, pas un classement. Le « ≈ » le rend visible.
+        prev_median = None
         for i, (_k, label, letters, covs, durs, toks, flagged) in enumerate(sorted(rows), 1):
             cov_s = (
                 f"{statistics.median(covs):5.1f}% ({min(covs):.0f}-{max(covs):.0f})"
@@ -182,7 +186,16 @@ def main() -> None:
             # tant qu'elles ne sont pas dérivées du juge (les lettres actuelles
             # ne comptent que les fautes numériques -> vides de sens là-bas).
             let_s = " ".join(letters) if kind == "capex" else "(lettres: n/a)"
-            print(f"{i}. {label:16} {let_s:16} cov {cov_s}  {dur_s}  {tok_s}")
+            median = statistics.median(covs) if covs else None
+            tie = (
+                "≈"
+                if kind == "concept"
+                and None not in (median, prev_median)
+                and abs(prev_median - median) <= 6.25
+                else " "
+            )
+            prev_median = median
+            print(f"{i}.{tie}{label:16} {let_s:16} cov {cov_s}  {dur_s}  {tok_s}")
             if args.flags:
                 for n, items in flagged:
                     print(f"     ⚠ {n} :")

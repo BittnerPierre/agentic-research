@@ -740,11 +740,14 @@ class DeepResearchManager:
             prov["git_sha"] = None
             prov["git_dirty"] = None
         try:
-            raw = Path(cfg.config_path).read_bytes()
-            prov["config_file"] = str(cfg.config_path)
+            from .config import get_config_path
+
+            config_path = get_config_path()
+            raw = Path(config_path).read_bytes()
+            prov["config_file"] = config_path
             prov["config_sha256"] = hashlib.sha256(raw).hexdigest()
         except Exception:
-            prov["config_file"] = getattr(cfg, "config_file_name", None)
+            prov["config_file"] = None
             prov["config_sha256"] = None
         vs = getattr(cfg, "vector_search", None)
         prov["chroma_collection"] = getattr(getattr(cfg, "vector_store", None), "name", None)

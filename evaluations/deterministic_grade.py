@@ -1831,6 +1831,17 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             fabricated.append(item)
         elif in_whitelist(val, whitelist):
             item["reason"] = "grounded_ambiguous_attribution"
+            # Revue Codex (exécution) #2 : le détecteur d'attribution tourne en
+            # CONSULTATIF sur la prose whitelistée — verified / ambiguous /
+            # contradicted, archivé pour la seconde lecture. Aucun effet sur le
+            # score : l'arbitrage « fin du devineur d'années » (2026-07-15)
+            # tient tant que le détecteur n'est pas validé contre la campagne.
+            attribution = _fact_attribution_is_valid(val, unit, pos)
+            item["attribution"] = (
+                "ambiguous"
+                if attribution is None
+                else ("verified" if attribution else "contradicted")
+            )
             grounded_ambiguous.append(item)
         elif corpus_derivable:
             item["reason"] = "derivable_but_operands_not_shown"
@@ -1922,12 +1933,34 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             if source_file is None:
                 source_violations.append(f"frozen source hash mismatch: {file_pattern}")
 
-    # ---- root cause via intermediate artifacts (sources.json) ----
-    src_blob = "\n".join(
-        (s.get("content") or "") + " " + (s.get("file_name") or "") for s in sources
-    )
+    # ---- root cause via intermediate artifacts ----
+    # Revue Codex (exécution) #4 : les résumés de sources.json sont générés
+    # par le CANDIDAT — un résumé qui omet le chiffre faisait accuser search
+    # à la place du writer. Quand chunks.json (texte brut archivé) existe,
+    # c'est lui l'évidence autoritaire ; les résumés ne restent qu'un repli
+    # pour les packs antérieurs au snapshot.
+    evidence_units = []
+    evidence_origin = "sources_summaries"
+    try:
+        chunk_payload = json.loads((run_dir / "chunks.json").read_text(encoding="utf-8"))
+        evidence_units = [
+            ((chunk.get("filename") or "") + " " + (chunk.get("text") or "")).strip()
+            for chunk in chunk_payload.get("chunks") or []
+        ]
+        if evidence_units:
+            evidence_origin = "raw_chunks"
+    except (OSError, ValueError):
+        pass
+    if not evidence_units:
+        evidence_units = [
+            " ".join(
+                part for part in (s.get("topic"), s.get("file_name"), s.get("content")) if part
+            )
+            for s in sources
+        ]
+    src_blob = "\n".join(evidence_units)
     missing = [m for m in must if m not in covered]
-    root_cause = {"n_retrieved_sources": len(sources)}
+    root_cause = {"n_retrieved_sources": len(sources), "evidence_origin": evidence_origin}
 
     def _metric_near_value(text: str, metric: str, pos: int) -> bool:
         aliases = METRIC_ALIASES.get(metric, (metric.lower(),))
@@ -1937,12 +1970,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     def _retrieved_numeric(m) -> bool:
         company, metric, _fy, value = m
         company_pat = re.compile(rf"\b{re.escape(company)}\b", re.I)
-        for source in sources:
-            text = " ".join(
-                part
-                for part in (source.get("topic"), source.get("file_name"), source.get("content"))
-                if part
-            )
+        for text in evidence_units:
             if not company_pat.search(text):
                 continue
             for found, _unit, pos in extract_numbers(text):
@@ -2163,6 +2191,9 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         },
         "grounded_ambiguous": {
             "count": len(grounded_ambiguous),
+            "attribution_suspects": sum(
+                1 for item in grounded_ambiguous if item.get("attribution") == "contradicted"
+            ),
             "items": grounded_ambiguous[:20],
         },
         "agenda_discipline": {"distractors_cited": distractor_hits},

@@ -717,3 +717,82 @@ def test_fixed_finance_contract_declares_adequacy_veto_without_numeric_authority
         for requirement in requirements
         for field in ("expected_answer", "required_points", "critical_errors")
     )
+
+
+class TestCitationChainAudit:
+    """Revue Codex (exécution) #1 : la chaîne citation→chunk doit être
+    résolue par le code, pas seulement promise en commentaire. Audit
+    non bloquant archivé sur chaque verdict : où se localise la citation
+    dans le rapport, et à quelles sources appartiennent RÉELLEMENT les
+    chunks probants."""
+
+    def _chain(self, quote, cited, chunks_ids, source_to_chunks, valid_chunks):
+        from evaluations.semantic_judge import PrimaryVerdict, _audit_citation_chain
+
+        verdict = PrimaryVerdict(
+            requirement_id="r1",
+            verdict="pass",
+            report_quote=quote,
+            cited_source_ids=cited,
+            supporting_chunk_ids=chunks_ids,
+            reasoning="test",
+            confidence="high",
+        )
+        return _audit_citation_chain(verdict, REPORT, source_to_chunks, valid_chunks)
+
+    def test_exact_quote_and_coherent_chain(self):
+        chain = self._chain(
+            "Le few-shot prompting reste absent des références fournies.",
+            ["S1"],
+            ["c1"],
+            {"S1": ["c1"]},
+            {"c1": _chunk("c1", "Agents.md")},
+        )
+        assert chain["quote_localization"] == "exact"
+        assert chain["source_mismatch"] == []
+        assert chain["resolved_source_ids"] == ["S1"]
+
+    def test_normalized_quote(self):
+        # le juge cite sans le gras markdown et avec des espaces repliés
+        chain = self._chain(
+            "few-shot prompting reste absent des references",
+            ["S1"],
+            ["c1"],
+            {"S1": ["c1"]},
+            {"c1": _chunk("c1", "Agents.md")},
+        )
+        assert chain["quote_localization"] == "normalized"
+
+    def test_unlocalized_quote(self):
+        chain = self._chain(
+            "cette phrase n'existe nulle part dans le rapport",
+            ["S1"],
+            ["c1"],
+            {"S1": ["c1"]},
+            {"c1": _chunk("c1", "Agents.md")},
+        )
+        assert chain["quote_localization"] == "unlocalized"
+
+    def test_source_mismatch_resolved_to_real_owner(self):
+        # chunk probant appartenant à S2 alors que le juge cite S1 :
+        # le code résout le vrai propriétaire et consigne l'écart.
+        chain = self._chain(
+            "Le few-shot prompting reste absent des références fournies.",
+            ["S1"],
+            ["c2"],
+            {"S1": ["c1"], "S2": ["c2"]},
+            {"c1": _chunk("c1", "Agents.md"), "c2": _chunk("c2", "RAG.md")},
+        )
+        assert chain["source_mismatch"] == ["c2"]
+        assert chain["resolved_source_ids"] == ["S2"]
+
+
+REPORT = "## Constat\n\nLe **few-shot** prompting  reste absent des références fournies.\n"
+
+
+def _chunk(chunk_id, filename):
+    from evaluations.chunk_snapshot import RetrievedChunk
+
+    return RetrievedChunk(
+        chunk_id=chunk_id, filename=filename, text="...", sha256="0" * 64, resolved=True
+    )
