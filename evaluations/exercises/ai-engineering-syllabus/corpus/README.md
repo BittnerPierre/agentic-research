@@ -1,6 +1,6 @@
 # Conceptual Exercise Corpus
 
-The corpus is the downloaded content of the five fixed URLs in `test_files/syllabus.md`.
+The corpus is the downloaded content of the five fixed URLs in `../syllabus.md`.
 Third-party article bodies are not committed. `../source_manifest.yaml` freezes the
 expected filenames and SHA-256 hashes so a URL changing in place cannot silently change
 the benchmark.

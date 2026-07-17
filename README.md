@@ -43,10 +43,10 @@ The `agentic-research` tool can be used via uv with different options:
 uv run agentic-research
 
 # Use a syllabus file as the query
-uv run agentic-research --syllabus test_files/syllabus.md
+uv run agentic-research --syllabus test_files/syllabus_test.md
 
 # Specify a particular manager
-uv run agentic-research --syllabus test_files/syllabus.md --manager manager
+uv run agentic-research --syllabus test_files/syllabus_test.md --manager manager
 
 # Specify a custom manager
 uv run agentic-research --manager custom_module.CustomManager

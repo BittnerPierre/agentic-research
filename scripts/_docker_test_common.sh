@@ -100,7 +100,7 @@ PY
   else
     docker compose "${compose_files[@]}" --env-file "${env_file}" run --rm agentic-research \
       agentic-research ${manager_args:+${manager_args}} --config "${config_path}" \
-      --syllabus /app/test_files/syllabus.md
+      --syllabus /app/evaluations/exercises/ai-engineering-syllabus/syllabus.md
   fi
 
   if ! docker compose "${compose_files[@]}" --env-file "${env_file}" logs agentic-research \

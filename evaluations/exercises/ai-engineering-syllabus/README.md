@@ -6,7 +6,7 @@ and not as a generic report benchmark.
 
 ## Authority
 
-- `test_files/syllabus.md` is the exact report request.
+- `syllabus.md` (in this directory) is the exact report request.
 - `answer_key.yaml` is a closed natural-language rubric with 14 concepts and two
   whole-report requirements.
 - `source_manifest.yaml` freezes the five public references by filename pattern and

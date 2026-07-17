@@ -65,9 +65,9 @@ run_series() {
 
 case "$WHICH" in
   finance) run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity" ;;
-  concept) run_series "concept" "test_files/syllabus.md" "ai-engineering-syllabus" ;;
+  concept) run_series "concept" "evaluations/exercises/ai-engineering-syllabus/syllabus.md" "ai-engineering-syllabus" ;;
   both)
-    run_series "concept" "test_files/syllabus.md" "ai-engineering-syllabus"
+    run_series "concept" "evaluations/exercises/ai-engineering-syllabus/syllabus.md" "ai-engineering-syllabus"
     run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity"
     ;;
   *) echo "exercice inconnu: $WHICH (finance|concept|both)"; exit 2 ;;

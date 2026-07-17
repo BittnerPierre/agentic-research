@@ -698,7 +698,10 @@ def test_fixed_conceptual_contract_has_closed_rubric_and_pinned_judge() -> None:
         for field in ("expected_answer", "required_points", "critical_errors")
     )
     request_path = (exercise / answer_key["request_file"]).resolve()
-    assert request_path == Path(__file__).parents[1] / "test_files" / "syllabus.md"
+    # Le contrat de requête vit DANS l'exercice (mise en cohérence 2026-07-17,
+    # même schéma que ai-capex-intensity) : c'est l'exemplaire gelé du
+    # benchmark ; test_files/ reste libre de vivre sa vie.
+    assert request_path == (exercise / "syllabus.md").resolve()
     assert request_path.is_file()
 
 

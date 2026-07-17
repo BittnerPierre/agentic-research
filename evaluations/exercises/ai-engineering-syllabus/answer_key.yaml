@@ -7,7 +7,7 @@ min_explanation_words: 12
 require_citation: true
 require_source_provenance: true
 companies_in_scope: []
-request_file: ../../../test_files/syllabus.md
+request_file: syllabus.md
 
 semantic_judge:
   model: gpt-5.4-2026-03-05
@@ -272,5 +272,5 @@ report_requirements:
 distractors: {}
 
 provenance:
-  input: test_files/syllabus.md
+  input: evaluations/exercises/ai-engineering-syllabus/syllabus.md
   corpus: "the downloaded content of the five fixed External References"
