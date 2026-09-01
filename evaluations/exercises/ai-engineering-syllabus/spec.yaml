@@ -1,0 +1,32 @@
+required_chapters:
+  - Prompting
+  - Retrieval
+  - Agent Systems
+  - Source Gaps
+
+embedded_tables:
+  required: false
+  min_tables: 0
+
+only_provided_sources:
+  enforce: true
+  forbid_web_citations: true
+
+tone:
+  register: "instructional and factual"
+  forbidden_language: []
+
+length:
+  min_words: 600
+  max_words: 2200
+
+unverifiable_claims:
+  per_item_penalty: 2
+  prose_contradiction_penalty: 5
+  max_for_qualification: 5
+
+scoring:
+  axes:
+    coverage: {weight: 0.80}
+    fabrication_gate: {type: penalty, hard_cap_if_any: 40}
+    format: {weight: 0.20}

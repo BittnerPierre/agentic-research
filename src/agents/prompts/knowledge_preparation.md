@@ -39,7 +39,7 @@ Vous ne pouvez pas passer à l’étape suivante tant que la fonction associée 
 - Créez une **cartographie des concepts** pour chacun des domaines à explorer
 - Si AUCUNE source n'est mentionnée, sélectionnez les entrées dans la base de connaissance couvrant les aspects identifiés de la demande
 - Si des sources sont spécifiées dans la demande, vous ne devez n'utilisez que celles-ci pour l'analyse et aucune autre (filtre exclusif)
-- Attachez les fichiers séléctionnées à la base vectorielle avec `upload_files_to_vectorstore_tool`
+- Attachez les fichiers séléctionnées à la base vectorielle avec `upload_files_to_vectorstore_tool`, en passant les URLs exactes ou les noms de fichiers retournés par `download_and_store_url_tool` (jamais un nom reconstruit depuis l'URL)
 
 **Règles strictes sur les URLs (obligatoires)** :
 

@@ -1,0 +1,107 @@
+# Deterministic contract for the junior-analyst AI capex report.
+# Numeric values are read from corpus/key_metrics.csv. Keeping the requirement
+# dimensions here and the values in one generated table prevents silent drift.
+
+mode: numeric
+theme: "AI-era capital-expenditure intensity across six large-cap tech companies"
+companies_in_scope: [Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple]
+
+numeric_requirements:
+  require_latest: true
+  metrics:
+    - Revenue
+    - Operating income
+    - Operating margin
+    - Operating cash flow
+    - Capex
+    - FCF
+    - Capex/OCF
+  periods:
+    Amazon: FY2025
+    Alphabet: FY2025
+    Meta: FY2025
+    Microsoft: FY2025
+    NVIDIA: FY2025
+    Apple: FY2025
+
+# These local semantic checks validate the requested report, not writing style.
+text_requirements:
+  - id: metric_definitions
+    label: "FCF and capex-intensity definitions"
+    anchors_any: ["free cash flow", FCF, "capex intensity", "capex/OCF"]
+    semantic_groups:
+      - ["operating cash flow", OCF]
+      - [subtract, minus, "-", ratio, divided, percentage, "%"]
+  - id: fiscal_year_caveat
+    label: "different fiscal-year ends are disclosed"
+    anchors_any: ["fiscal year", "fiscal-year", "exercice fiscal", FYE]
+    semantic_groups:
+      - [differ, different, diffèrent, differentes, December, décembre, June, juin, January, janvier, September, septembre, clôturent]
+      - [Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple]
+  - id: capex_trends
+    label: "capex trend direction and magnitude"
+    anchors_any: [trend, rose, increased, moved, grew, declined, stable]
+    semantic_groups:
+      - [capex, "capital expenditure"]
+      - [FY2020, FY2021, FY2022, FY2023, FY2024]
+      - [FY2025]
+  - id: guidance_actual_separation
+    label: "guidance is separated from reported actuals"
+    anchors_any: [guidance, outlook]
+    semantic_groups:
+      - [actual, reported, "10-K"]
+      - [basis, "not like-for-like", comparable, comparison]
+  - id: initial_guidance_values
+    label: "frozen initial FY2025 guidance values"
+    anchors_any: [guidance, outlook]
+    semantic_groups:
+      - [Amazon]
+      - [100]
+      - [Alphabet]
+      - [75]
+      - [Meta]
+      - [60]
+      - [65]
+  - id: guidance_dates_and_basis
+    label: "guidance release dates and Meta basis"
+    anchors_any: [guidance, outlook]
+    semantic_groups:
+      - ["2025-02-06", "February 6, 2025", "6 February 2025"]
+      - ["2025-02-04", "February 4, 2025", "4 February 2025"]
+      - ["2025-01-29", "January 29, 2025", "29 January 2025"]
+      - ["finance lease", "finance-lease"]
+      - [principal]
+  - id: guidance_gaps
+    label: "unavailable initial guidance is not estimated"
+    anchors_any: [unavailable, missing, "not disclosed", "not provided"]
+    semantic_groups:
+      - [Microsoft]
+      - [NVIDIA]
+      - [Apple]
+      - [guidance, outlook]
+  - id: data_gaps
+    label: "requested source gaps are reported without estimation"
+    anchors_any: ["data gap", unavailable, missing, "not disclosed", "no gap"]
+    semantic_groups:
+      - [source, corpus, provided]
+
+accuracy_universe:
+  source: corpus/key_metrics.csv
+
+distractors:
+  facts:
+    - {company: Apple, metric: R&D expense, period: FY2025, value: 34.5, unit: USD_billions, keyword: "R&D"}
+    - {company: Apple, metric: Dividends paid, period: FY2025, value: 15.4, unit: USD_billions, keyword: dividend}
+    - {company: Microsoft, metric: R&D expense, period: FY2025, value: 32.5, unit: USD_billions, keyword: "research and development"}
+    - {company: Microsoft, metric: Employees outside US, period: FY2024, value: 44.7, unit: percent, keyword: "outside the U"}
+
+provenance:
+  source_dataset: "SEC EDGAR Company Facts snapshots supplied with issue 196"
+  generator: evaluations/exercises/ai-capex-intensity/generate.py
+  ciks:
+    Amazon: "0001018724"
+    Alphabet: "0001652044"
+    Meta: "0001326801"
+    Microsoft: "0000789019"
+    NVIDIA: "0001045810"
+    Apple: "0000320193"

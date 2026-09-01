@@ -1,0 +1,53 @@
+# Format / compliance spec — checked mechanically against the final report.
+
+required_chapters:            # matched by heading, case-insensitive, fuzzy
+  - Executive Summary
+  - Scope
+  - Monetization
+  - Cash Generation
+  - Synthesis
+  - Data Gaps
+
+embedded_tables:
+  required: true              # analytical chapters must embed markdown tables
+  min_tables: 2               # at least the monetization + cash-generation tables
+  expected_columns: [Company, Metric, Period, Value]
+  parseable: true             # each table must parse as a well-formed markdown table
+
+only_provided_sources:
+  enforce: true               # no company/number outside the corpus
+  forbid_web_citations: true  # no http(s) links introduced as new evidence in claims
+
+length:
+  min_words: 400
+  max_words: 1600
+
+tone: "neutral, analytical, non-conversational; investment-committee register"
+
+# Scoring axes and how the composite grade is formed (deterministic).
+scoring:
+  axes:
+    coverage:        # recall over must_cover (numeric=anchors, qualitative=entailment)
+      weight: 0.35
+    accuracy:        # of figures that appear, fraction matching accuracy_universe
+      weight: 0.25
+    fabrication_gate: # specific numbers/entities not traceable to corpus
+      type: penalty
+      per_item_penalty: 8      # points off per fabricated specific
+      hard_cap_if_any: 70      # any fabrication caps the overall grade at 70
+    agenda_discipline: # distractor companies pulled into the brief
+      weight: 0.15
+      per_distractor_penalty: 5
+    format:          # required_chapters + embedded_tables + length + tone
+      weight: 0.25
+  # grade is factual: report the raw counts, not a vibe score
+  report_counts:
+    - n_must_cover_total
+    - n_must_cover_hit
+    - n_figures_in_report
+    - n_figures_matching
+    - n_figures_wrong
+    - n_fabricated_specifics
+    - n_distractors_cited
+    - n_required_chapters_present
+    - n_tables_parseable

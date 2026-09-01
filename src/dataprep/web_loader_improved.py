@@ -554,11 +554,28 @@ def fetch_web_content_improved(url: str, timeout: int = 30) -> WebDocument | Non
                     html_content = raw_data.decode("latin1", errors="replace")
                     encoding = "latin1 (avec remplacement)"
 
-        # Vérifier que nous avons bien du HTML
-        if not html_content.strip().startswith("<") and "<html" not in html_content.lower():
-            logger.error("Le contenu récupéré ne semble pas être du HTML valide")
-            logger.debug(f"Début du contenu: {html_content[:200]}")
-            return None
+        # Déterminer si la charge utile est du HTML ou déjà du texte/markdown brut.
+        content_type_l = content_type.lower()
+        looks_like_html = (
+            "html" in content_type_l
+            or html_content.lstrip().startswith("<")
+            or "<html" in html_content.lower()
+        )
+
+        if not looks_like_html:
+            # Contenu markdown / texte / CSV brut (ex. une URL raw de gist, un .md).
+            # On le prend tel quel : le passer dans le parser HTML→markdown le
+            # rejetterait. Les chiffres/tables sont ainsi préservés verbatim.
+            text = html_content.strip()
+            if not text:
+                logger.warning(f"Contenu vide récupéré de {url}")
+                return None
+            title = next(
+                (ln.strip()[2:].strip() for ln in text.splitlines() if ln.strip().startswith("# ")),
+                "",
+            ) or (url.split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1] or url)
+            logger.info(f"Contenu non-HTML de {url} traité comme markdown ({len(text)} caractères)")
+            return WebDocument(content=text, url=url, title=title, raw_html="")
 
         # Sauvegarder le HTML brut en mode debug
         config = get_config()

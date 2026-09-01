@@ -42,6 +42,60 @@ class FileSearchResult(BaseModel):
     "Le nom du fichier contenant les résultats de la recherche."
 
 
+class SourceDocument(BaseModel):
+    """A single aggregated research source, built programmatically from a
+    search-result file (no LLM, no MCP).
+
+    Produced by the report_writer aggregation step right after the search phase
+    so the writer never has to load files itself. The stable ``source_id`` is
+    what chapter writers use to cite material inline (e.g. ``[S3]``).
+    """
+
+    source_id: str
+    "Identifiant stable de la source pour les citations inline (ex: `S1`, `S2`)."
+
+    file_name: str
+    "Nom de base du fichier de résultat de recherche."
+
+    topic: str
+    "Sujet lisible dérivé du nom de fichier (= terme de recherche)."
+
+    content: str
+    "Contenu textuel complet du résumé de recherche."
+
+    doc_ids: list[str] = []
+    "Citations `[document_id:chunk_index]` extraites du contenu (peut être vide)."
+
+
+class Chapter(BaseModel):
+    """One planned chapter of the report (issue #196, writer décomposé)."""
+
+    title: str
+    "Titre du chapitre."
+
+    objective: str
+    "Objectif du chapitre en 1-2 phrases (ce qu'il doit couvrir)."
+
+    source_ids: list[str] = []
+    "Sources prioritaires (ids `[S#]`) — une INDICATION pour le rédacteur, pas un filtre."
+
+
+class ReportOutline(BaseModel):
+    """Structured report plan produced by the outline step (D1)."""
+
+    title: str
+    "Titre du rapport."
+
+    chapters: list[Chapter]
+    "Chapitres ordonnés à rédiger."
+
+    short_summary: str = ""
+    "Résumé de 2-3 phrases des conclusions attendues (alimente ReportData.short_summary)."
+
+    follow_up_questions: list[str] = []
+    "Questions de suivi suggérées (alimente ReportData.follow_up_questions)."
+
+
 class FileFinalReport(BaseModel):
     absolute_file_path: str
     "Le chemin absolu du fichier contenant le rapport final."

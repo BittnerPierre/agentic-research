@@ -1,0 +1,211 @@
+# Deterministic answer key — Consumer Platform Unit-Economics Maturation
+#
+# Ground truth = the corpus files under ./corpus (Netflix / Airbnb / Zillow facts).
+# Authored from the sources by Opus (2026-07-13), to be reviewed by Pierre.
+#
+# Three tiers, each scored differently:
+#   must_cover        -> RECALL. The report MUST surface these facts/claims.
+#                        Numeric facts: anchor tokens (mechanical). Qualitative
+#                        claims: closed LLM-entailment (YES/NO + quote).
+#   accuracy_universe -> PRECISION. Any of these figures that APPEARS in the report
+#                        must match the value (after number normalization). A
+#                        contradicting value = error. A specific number NOT traceable
+#                        to the corpus at all = fabrication.
+#   distractors       -> AGENDA DISCIPLINE. These companies are off-theme; citing
+#                        them in the brief is a relevance penalty.
+#
+# value normalization (scorer): strip thousands separators, resolve scale
+# ($000 / millions / billions), treat %, bps, ~, ± tolerantly; match within
+# the tolerance in each fact (default: exact for listed decimals).
+
+theme: "Consumer platform unit-economics maturation (Netflix, Airbnb, Zillow), 2019-2024"
+companies_in_scope: [Netflix, Airbnb, Zillow]
+
+# ---------------------------------------------------------------------------
+# TIER 1 — must_cover (drives recall)
+# ---------------------------------------------------------------------------
+must_cover:
+
+  # --- Netflix: ARPU expansion then plateau ---
+  - id: nflx_arpu_shape
+    kind: qualitative
+    claim: >
+      Netflix ARPU expanded from 2019 through 2022 and then plateaued / stayed
+      broadly flat in 2023-2024.
+    anchors_any: ["ARPU", "average revenue per"]
+    verify: entailment
+    source: "Financial Reference Document.md §2; Equity Research Appendix.md §IV.1"
+  - id: nflx_arpu_2019
+    kind: numeric
+    company: Netflix
+    metric: ARPU (avg monthly revenue per paying membership)
+    period: 2019
+    value: 10.82
+    unit: USD
+    anchors_all: ["Netflix", "10.82"]
+    source: "Financial Reference Document.md §2"
+  - id: nflx_arpu_2024
+    kind: numeric
+    company: Netflix
+    metric: ARPU
+    period: 2024
+    value: 11.70
+    unit: USD
+    anchors_all: ["Netflix", "11.7"]
+    source: "Financial Reference Document.md §2"
+
+  # --- Airbnb: monetization via volume at a STABLE take rate ---
+  - id: abnb_take_rate_stable
+    kind: qualitative
+    claim: >
+      Airbnb's take rate stayed roughly stable (~13.3%-13.5%) across FY2022-FY2024;
+      monetization grew through volume / value-per-night, not a rising take rate.
+    anchors_any: ["take rate", "take-rate"]
+    verify: entailment
+    source: "Equity Research Appendix - Batch 3.md §9"
+  - id: abnb_take_rate_fy22
+    kind: numeric
+    company: Airbnb
+    metric: Take rate (Revenue / GBV)
+    period: FY2022
+    value: 13.3
+    unit: percent
+    anchors_all: ["Airbnb", "13.3"]
+    source: "Equity Research Appendix - Batch 3.md §9"
+  - id: abnb_take_rate_fy24
+    kind: numeric
+    company: Airbnb
+    metric: Take rate
+    period: FY2024
+    value: 13.5
+    unit: percent
+    anchors_all: ["Airbnb", "13.5"]
+    source: "Equity Research Appendix - Batch 3.md §9"
+  - id: abnb_gbv_per_night_trend
+    kind: qualitative
+    claim: >
+      Airbnb GBV per night booked rose modestly over FY2022-FY2024
+      (~$160.53 -> ~$166.43).
+    anchors_any: ["per night", "GBV per", "gross booking"]
+    verify: entailment
+    source: "Equity Research Appendix - Batch 4.md §14"
+
+  # --- Zillow: FCF-margin inflection ---
+  - id: z_fcf_inflection
+    kind: qualitative
+    claim: >
+      Zillow swung from negative FCF margin in FY2022 (~-8.2%) to strongly positive
+      (~20.7%) by FY2024, driven by the wind-down of its capital-intensive iBuying
+      business and operating leverage.
+    anchors_any: ["free cash flow", "FCF"]
+    verify: entailment
+    source: "Equity Research Appendix - Batch 3.md §6"
+  - id: z_fcf_margin_fy22
+    kind: numeric
+    company: Zillow
+    metric: FCF margin
+    period: FY2022
+    value: -8.2
+    unit: percent
+    anchors_all: ["Zillow", "8.2"]
+    source: "Equity Research Appendix - Batch 3.md §6"
+  - id: z_fcf_margin_fy24
+    kind: numeric
+    company: Zillow
+    metric: FCF margin
+    period: FY2024
+    value: 20.7
+    unit: percent
+    anchors_all: ["Zillow", "20.7"]
+    source: "Equity Research Appendix - Batch 3.md §6"
+
+# ---------------------------------------------------------------------------
+# TIER 2 — accuracy_universe (any of these that appears MUST match)
+# every value below is corpus-traceable; used for precision + fabrication scoring
+# ---------------------------------------------------------------------------
+accuracy_universe:
+  Netflix:
+    - {metric: ARPU, period: 2019, value: 10.82, unit: USD}
+    - {metric: ARPU, period: 2020, value: 11.00, unit: USD}
+    - {metric: ARPU, period: 2021, value: 11.32, unit: USD}
+    - {metric: ARPU, period: 2022, value: 11.76, unit: USD}
+    - {metric: ARPU, period: 2023, value: 11.64, unit: USD}
+    - {metric: ARPU, period: 2024, value: 11.70, unit: USD}
+    - {metric: Projected material cash requirements (next 12 months), period: 2025, value: 14.426, unit: USD_billions, source: "Batch 6 §2"}
+  Airbnb:
+    - {metric: Take rate, period: FY2022, value: 13.3, unit: percent}
+    - {metric: Take rate, period: FY2023, value: 13.5, unit: percent}
+    - {metric: Take rate, period: FY2024, value: 13.5, unit: percent}
+    - {metric: Revenue, period: FY2022, value: 8.40, unit: USD_billions}
+    - {metric: Revenue, period: FY2023, value: 9.92, unit: USD_billions}
+    - {metric: Revenue, period: FY2024, value: 11.10, unit: USD_billions}
+    - {metric: GBV, period: FY2022, value: 63.2, unit: USD_billions}
+    - {metric: GBV, period: FY2023, value: 73.3, unit: USD_billions}
+    # NOTE corpus discrepancy: GBV FY2024 = 82.0 (Batch 3) vs 81.8 (Batch 4). Accept both.
+    - {metric: GBV, period: FY2024, value: [81.8, 82.0], unit: USD_billions}
+    - {metric: GBV per night, period: FY2022, value: 160.53, unit: USD}
+    - {metric: GBV per night, period: FY2023, value: 163.54, unit: USD}
+    - {metric: GBV per night, period: FY2024, value: 166.43, unit: USD}
+    - {metric: Nights & experiences booked, period: FY2022, value: 393.7, unit: millions}
+    - {metric: Nights & experiences booked, period: FY2023, value: 448.2, unit: millions}
+    - {metric: Nights & experiences booked, period: FY2024, value: 491.5, unit: millions}
+  Zillow:
+    - {metric: FCF margin, period: FY2022, value: -8.2, unit: percent}
+    - {metric: FCF margin, period: FY2023, value: 19.1, unit: percent}
+    - {metric: FCF margin, period: FY2024, value: 20.7, unit: percent}
+    - {metric: Revenue, period: FY2022, value: 1958, unit: USD_millions}
+    - {metric: Revenue, period: FY2023, value: 2064, unit: USD_millions}
+    - {metric: Revenue, period: FY2024, value: 2199, unit: USD_millions}
+    - {metric: FCF, period: FY2022, value: -160, unit: USD_millions}
+    - {metric: FCF, period: FY2023, value: 394, unit: USD_millions}
+    - {metric: FCF, period: FY2024, value: 456, unit: USD_millions}
+
+# ---------------------------------------------------------------------------
+# TIER 3 — distractors (off-theme; citing in the brief = agenda/relevance penalty)
+# ---------------------------------------------------------------------------
+distractors:
+  companies:
+    - U.S. Steel
+    - Nippon Steel
+    - BBSI
+    - Barrett Business Services
+    - AMD
+    - Micron
+    - TSMC
+    - TJX
+    - Oracle
+    - Microsoft
+    - Uber
+    - Delta Air Lines
+    - Workday
+    - Palantir
+    - KKR
+    - Salesforce
+    - Snap
+    - Allstate
+    - MSCI
+    - Shift4
+    - Paylocity
+    - J.M. Smucker
+    - Spirit Airlines
+    - TKO
+    - Endeavor
+    - Redfin
+    - Rocket Companies
+    - 3D Systems
+    - Amazon
+    - Alphabet
+    - Meta
+  note: >
+    Amazon/Alphabet/Meta capex is tempting (capital intensity) but the brief is
+    scoped to Netflix/Airbnb/Zillow monetization+cash maturation; pulling in the
+    hyperscaler capex table is off-theme for THIS exercise.
+
+# ---------------------------------------------------------------------------
+# Known corpus issues (documented; relevant only if a model strays off-theme)
+# ---------------------------------------------------------------------------
+known_corpus_issues:
+  - "Batch 1 and Batch 2 were exact duplicates; Batch 2 removed from corpus."
+  - "Oracle ETR contradiction: main Appendix §IX.2 says ~19% / -300bps; Batch 4 §12 says 10.9% / +410bps (correct, SEC-sourced). Distractor-only."
+  - "Microsoft % outside US contradiction: main Appendix §IX.3 says ~54%; Batch 5 §18 says 44.7% (correct). Distractor-only."
+  - "Airbnb GBV FY2024 minor discrepancy: 82.0 (Batch 3) vs 81.8 (Batch 4). Both accepted in accuracy_universe."

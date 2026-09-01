@@ -188,6 +188,7 @@ async def evaluate_spec_compliance(
     report_markdown: str,
     syllabus: str,
     raw_notes: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> SpecComplianceResult:
     constraints = _extract_constraints(syllabus)
     deterministic = _deterministic_spec_score(report_markdown, raw_notes, constraints)
@@ -197,7 +198,7 @@ async def evaluate_spec_compliance(
         judge_agent = Agent(
             name="spec_compliance_judge",
             instructions=SPEC_JUDGE_PROMPT,
-            model="openai/gpt-4.1-mini",
+            model=judge_model,
             output_type=LLMSpecJudge,
         )
         input_text = (

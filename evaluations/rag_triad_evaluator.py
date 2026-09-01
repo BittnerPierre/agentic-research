@@ -21,35 +21,44 @@ class RAGScore(BaseModel):
 
 # ========== Prompts ==========
 
-GROUNDEDNESS_PROMPT = """You are evaluating the GROUNDEDNESS of a research report.
+GROUNDEDNESS_PROMPT = """You are a STRICT groundedness auditor for a research report.
 
-Groundedness measures whether the report's claims are well-supported by the Raw Notes (source material).
+Groundedness measures whether the report's claims are actually supported by the SOURCES
+(the retrieved material). Be skeptical: your job is to catch fabrication, not to reward
+fluent writing.
 
-**Task**: Evaluate how well the report is grounded in the provided Raw Notes.
+**Method — verify claim by claim.** Pay special attention to SPECIFIC claims:
+- numbers, percentages, monetary amounts, dates, durations, benchmark figures;
+- named studies, datasets, tools, or quotes.
+For each such specific claim, check that the SAME fact is actually present in the SOURCES.
 
-**Scoring Guide**:
-- **0.9-1.0**: Excellent - All key claims directly supported, proper citations, no hallucinations
-- **0.7-0.8**: Good - Most claims supported, minor unsupported details
-- **0.5-0.6**: Fair - Some claims supported, noticeable gaps or weak connections
-- **0.3-0.4**: Poor - Many unsupported claims, significant hallucinations
-- **0.0-0.2**: Very Poor - Little to no grounding, mostly hallucinated content
+**Critical rules**:
+- A bracket citation like `[S3]` or `[doc:12]` next to a claim is NOT evidence. Ignore the
+  label and check whether the cited source truly contains the claim. Citations that don't
+  match their source are a SERIOUS groundedness failure.
+- A fabricated specific (e.g. "reduces errors by 30-40%", "0.20$ per 1k tokens", "22% gender
+  bias", a made-up benchmark table) is a hallucination even if it sounds plausible and carries
+  a citation. Each fabricated specific must pull the score DOWN hard.
+- Generic, hedged statements that paraphrase the sources are acceptable; invented precision is not.
 
-**Evaluation Criteria**:
-1. Are claims backed by specific evidence from Raw Notes?
-2. Are there hallucinations or unsupported assertions?
-3. Does the report cite or reference sources appropriately?
-4. Is the synthesis faithful to the source material?
+**Scoring Guide** (calibrate to fabrication, not polish):
+- **0.9-1.0**: Every specific claim is traceable to the sources; no invented figures.
+- **0.7-0.8**: Claims supported; at most one or two minor unsupported details, no fabricated numbers.
+- **0.5-0.6**: Several specific claims unsupported OR one clearly fabricated statistic/study.
+- **0.3-0.4**: Multiple fabricated specifics (numbers/benchmarks/studies) dressed with citations.
+- **0.0-0.2**: Pervasive fabrication; the report invents precision the sources do not contain.
 
 **Input Format**:
 ```
-===RAW NOTES===
-[Raw notes from sources]
+===SOURCES===
+[Retrieved source material]
 
 ===REPORT===
 [Generated report]
 ```
 
-**Output**: Return a score (0.0-1.0) and reasoning.
+**Output**: Return a score (0.0-1.0) and reasoning that NAMES the specific unsupported/fabricated
+claims you found (or states that every specific claim checked out).
 """
 
 CONTEXT_RELEVANCE_PROMPT = """You are evaluating the CONTEXT RELEVANCE of retrieved sources.
@@ -121,13 +130,16 @@ Answer Relevance measures whether the report actually answers the research query
 async def evaluate_groundedness(
     report_markdown: str,
     raw_notes: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGScore:
     """
-    Evaluate groundedness: Is the report grounded in the Raw Notes?
+    Evaluate groundedness: Is the report grounded in the retrieved context?
 
     Args:
         report_markdown: The generated report
-        raw_notes: The raw notes from sources
+        raw_notes: The retrieved context (pass the aggregated sources corpus, not
+            the report's own RAW section — otherwise the eval can be fooled)
+        judge_model: Model id for the LLM judge (neutral/constant across runs)
 
     Returns:
         RAGScore with score (0-1) and reasoning
@@ -135,11 +147,11 @@ async def evaluate_groundedness(
     judge_agent = Agent(
         name="groundedness_judge",
         instructions=GROUNDEDNESS_PROMPT,
-        model="openai/gpt-4.1-mini",
+        model=judge_model,
         output_type=RAGScore,
     )
 
-    input_text = f"""===RAW NOTES===
+    input_text = f"""===SOURCES===
 {raw_notes}
 
 ===REPORT===
@@ -153,13 +165,15 @@ async def evaluate_groundedness(
 async def evaluate_context_relevance(
     raw_notes: str,
     query: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGScore:
     """
     Evaluate context relevance: Are the retrieved sources relevant?
 
     Args:
-        raw_notes: The raw notes from retrieved sources
+        raw_notes: The retrieved context (aggregated sources corpus)
         query: The original research query
+        judge_model: Model id for the LLM judge
 
     Returns:
         RAGScore with score (0-1) and reasoning
@@ -167,7 +181,7 @@ async def evaluate_context_relevance(
     judge_agent = Agent(
         name="context_relevance_judge",
         instructions=CONTEXT_RELEVANCE_PROMPT,
-        model="openai/gpt-4.1-mini",
+        model=judge_model,
         output_type=RAGScore,
     )
 
@@ -185,6 +199,7 @@ async def evaluate_context_relevance(
 async def evaluate_answer_relevance(
     report_markdown: str,
     query: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGScore:
     """
     Evaluate answer relevance: Does the report answer the query?
@@ -192,6 +207,7 @@ async def evaluate_answer_relevance(
     Args:
         report_markdown: The generated report
         query: The original research query
+        judge_model: Model id for the LLM judge
 
     Returns:
         RAGScore with score (0-1) and reasoning
@@ -199,7 +215,7 @@ async def evaluate_answer_relevance(
     judge_agent = Agent(
         name="answer_relevance_judge",
         instructions=ANSWER_RELEVANCE_PROMPT,
-        model="openai/gpt-4.1-mini",
+        model=judge_model,
         output_type=RAGScore,
     )
 
@@ -218,22 +234,24 @@ async def evaluate_rag_triad(
     report_markdown: str,
     raw_notes: str,
     query: str,
+    judge_model: str = "openai/gpt-4.1-mini",
 ) -> RAGTriadResult:
     """
     Evaluate all three RAG Triad dimensions.
 
     Args:
         report_markdown: The generated report
-        raw_notes: The raw notes from sources
+        raw_notes: The retrieved context (pass the aggregated sources corpus)
         query: The original research query
+        judge_model: Model id for the LLM judge
 
     Returns:
         RAGTriadResult with scores for all 3 dimensions
     """
     # Evaluate all 3 dimensions
-    groundedness = await evaluate_groundedness(report_markdown, raw_notes)
-    context_relevance = await evaluate_context_relevance(raw_notes, query)
-    answer_relevance = await evaluate_answer_relevance(report_markdown, query)
+    groundedness = await evaluate_groundedness(report_markdown, raw_notes, judge_model)
+    context_relevance = await evaluate_context_relevance(raw_notes, query, judge_model)
+    answer_relevance = await evaluate_answer_relevance(report_markdown, query, judge_model)
 
     # Calculate average
     average = (groundedness.score + context_relevance.score + answer_relevance.score) / 3.0

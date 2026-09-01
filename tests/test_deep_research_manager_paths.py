@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -300,3 +301,32 @@ async def test_plan_file_searches_retries_once_on_invalid_json(monkeypatch, tmp_
     assert len(plan.searches) == 1
     assert calls["count"] == 2
     assert manager.agent_calls["file_planner_agent"] == 2
+
+
+@pytest.mark.asyncio
+async def test_failed_benchmark_phase_persists_zero_score_artifacts(monkeypatch, tmp_path: Path):
+    manager = _build_manager(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    manager._start_benchmark_run()
+
+    async def _fail():
+        raise ValueError("malformed planning JSON")
+
+    with pytest.raises(ValueError, match="malformed planning JSON"):
+        await manager._execute_benchmark_phase("planning", _fail(), "benchmark query")
+
+    assert manager._benchmark_run_dir is not None
+    stats = json.loads((manager._benchmark_run_dir / "stats.json").read_text(encoding="utf-8"))
+    grade = json.loads((manager._benchmark_run_dir / "det_grade.json").read_text(encoding="utf-8"))
+    sources = json.loads((manager._benchmark_run_dir / "sources.json").read_text(encoding="utf-8"))
+
+    assert stats["success"] is False
+    assert stats["failure"] == {
+        "phase": "planning",
+        "exception_type": "ValueError",
+        "message": "malformed planning JSON",
+    }
+    assert grade["score"] == 0.0
+    assert grade["qualified"] is False
+    assert grade["root_cause"]["verdict"] == "planning: ValueError"
+    assert sources == []

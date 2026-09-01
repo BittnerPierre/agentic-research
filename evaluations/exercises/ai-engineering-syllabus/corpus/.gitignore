@@ -1,0 +1,7 @@
+# The corpus = the 5 third-party articles referenced by test_files/syllabus.md.
+# We do NOT commit their full text (external content). They are re-populated by
+# running the exercise (knowledge_prep downloads the URLs), then copied here, or
+# fetched directly from the External References URLs. See README.md.
+*
+!.gitignore
+!README.md

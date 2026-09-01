@@ -1,0 +1,110 @@
+# Deterministic semantic contract for the five fixed public references.
+
+mode: conceptual
+theme: "AI engineering fundamentals - prompting, RAG, agents, and API systems"
+min_explanation_words: 24
+require_citation: true
+require_source_provenance: true
+companies_in_scope: []
+
+must_cover:
+  - id: system_user_prompts
+    concept: "system/developer vs user messages"
+    anchors_any: ["system prompt", "developer message", "messages developer", "system message", "user prompt", "user message", "messages user", "message système", "message utilisateur"]
+    semantic_groups:
+      - [instruction, behavior, rules, role, comportement]
+      - [request, input, utilisateur, demande]
+    source_files: [Text_generation, Building_Systems]
+  - id: zero_shot
+    concept: "zero-shot source gap"
+    anchors_any: [zero-shot, "zero shot"]
+    expected_status: source_gap
+    min_cited_origins: 5
+    semantic_groups:
+      - [source, reference, corpus, article]
+    gap_language_any: ["not covered", "not documented", "not supported", absent, "non documenté", "non documente", "non couvert", "pas dans les sources"]
+  - id: few_shot
+    concept: "few-shot prompting"
+    anchors_any: [few-shot, "few shot"]
+    semantic_groups:
+      - [example, demonstration, exemple]
+      - [prompt, model, modèle, modele]
+    source_files: [Building_Systems]
+  - id: cot
+    concept: "chain-of-thought prompting"
+    anchors_any: [chain-of-thought, "chain of thought", CoT]
+    semantic_groups:
+      - [reasoning, intermediate, step, raisonnement, étape, etape]
+    source_files: [Building_Systems, Agents]
+  - id: react
+    concept: "ReAct prompting"
+    anchors_any: [ReAct]
+    semantic_groups:
+      - [reason, reasoning, raisonnement]
+      - [act, action, tool, outil, observation]
+    source_files: [Agents]
+  - id: embeddings
+    concept: embeddings
+    anchors_any: [embedding, plongement]
+    semantic_groups:
+      - [vector, numerical, numérique, numerique, representation, projette, espace]
+      - [similarity, similarité, similarite, semantic, sémantique, semantique]
+    source_files: [Advanced_Retrieval]
+  - id: vector_search
+    concept: "vector search"
+    anchors_any: ["vector search", "vector store", "vector database", "recherche vectorielle", "base vectorielle"]
+    semantic_groups:
+      - [query, requête, requete, document, chunk]
+      - [similarity, distance, nearest, similarité, similarite]
+    source_files: [Advanced_Retrieval]
+  - id: rag
+    concept: RAG
+    anchors_any: [RAG, retrieval-augmented, "retrieval augmented"]
+    semantic_groups:
+      - [retrieve, retrieval, récupérer, recuperer, recherche]
+      - [context, contexte, generation, génération]
+    source_files: [Advanced_Retrieval]
+  - id: chromadb
+    concept: ChromaDB
+    anchors_any: [Chroma, ChromaDB]
+    semantic_groups:
+      - [vector, collection, store, database, base]
+    source_files: [Advanced_Retrieval]
+  - id: orchestration
+    concept: "agent orchestration"
+    anchors_any: [orchestration, orchestrator, superviseur, coordinator]
+    semantic_groups:
+      - [delegate, delegation, sub-agent, sous-agent, coordinate, coordonner]
+    source_files: [How_we_built_our_multi]
+  - id: multi_agent
+    concept: "multi-agent systems"
+    anchors_any: [multi-agent, "multi agent", "système multi-agents", "systeme multi-agents"]
+    semantic_groups:
+      - [parallel, spécialisé, specialise, sub-agent, sous-agent]
+      - [task, recherche, tâche, tache]
+    source_files: [How_we_built_our_multi]
+  - id: agent_memory
+    concept: "agent memory"
+    anchors_any: ["agent memory", memory, mémoire, memoire]
+    semantic_groups:
+      - [context, history, state, contexte, historique, état, etat, persistent]
+    source_files: [Agents, How_we_built_our_multi]
+  - id: function_calling
+    concept: "function calling"
+    anchors_any: ["function calling", "function call", "appel de fonction", "appel de fonctions"]
+    semantic_groups:
+      - [tool, schema, argument, outil, schéma, paramètre, parametre]
+    source_files: [Agents, Text_generation]
+  - id: error_handling
+    concept: "error handling and retries"
+    anchors_any: ["error handling", retry, retries, "gestion des erreurs", reprise]
+    semantic_groups:
+      - [failure, error, erreur, échec, echec]
+      - [retry, resume, checkpoint, reprise, relancer]
+    source_files: [How_we_built_our_multi]
+
+distractors: {}
+
+provenance:
+  input: test_files/syllabus.md
+  corpus: "the downloaded content of the five fixed External References"

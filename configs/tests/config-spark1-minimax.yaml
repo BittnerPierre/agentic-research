@@ -1,0 +1,68 @@
+# Configuration spike #196 — writer décomposé sur vLLM spark1
+# Modèle: cyankiwi/MiniMax-M2.7-AWQ-4bit
+# Servir CE modèle sur spark1:8000 avant de lancer (un modèle à la fois sur le dual-spark).
+# Comparaison mono vs décomposé : basculer agents.writer_strategy.
+config_name: "spark1-minimax"
+
+vector_store:
+  name: "agentic-research-dgx"
+  description: "Vector store for spark1 spike"
+  expires_after_days: 30
+
+# Chroma + DataPrep tournent en local ; l'embedding (llama.cpp) tourne sur spark1:8003.
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "localhost"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://spark1:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 5
+  score_threshold: null
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# DataPrep MCP en local.
+mcp:
+  server_host: "localhost"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+# Tous les modèles -> spark1:8000. /v1 OBLIGATOIRE (vLLM ne sert que /v1/*).
+models:
+  research_model: &spark1
+    name: "openai/cyankiwi/MiniMax-M2.7-AWQ-4bit"
+    base_url: "http://spark1:8000/v1"
+    api_key: "dummy"
+  planning_model: *spark1
+  search_model: *spark1
+  writer_model: *spark1
+  knowledge_preparation_model: *spark1
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"
+  writer_strategy: "decomposed"   # mettre "monolithic" pour la baseline
+  chapter_max_revisions: 1

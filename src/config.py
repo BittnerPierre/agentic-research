@@ -128,6 +128,10 @@ class ModelEndpointConfig(BaseModel):
     api: Literal["chat_completions", "responses"] | None = None
     reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] | None = None
     verbosity: Literal["low", "medium", "high"] | None = None
+    # Per-endpoint sampling controls (campaign: run each model at its recommended
+    # settings; a low temperature stabilizes tool-call argument discipline).
+    temperature: float | None = None
+    top_p: float | None = None
 
 
 ModelSpec = str | ModelEndpointConfig
@@ -141,6 +145,9 @@ class ModelsConfig(BaseModel):
     search_model: ModelSpec = Field(default="openai/gpt-4.1-mini")
     writer_model: ModelSpec = Field(default="litellm/mistral/mistral-medium-latest")
     knowledge_preparation_model: ModelSpec = Field(default="litellm/mistral/mistral-medium-latest")
+    # Decomposed writer (issue #196). None -> fall back to writer_model.
+    outline_model: ModelSpec | None = Field(default=None)
+    chapter_writer_model: ModelSpec | None = Field(default=None)
     # model: str = Field(default="openai/gpt-4.1-mini")
     # reasoning_model: str = Field(default="openai/o3-mini")
 
@@ -157,6 +164,12 @@ class AgentsConfig(BaseModel):
     max_search_plan: str = Field(default="8-12")
     output_dir: str = Field(default="output/")
     writer_output_format: Literal["json", "markdown"] = Field(default="json")
+    # Decomposed writer (issue #196): "monolithic" keeps the single-call writer.
+    writer_strategy: Literal["monolithic", "decomposed"] = Field(default="monolithic")
+    # Objective guardrail: retry a chapter with no [S#] citation this many times.
+    chapter_max_revisions: int = Field(default=1)
+    # Writing budget: cap the number of chapters (None = no cap).
+    writer_max_chapters: int | None = Field(default=None)
     file_search_rewrite_mode: Literal["none", "paraphrase_lite", "hyde_lite"] = Field(
         default="none"
     )

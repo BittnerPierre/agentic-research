@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import re
@@ -26,6 +27,8 @@ from .agents.utils import coerce_report_data, save_final_report_function
 from .config import get_config
 from .gates import check_search_results_gate
 from .printer import Printer
+from .report_writer.aggregate import aggregate_sources
+from .report_writer.pipeline import write_report_decomposed
 
 logger = logging.getLogger(__name__)
 _CHUNK_CITATION_RE = re.compile(r"\[[^\]\n:]+:[^\]\n]+\]")
@@ -37,6 +40,7 @@ class DeepResearchManager:
         self.printer = Printer(self.console)
         self._config = get_config()
         self.timings = {}  # Store timing information for benchmarking
+        self.writer_metrics: dict = {}  # Per-step writer stats (decomposed strategy)
         self.agent_calls = {  # Track agent calls for benchmarking
             "knowledge_preparation_agent": 0,
             "file_planner_agent": 0,
@@ -46,6 +50,8 @@ class DeepResearchManager:
             "failures": 0,
         }
         self.search_failure_breakdown: dict[str, int] = {}
+        self._benchmark_run_dir: Path | None = None
+        self._benchmark_search_results: list[str] = []
         self.usage_summary = {
             "requests": 0,
             "input_tokens": 0,
@@ -109,6 +115,7 @@ class DeepResearchManager:
 
         # Start timing
         workflow_start = time.time()
+        self._start_benchmark_run()
 
         trace_id = gen_trace_id()
         with trace(
@@ -138,31 +145,37 @@ class DeepResearchManager:
             self.writer_agent = create_writer_agent([self.fs_server], do_save_report=False)
 
             # Phase 1: Knowledge Preparation
-            prep_start = time.time()
-            agenda = await self._prepare_knowledge(query)
-            self.timings["knowledge_preparation"] = time.time() - prep_start
+            agenda = await self._execute_benchmark_phase(
+                "knowledge_preparation", self._prepare_knowledge(query), query
+            )
             print("\n\n=====AGENDA=====\n\n")
             print(agenda)
 
             # Phase 2: Planning
-            plan_start = time.time()
-            search_plan = await self._plan_file_searches(agenda)
-            self.timings["planning"] = time.time() - plan_start
+            search_plan = await self._execute_benchmark_phase(
+                "planning", self._plan_file_searches(agenda), query
+            )
             print("\n\n=====SEARCH PLAN=====\n\n")
             print(search_plan)
 
             # Phase 3: Search
-            search_start = time.time()
-            search_results = await self._perform_file_searches(search_plan)
-            self.timings["search"] = time.time() - search_start
+            search_results = await self._execute_benchmark_phase(
+                "search", self._perform_file_searches(search_plan), query
+            )
+            self._benchmark_search_results = search_results
 
             # Gate: block report if no exploitable source was produced
-            check_search_results_gate(search_results)
+            try:
+                check_search_results_gate(search_results)
+            except Exception as exc:
+                self.agent_calls["failures"] += 1
+                self._persist_benchmark_failure(query, "search_gate", exc)
+                raise
 
             # Phase 4: Writing
-            write_start = time.time()
-            report = await self._write_report(query, search_results)
-            self.timings["writing"] = time.time() - write_start
+            report = await self._execute_benchmark_phase(
+                "writing", self._write_report(query, search_results, agenda), query
+            )
 
             final_report = f"Report summary\n\n{report.short_summary}"
             self.printer.update_item("final_report", final_report, is_done=True)
@@ -182,6 +195,7 @@ class DeepResearchManager:
             report.follow_up_questions,
         )
         print(f"Report saved: {_new_report.file_name}")
+        self._persist_benchmark_stats(query, _new_report, search_results)
         print("\n\n=====REPORT=====\n\n")
         print(f"Report: {report.markdown_report}")
         print("\n\n=====FOLLOW UP QUESTIONS=====\n\n")
@@ -202,6 +216,29 @@ class DeepResearchManager:
             "preparing", "Préparation de la connaissance terminée", is_done=True
         )
         return str(result.final_output)
+
+    def _start_benchmark_run(self) -> None:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        strategy = self._config.agents.writer_strategy
+        self._benchmark_run_dir = (
+            Path("benchmarks") / "runs" / f"{timestamp}_{self._config.config_name}_{strategy}"
+        )
+        self._benchmark_run_dir.mkdir(parents=True, exist_ok=True)
+
+    async def _execute_benchmark_phase(self, phase: str, operation, query: str):
+        started = time.time()
+        try:
+            return await operation
+        except Exception as exc:
+            self.timings[phase] = time.time() - started
+            self.timings["total"] = sum(
+                duration for name, duration in self.timings.items() if name != "total"
+            )
+            self.agent_calls["failures"] += 1
+            self._persist_benchmark_failure(query, phase, exc)
+            raise
+        finally:
+            self.timings.setdefault(phase, time.time() - started)
 
     async def _plan_file_searches(self, query: str) -> FileSearchPlan:
         self.printer.update_item("planning", "Planification des recherches dans les fichiers...")
@@ -443,7 +480,34 @@ class DeepResearchManager:
         base_max = max_len - txt_ext_len
         return cleaned[:base_max]
 
-    async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
+    async def _write_report(self, query: str, search_results: list[str], agenda: str) -> ReportData:
+        if self._config.agents.writer_strategy == "decomposed":
+            return await self._write_report_decomposed(query, search_results, agenda)
+        return await self._write_report_monolithic(query, search_results)
+
+    async def _write_report_decomposed(
+        self, query: str, search_results: list[str], agenda: str
+    ) -> ReportData:
+        self.printer.update_item("writing", "Writing report (decomposed)...")
+        self.writer_metrics = {}
+        report = await write_report_decomposed(
+            query,
+            agenda,
+            search_results,
+            self.research_info,
+            usage_sink=self._record_usage,
+            metrics=self.writer_metrics,
+        )
+        self.printer.mark_item_done("writing")
+        # Honest cost: the decomposed writer makes 1 outline call + N chapter
+        # calls (+ retries), not one. spike-compare reads agent_calls.total, so
+        # under-counting here would skew the monolithic-vs-decomposed comparison.
+        writer_calls = int(self.writer_metrics.get("llm_calls", 1))
+        self.agent_calls["writer_agent"] += writer_calls
+        self.agent_calls["total"] += writer_calls
+        return report
+
+    async def _write_report_monolithic(self, query: str, search_results: list[str]) -> ReportData:
         self.printer.update_item("writing", "Thinking about report...")
         # Affichage plus lisible des fichiers de résultats de recherche
         formatted_results = (
@@ -486,6 +550,150 @@ class DeepResearchManager:
         self._record_usage(result, phase="writing")
         output = result.final_output
         return coerce_report_data(output, query)
+
+    def _model_summary(self) -> dict:
+        models = self._config.models
+
+        def describe(spec) -> str | None:
+            if spec is None:
+                return None
+            if isinstance(spec, str):
+                return spec
+            base_url = getattr(spec, "base_url", None)
+            name = getattr(spec, "name", str(spec))
+            return f"{name}@{base_url}" if base_url else name
+
+        roles = [
+            "research",
+            "planning",
+            "search",
+            "writer",
+            "knowledge_preparation",
+            "outline",
+            "chapter_writer",
+        ]
+        return {role: describe(getattr(models, f"{role}_model", None)) for role in roles}
+
+    def _persist_benchmark_stats(self, query: str, report: ReportData, search_results) -> None:
+        """Write a format-agnostic stats sidecar for cross-run comparison.
+
+        Always emits ``sources.json`` (the aggregated *retrieved* corpus) so the
+        grounding eval judges against what search actually returned — not the
+        report — which is the whole point of moving aggregation out of the writer.
+        """
+        try:
+            cfg = self._config
+            strategy = cfg.agents.writer_strategy
+            run_dir = self._benchmark_run_dir
+            if run_dir is None:
+                self._start_benchmark_run()
+                run_dir = self._benchmark_run_dir
+            assert run_dir is not None
+            run_dir.mkdir(parents=True, exist_ok=True)
+
+            sources = aggregate_sources(search_results)
+            (run_dir / "sources.json").write_text(
+                json.dumps([s.model_dump() for s in sources], ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+            writing_usage = self.usage_by_phase.get("writing", {})
+            writing_out = writing_usage.get("output_tokens") or 0
+            writing_time = self.timings.get("writing") or 0
+            stats = {
+                "config_name": cfg.config_name,
+                "writer_strategy": strategy,
+                "manager": "deep_manager",
+                "query": query,  # full query/syllabus — spec-compliance grading needs it
+                "report_file": report.file_name,
+                # Record where the report was written so spike-grade can locate it
+                # even under a custom --output-dir (stats stores only the basename).
+                "output_dir": cfg.agents.output_dir,
+                "success": True,
+                "models": self._model_summary(),
+                "timings": self.timings,
+                "usage_by_phase": self.usage_by_phase,
+                "agent_calls": self.agent_calls,
+                "n_sources": len(sources),
+                "derived": {
+                    "writing_throughput_tok_s": (
+                        writing_out / writing_time if writing_time else None
+                    ),
+                },
+                "writer_metrics": self.writer_metrics,
+            }
+            (run_dir / "stats.json").write_text(
+                json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"Benchmark stats saved: {run_dir / 'stats.json'}")
+        except Exception as exc:  # never let stats persistence break a run
+            print(f"Warning: could not persist benchmark stats: {exc}")
+
+    def _persist_benchmark_failure(self, query: str, phase: str, exc: Exception) -> None:
+        """Persist a zero-score artifact so failed workflows remain comparable."""
+        try:
+            run_dir = self._benchmark_run_dir
+            if run_dir is None:
+                self._start_benchmark_run()
+                run_dir = self._benchmark_run_dir
+            assert run_dir is not None
+
+            sources = aggregate_sources(self._benchmark_search_results)
+            (run_dir / "sources.json").write_text(
+                json.dumps(
+                    [source.model_dump() for source in sources], ensure_ascii=False, indent=2
+                ),
+                encoding="utf-8",
+            )
+            failure = {
+                "phase": phase,
+                "exception_type": type(exc).__name__,
+                "message": str(exc),
+            }
+            self.usage_by_phase["total"] = dict(self.usage_summary)
+            stats = {
+                "config_name": self._config.config_name,
+                "writer_strategy": self._config.agents.writer_strategy,
+                "manager": "deep_manager",
+                "query": query,
+                "report_file": None,
+                "output_dir": self._config.agents.output_dir,
+                "success": False,
+                "status": "failed",
+                "failure": failure,
+                "models": self._model_summary(),
+                "timings": self.timings,
+                "usage_by_phase": self.usage_by_phase,
+                "agent_calls": self.agent_calls,
+                "n_sources": len(sources),
+                "writer_metrics": self.writer_metrics,
+            }
+            (run_dir / "stats.json").write_text(
+                json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            deterministic_failure = {
+                "exercise": None,
+                "score": 0.0,
+                "qualified": False,
+                "qualification": {
+                    "passed": False,
+                    "blockers": ["workflow failed"],
+                    "critical_requirement_failures": [],
+                    "format_blockers": [],
+                },
+                "requirements": [],
+                "root_cause": {
+                    "verdict": f"{phase}: {type(exc).__name__}",
+                    **failure,
+                },
+            }
+            (run_dir / "det_grade.json").write_text(
+                json.dumps(deterministic_failure, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            print(f"Benchmark failure saved: {run_dir / 'stats.json'}")
+        except Exception as persist_exc:
+            print(f"Warning: could not persist benchmark failure: {persist_exc}")
 
     def _record_usage(self, result, phase: str | None = None) -> None:
         usage = getattr(getattr(result, "context_wrapper", None), "usage", None)

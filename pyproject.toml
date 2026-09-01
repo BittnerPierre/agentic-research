@@ -47,6 +47,9 @@ baseline-eval = "evaluations.baseline_runner:cli_main"
 test_trajectory = "evaluations.write_agent_eval:test_main"
 benchmark-models = "evaluations.benchmark_runner:cli_main"
 compare-benchmarks = "evaluations.benchmark_comparator:main"
+spike-compare = "evaluations.spike_compare:main"
+spike-grade = "evaluations.spike_grade:main"
+deterministic-grade = "evaluations.deterministic_grade:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src", "evaluations"]

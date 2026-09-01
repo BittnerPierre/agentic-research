@@ -1,0 +1,66 @@
+# Smoke test end-to-end du writer décomposé, 100% OpenAI (aucun cluster requis).
+# = config-default + writer_strategy: decomposed. Sert à valider la chaîne
+# D0->D3 + stats.json/sources.json + spike-grade/spike-compare avec un LLM réel.
+config_name: "openai-decomposed (smoke)"
+
+vector_store:
+  name: "agentic-research-default"
+  description: "Vector store for agentic research."
+  expires_after_days: 30
+
+vector_search:
+  provider: "openai"
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+dataprep:
+  llm:
+    enabled: true
+    model: "gpt-4.1-mini"
+    api_key_env: "OPENAI_API_KEY"
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "0.0.0.0"
+  server_port: 8001
+  client_timeout_seconds: 10.0
+
+models:
+  research_model: "openai/gpt-4.1-mini"
+  planning_model: "openai/gpt-4.1-mini"
+  search_model: "openai/gpt-4.1-mini" # requis pour file_search (vector_search.provider = openai)
+  writer_model: "openai/gpt-4.1-mini"
+  knowledge_preparation_model: "openai/gpt-4.1-mini"
+  # Laissés à null -> retombent sur writer_model. Décommenter pour tester un split.
+  # outline_model: "openai/gpt-4.1-mini"
+  # chapter_writer_model: "openai/gpt-4.1-mini"
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "json"
+  file_search_rewrite_mode: "none"
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null
+  # --- Le seul vrai changement vs config-default ---
+  writer_strategy: "decomposed"
+  chapter_max_revisions: 1
+  writer_max_chapters: null

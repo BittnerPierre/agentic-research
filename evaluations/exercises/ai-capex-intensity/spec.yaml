@@ -1,0 +1,48 @@
+required_chapters:
+  - Overview
+  - Profitability
+  - Capex
+  - Capex Trends
+  - Guidance
+  - Comparison
+  - Data Gaps
+
+embedded_tables:
+  required: true
+  min_tables: 1
+  expected_columns: [Company, Metric, Period, Value]
+  parseable: true
+
+only_provided_sources:
+  enforce: true
+  forbid_web_citations: true
+
+tone:
+  register: "neutral, factual, descriptive; junior-analyst data prep"
+  forbidden_language:
+    - "we recommend"
+    - "best positioned"
+    - "most disciplined"
+    - outperform
+    - overweight
+    - underweight
+    - "buy rating"
+    - "sell rating"
+
+length:
+  min_words: 500
+  max_words: 1800
+
+unverifiable_claims:
+  per_item_penalty: 1
+  prose_contradiction_penalty: 5
+  max_for_qualification: 5
+
+scoring:
+  axes:
+    coverage: {weight: 0.60}
+    accuracy: {weight: 0.20}
+    fabrication_gate: {type: penalty, hard_cap_if_any: 40}
+    agenda_discipline: {weight: 0.05}
+    tone_neutrality: {weight: 0.05}
+    format: {weight: 0.10}

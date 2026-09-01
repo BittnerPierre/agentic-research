@@ -1,0 +1,90 @@
+# Configuration spike #196 — writer décomposé sur vLLM spark1
+# Modèle: mistralai/Mistral-Small-4-119B-2603-NVFP4 (vLLM, tp2 = "dual stacked spark")
+# Topologie "single stacked": tous les agents tournent sur le même gros modèle.
+#
+# Comparaison mono vs décomposé : lancer une fois tel quel (decomposed),
+# puis repasser `agents.writer_strategy: "monolithic"` et relancer la même query.
+config_name: "spark1-decomposed"
+
+vector_store:
+  name: "agentic-research-dgx"
+  description: "Vector store for spark1 spike"
+  expires_after_days: 30
+
+# Chroma + DataPrep tournent en local ; l'embedding (llama.cpp) tourne sur spark1:8003.
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "localhost"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://spark1:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 5
+  score_threshold: null
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# DataPrep MCP en local.
+mcp:
+  server_host: "localhost"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+# Tous les modèles -> spark1:8000 (le 119B). API OpenAI-compatible, clé ignorée.
+# NB: /v1 OBLIGATOIRE — vLLM ne sert que /v1/* (contrairement à llama.cpp qui
+# accepte aussi /chat/completions sans /v1).
+models:
+  # Deux profils du MÊME modèle (Mistral Small 4, hybride reasoning+instruct) :
+  # le reasoning ne sert que là où on PLANIFIE / structure. La récupération et la
+  # rédaction des chapitres restent en instruct pur (vitesse/débit, pas de CoT).
+  #
+  # reasoning_effort:"high" est transmis par le SDK (openai_chatcompletions) à vLLM
+  # (lancé avec --reasoning-parser mistral) et déclenche le CoT — cf. HF model card.
+
+  # --- Instruct pur (pas de reasoning) : recherche + chapitres ---
+  search_model: &spark1
+    name: "openai/mistralai/Mistral-Small-4-119B-2603-NVFP4"
+    base_url: "http://spark1:8000/v1"
+    api_key: "dummy"
+  writer_model: *spark1
+  chapter_writer_model: *spark1
+
+  # --- Reasoning high : les étapes de planification ---
+  planning_model: &spark1_reasoning # plan de recherche (FileSearchPlan)
+    name: "openai/mistralai/Mistral-Small-4-119B-2603-NVFP4"
+    base_url: "http://spark1:8000/v1"
+    api_key: "dummy"
+    reasoning_effort: "high"
+  knowledge_preparation_model: *spark1_reasoning # agenda de recherche
+  research_model: *spark1_reasoning # orchestration / lead
+  outline_model: *spark1_reasoning # chemin de fer du rapport (D1)
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"
+  # >>> Le réglage du spike <<<
+  writer_strategy: "decomposed"   # mettre "monolithic" pour la baseline
+  chapter_max_revisions: 1
+  # writer_max_chapters: null     # cap optionnel du budget d'écriture

@@ -1,0 +1,35 @@
+{
+  "companyfacts": {
+    "Alphabet": {
+      "file": "CIK0001652044.json",
+      "sha256": "62d42c65a87b9c92cdaf9e5f342dd3a8cdbba2d2e3e4c5c495f2b884dab991c8"
+    },
+    "Amazon": {
+      "file": "CIK0001018724.json",
+      "sha256": "c991e221b9e1956e53c1e7c05f6a6683f926e43b23e2c800f626e997a268cc93"
+    },
+    "Apple": {
+      "file": "CIK0000320193.json",
+      "sha256": "31f9ab4398402faabc733178497af89dbf94dd5038c6e36d4c894317de8a4647"
+    },
+    "Meta": {
+      "file": "CIK0001326801.json",
+      "sha256": "ded9a9be1ed9c81cf94a4c1828a076438df6d43045a84f40ef392140ff638ccd"
+    },
+    "Microsoft": {
+      "file": "CIK0000789019.json",
+      "sha256": "352bbb036cbf65b74e126bb7ac040d2a8f9538dc0a85a0363a9a28a22039c4c3"
+    },
+    "NVIDIA": {
+      "file": "CIK0001045810.json",
+      "sha256": "93edcffe24f55d08284ff1736e41aa1a8e743ab6e4a6eea52cb8e9392b0ae6be"
+    }
+  },
+  "generated_files": {
+    "analyst_prep_notes.md": "958838a46697b6eb0519c7d87b906c843d392de04f25343038de54f24960aa13",
+    "capex_guidance_2025.md": "7120e5d41ef92788e3a91096af8c0da8fff0b22fe15333d3a3ac1f571d869546",
+    "capex_reference_data.md": "6ed15aa84a47fa392d57966d0876bda89fdc814adbfbe2b72d29b61322c7d451",
+    "key_metrics.csv": "2584ed612ab7aa0934c2c284fe85b8dbbfe75452ec87053c48fff7846a652390",
+    "misc_disclosures.md": "aad567915ae1670e97f7148f5015a21e62382dd862647c439f3a79555d1b2b88"
+  }
+}

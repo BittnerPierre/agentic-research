@@ -104,13 +104,19 @@ def create_dataprep_server() -> FastMCP:
             raise
 
     @mcp.tool()
-    def get_knowledge_entries_tool() -> list[dict[str, Any]]:
+    def get_knowledge_entries_tool(arguments: str | None = None) -> list[dict[str, Any]]:
         """
         Liste toutes les entrées de la base de connaissances.
 
         Returns:
             List[Dict]: Liste des entrées avec url, filename, title, keywords, openai_file_id
         """
+        # Small-model robustness: some models/tool-call parsers double-wrap an
+        # empty argument set as {"arguments": "{}"} (seen with Qwen3.6 via vLLM
+        # qwen3_xml on this zero-arg tool). Accept and ignore the phantom param
+        # instead of failing validation on every call. Same spirit as the
+        # filenames-as-string shim in vector_search.
+        del arguments
         logger.info("[MCP Tool] get_knowledge_entries called")
         config = get_config()
         try:
