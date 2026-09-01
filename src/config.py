@@ -271,6 +271,17 @@ _config_lock = threading.Lock()
 _config_access_logged = False
 
 
+def get_config_path() -> str | None:
+    """Chemin résolu du fichier de configuration chargé (provenance des packs).
+
+    Revue Codex 2026-07-17 : la provenance lisait cfg.config_path — attribut du
+    ConfigManager, pas du modèle Config — et laissait config_sha256 à None sur
+    tous les packs. Cet accesseur expose le chemin réel du singleton.
+    """
+    manager = _global_config_manager
+    return str(manager.config_path) if manager is not None else None
+
+
 def get_config(config_file: str | None = None) -> Config:
     """Get the global configuration instance with singleton pattern.
     Thread-safe implementation using double-checked locking pattern.

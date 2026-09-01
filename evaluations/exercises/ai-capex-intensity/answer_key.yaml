@@ -3,8 +3,19 @@
 # dimensions here and the values in one generated table prevents silent drift.
 
 mode: numeric
+contract_version: 2
 theme: "AI-era capital-expenditure intensity across six large-cap tech companies"
 companies_in_scope: [Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple]
+request_file: syllabus.md
+require_citation: true
+
+semantic_judge:
+  model: gpt-5.4-2026-03-05
+  reasoning_effort: none
+  protocol: judge_then_contradictor
+  authority: adequacy_veto
+  requirement_sections: [adequacy_requirements]
+  accepted_languages: [English, French]
 
 numeric_requirements:
   require_latest: true
@@ -84,6 +95,95 @@ text_requirements:
     anchors_any: ["data gap", unavailable, missing, "not disclosed", "no gap"]
     semantic_groups:
       - [source, corpus, provided]
+
+# These closed, natural-language requirements only veto an otherwise deterministic
+# finance grade when the requested junior-analyst analysis is substantively missing
+# or misleading. They never award numeric credit or override a numeric verdict.
+adequacy_requirements:
+  - id: definitions_adequacy
+    concept: "FCF and capex-intensity definitions"
+    expected_answer: >-
+      The report defines free cash flow as operating cash flow minus capex and capex
+      intensity as capex divided by operating cash flow. The definitions are used
+      consistently in the analysis.
+    required_points:
+      - Defines both requested measures rather than merely naming them.
+      - Keeps the numerator and denominator direction correct.
+    critical_errors:
+      - Reverses either formula or substitutes a different cash-flow measure.
+    source_files: [analyst_prep_notes.md, capex_reference_data.md]
+  - id: fiscal_calendar_adequacy
+    concept: "different fiscal-year ends"
+    expected_answer: >-
+      The report warns that fiscal calendars differ: December for Amazon, Alphabet,
+      and Meta; June for Microsoft; late January for NVIDIA; and late September for
+      Apple. It does not imply that every FY2025 period covers identical dates.
+    required_points:
+      - Discloses the cross-company fiscal-calendar comparability limitation.
+      - Covers all six companies with the correct year-end grouping.
+    critical_errors:
+      - States or implies that all six FY2025 periods are calendar-year comparable.
+    source_files: [analyst_prep_notes.md, misc_disclosures.md]
+  - id: capex_trend_adequacy
+    concept: "six-company capex trend analysis"
+    expected_answer: >-
+      For each of the six companies, the report compares the earliest capex observation
+      in the frozen corpus with FY2025 and describes both direction and magnitude. The
+      discussion remains factual and does not replace missing endpoints with estimates.
+    required_points:
+      - Includes a trend conclusion for every company in scope.
+      - Uses both the earliest available endpoint and FY2025.
+      - Communicates direction and magnitude, not direction alone.
+    critical_errors:
+      - Omits one or more companies while presenting the trend review as complete.
+      - Invents an endpoint that is absent from the supplied corpus.
+    source_files: [capex_reference_data.md, key_metrics.csv]
+  - id: guidance_adequacy
+    concept: "guidance coverage, dates, basis, and separation"
+    expected_answer: >-
+      A separate guidance section reports the frozen initial FY2025 guidance and release
+      date for Amazon, Alphabet, and Meta, including Meta's finance-lease-principal basis.
+      Microsoft, NVIDIA, and Apple are identified as unavailable in this source pack.
+      Guidance is not presented as an actual, and no Meta guidance variance is calculated
+      because the guidance and cash-capex actual are not like-for-like.
+    required_points:
+      - Separates guidance from reported FY2025 actuals.
+      - Covers the three available and three unavailable companies.
+      - Explains the Meta basis mismatch and avoids a guidance variance.
+    critical_errors:
+      - Presents guidance as a reported actual.
+      - Calculates or endorses a Meta variance despite the non-comparable bases.
+      - Fills unavailable guidance from model memory or an outside source.
+    source_files: [capex_guidance_2025.md, analyst_prep_notes.md]
+  - id: comparison_adequacy
+    concept: "factual cross-company comparison"
+    expected_answer: >-
+      The report synthesizes the six companies using the requested profitability,
+      cash-generation, capex, and capex-intensity evidence. It distinguishes scale from
+      intensity and remains a neutral junior-analyst comparison rather than an investment
+      recommendation.
+    required_points:
+      - Makes at least one substantive cross-company comparison from the requested metrics.
+      - Avoids treating absolute capex and capex intensity as interchangeable.
+      - Remains factual and neutral.
+    critical_errors:
+      - Converts the data pack into a buy, sell, ranking, or outperformance recommendation.
+      - Claims that the largest capex amount necessarily has the highest capex intensity.
+    source_files: [key_metrics.csv, capex_reference_data.md]
+  - id: data_gap_adequacy
+    concept: "actual-metric completeness and source gaps"
+    expected_answer: >-
+      The report explicitly states whether any of the 42 required FY2025 actual metrics
+      are missing from the frozen corpus. It does not infer or estimate a missing value,
+      and it distinguishes an unavailable guidance item from a missing reported actual.
+    required_points:
+      - Gives an explicit completeness or data-gap conclusion for required actuals.
+      - Does not silently estimate missing actuals.
+      - Keeps guidance availability distinct from actual-metric completeness.
+    critical_errors:
+      - Calls available required actuals unavailable without reconciling the supplied data.
+      - Fills a claimed actual-data gap with an estimate.
+    source_files: [key_metrics.csv, analyst_prep_notes.md]
 
 accuracy_universe:
   source: corpus/key_metrics.csv

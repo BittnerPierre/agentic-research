@@ -1,0 +1,100 @@
+{
+  "config_name": "openai-decomposed (smoke)",
+  "writer_strategy": "decomposed",
+  "manager": "deep_manager",
+  "query": "<research_request>\nUtilisation de la mémoire externe par les agents LLM\n</research_request>",
+  "report_file": "research_request_utilisation_de_la_mmoire_externe__final_report_20260710_115927.md",
+  "success": true,
+  "models": {
+    "research": "openai/gpt-4.1-mini",
+    "planning": "openai/gpt-4.1-mini",
+    "search": "openai/gpt-4.1-mini",
+    "writer": "openai/gpt-4.1-mini",
+    "knowledge_preparation": "openai/gpt-4.1-mini",
+    "outline": null,
+    "chapter_writer": null
+  },
+  "timings": {
+    "knowledge_preparation": 12.48904299736023,
+    "planning": 7.286488056182861,
+    "search": 194.56426692008972,
+    "writing": 30.356637954711914,
+    "total": 244.76520586013794
+  },
+  "usage_by_phase": {
+    "knowledge_preparation": {
+      "requests": 2,
+      "input_tokens": 6139,
+      "output_tokens": 61,
+      "total_tokens": 6200,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "planning": {
+      "requests": 1,
+      "input_tokens": 983,
+      "output_tokens": 574,
+      "total_tokens": 1557,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "search": {
+      "requests": 4,
+      "input_tokens": 73906,
+      "output_tokens": 1775,
+      "total_tokens": 75681,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "writing": {
+      "requests": 8,
+      "input_tokens": 14789,
+      "output_tokens": 5936,
+      "total_tokens": 20725,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "total": {
+      "requests": 15,
+      "input_tokens": 95817,
+      "output_tokens": 8346,
+      "total_tokens": 104163,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    }
+  },
+  "agent_calls": {
+    "knowledge_preparation_agent": 1,
+    "file_planner_agent": 1,
+    "file_search_agent": 2,
+    "writer_agent": 1,
+    "total": 5,
+    "failures": 4
+  },
+  "n_sources": 2,
+  "derived": {
+    "writing_throughput_tok_s": 195.54207580087512
+  },
+  "writer_metrics": {
+    "outline_title": "Utilisation de la mémoire externe par les agents LLM",
+    "outline_seconds": 4.553442832999281,
+    "n_chapters": 5,
+    "chapter_seconds": [
+      17.303659333003452,
+      10.370437042001868,
+      11.194292958003643,
+      25.795813374999852,
+      9.864371625000786
+    ],
+    "chapters_wall_seconds": 25.799422208001488,
+    "concurrency_ratio": 2.8887691256083694,
+    "grounding": {
+      "n_sources": 2,
+      "n_cited_sources": 2,
+      "source_coverage": 1.0,
+      "n_chapters": 5,
+      "chapters_with_citation": 5,
+      "chapter_citation_rate": 1.0
+    }
+  }
+}

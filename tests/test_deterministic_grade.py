@@ -166,7 +166,11 @@ def test_table_cells_parse_canonical_long_format_and_small_integer() -> None:
     ]
 
 
-def test_table_cells_parse_combined_operating_income_and_margin() -> None:
+def test_combined_table_assists_coverage_but_never_accuses() -> None:
+    # Arbitrage Pierre (2026-07-15) — « les en-têtes peuvent aider, jamais
+    # accuser » : cette lecture par en-têtes fournit des claims d'ASSISTANCE
+    # (crédit de couverture sur match) ; un écart via ces claims ne produit
+    # jamais d'accusation (voir test_assisted_mismatch_is_not_accused).
     report_md = (
         "| Company | Period | Operating income (margin) |\n"
         "| --- | --- | --- |\n"
@@ -177,6 +181,24 @@ def test_table_cells_parse_combined_operating_income_and_margin() -> None:
         ("Amazon", "Operating income", "FY2025", 80.0),
         ("Amazon", "Operating margin", "FY2025", 11.2),
     ]
+
+
+def test_assisted_mismatch_is_not_accused_but_content_mismatch_is(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15) : un écart lu via en-têtes peut être NOTRE
+    # erreur de lecture -> silence (existence seulement). Un écart dans une
+    # ligne canonique auto-identifiée (contenu) reste une accusation.
+    exercise = _write_exercise(tmp_path)
+    header_mismatch = "| Company | Earliest revenue |\n| --- | --- |\n| Apple | 999.0 |\n"
+    result = grade(tmp_path / "run", exercise, header_mismatch, [])
+    assert result["accuracy"]["wrong"] == 0  # pas d'accusation via en-têtes
+
+    canonical_mismatch = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Revenue | FY2025 | 999.0 |\n"
+    )
+    result = grade(tmp_path / "run", exercise, canonical_mismatch, [])
+    assert result["accuracy"]["wrong"] == 1  # la ligne canonique accuse
 
 
 def test_grade_uses_period_for_table_accuracy(tmp_path: Path) -> None:
@@ -220,7 +242,12 @@ def test_grade_scores_declared_length_constraint(tmp_path: Path) -> None:
     assert result["score"] == 80.0
 
 
-def test_conceptual_number_must_exist_in_cited_source(tmp_path: Path) -> None:
+def test_conceptual_numbers_are_judge_territory_not_mechanical(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16, révélé par Mistral) : renverse l'ancienne
+    doctrine « conceptual number must exist in cited source ». Les constantes
+    techniques du conceptuel (tailles de chunks, dimensions, S&P 500) relèvent
+    du juge evidence-bound, qui vérifie déjà l'ancrage aux preuves — la porte
+    numérique mécanique produisait des faux positifs en double peine."""
     exercise = _write_exercise(tmp_path, mode="conceptual")
     (exercise / "corpus" / "article.md").write_text(
         "Another section mentions 500 tokens and a 20% rate.\n",
@@ -238,7 +265,7 @@ def test_conceptual_number_must_exist_in_cited_source(tmp_path: Path) -> None:
 
     result = grade(tmp_path / "run", exercise, report_md, sources)
 
-    assert [item["value"] for item in result["fabrication"]["items"]] == [200.0, 500.0, 20.0]
+    assert result["fabrication"]["count"] == 0
 
 
 def test_derivation_uses_claimed_company_metric_and_periods(tmp_path: Path) -> None:
@@ -361,7 +388,12 @@ def test_unavailability_clause_is_attributed_to_named_company_only(tmp_path: Pat
     ]
 
 
-def test_prose_fact_cannot_reuse_another_company_value(tmp_path: Path) -> None:
+def test_prose_number_existing_in_corpus_is_not_accused(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): prose numbers are checked for EXISTENCE in
+    # the corpus only — mechanical company/metric/period attribution of free
+    # text is gone (it produced false accusations on the reference model).
+    # A corpus value reused for the wrong company in prose is an ANALYSIS error,
+    # which belongs to the adequacy judge, not the number checker.
     exercise = _write_exercise(tmp_path)
     (exercise / "corpus" / "other_company.md").write_text(
         "Alphabet revenue was 402.8B.\n",
@@ -371,7 +403,8 @@ def test_prose_fact_cannot_reuse_another_company_value(tmp_path: Path) -> None:
 
     result = grade(tmp_path / "run", exercise, report_md, [])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [402.8]
+    assert result["prose_contradictions"]["items"] == []
+    assert result["fabrication"]["count"] == 0
 
 
 def test_correct_prose_fact_remains_grounded(tmp_path: Path) -> None:
@@ -420,13 +453,17 @@ def test_correct_value_with_ambiguous_metric_is_not_called_a_contradiction(tmp_p
     assert result["prose_contradictions"]["count"] == 0
 
 
-def test_explicit_wrong_metric_cannot_reuse_another_metric_value(tmp_path: Path) -> None:
+def test_prose_metric_reuse_is_judge_territory_not_mechanical(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 416.2 exists in the corpus (Apple revenue),
+    # so the existence check passes; calling it "capex" in prose is an analysis
+    # error for the adequacy judge. No mechanical accusation.
     exercise = _finance_exercise()
     report = "Apple FY2025 capex was $416.2B [S1].\n"
 
     result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [416.2]
+    assert result["prose_contradictions"]["items"] == []
+    assert result["fabrication"]["count"] == 0
 
 
 def _finance_exercise() -> Path:
@@ -463,7 +500,7 @@ def test_finance_contract_requires_all_42_latest_facts(tmp_path: Path) -> None:
     )
 
 
-def test_finance_contract_has_a_reachable_qualified_reference(tmp_path: Path) -> None:
+def test_finance_contract_has_a_reachable_deterministic_reference(tmp_path: Path) -> None:
     report = "\n\n".join(
         [
             "# Overview and Definitions\n"
@@ -492,18 +529,26 @@ def test_finance_contract_has_a_reachable_qualified_reference(tmp_path: Path) ->
     assert result["coverage"]["hit"] == 42
     assert result["accuracy"]["wrong"] == 0
     assert result["fabrication"]["count"] == 0
-    assert result["qualified"] is True
+    assert result["qualified"] is False
+    assert result["qualification"]["blockers"] == ["finance adequacy judge not run"]
 
 
 def test_number_that_looks_like_year_but_has_unit_is_checked(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15) — documented limitation: "$2025B" collides
+    # with the year tokens present in the corpus text, so the existence check
+    # passes and no mechanical accusation is raised. Prose attribution is gone;
+    # this rare shape is left to the adequacy judge / human read.
     exercise = _write_exercise(tmp_path)
 
     result = grade(tmp_path / "run", exercise, "Apple FY2025 revenue was $2025B.\n", [])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [2025.0]
+    assert result["prose_contradictions"]["items"] == []
 
 
-def test_wrong_direct_fact_cannot_be_rescued_as_derivation(tmp_path: Path) -> None:
+def test_stale_period_value_in_prose_is_judge_territory(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 391.0 exists in the corpus (FY2024), so
+    # existence passes; claiming it for FY2025 in prose is an analysis error
+    # for the adequacy judge. The canonical table keeps full period authority.
     exercise = _write_exercise(tmp_path)
     corpus = exercise / "corpus" / "key_metrics.csv"
     corpus.write_text(
@@ -517,7 +562,8 @@ def test_wrong_direct_fact_cannot_be_rescued_as_derivation(tmp_path: Path) -> No
 
     result = grade(tmp_path / "run", exercise, report, [])
 
-    assert any(item["value"] == 391.0 for item in result["prose_contradictions"]["items"])
+    assert result["prose_contradictions"]["items"] == []
+    assert result["fabrication"]["count"] == 0
 
 
 def test_correct_derivation_can_use_operands_in_previous_sentence(tmp_path: Path) -> None:
@@ -563,7 +609,10 @@ def test_concept_source_provenance_rejects_summary_without_doc_ids(tmp_path: Pat
     answer_key["require_source_provenance"] = True
     answer_key["must_cover"][0]["source_files"] = ["Agents"]
     (exercise / "answer_key.yaml").write_text(yaml.safe_dump(answer_key), encoding="utf-8")
-    report = "Agent memory preserves persistent conversation history for later tasks [S1].\n"
+    report = (
+        "Agent memory preserves persistent conversation history and prior tool state so an "
+        "agent can resume later tasks without losing the context needed for decisions [S1].\n"
+    )
 
     result = grade(
         tmp_path / "run",
@@ -573,6 +622,122 @@ def test_concept_source_provenance_rejects_summary_without_doc_ids(tmp_path: Pat
     )
 
     assert result["coverage"]["hit"] == 0
+
+
+def test_concept_does_not_borrow_an_unrelated_citation_from_same_paragraph(
+    tmp_path: Path,
+) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8"))
+    answer_key["require_source_provenance"] = True
+    answer_key["must_cover"][0]["source_files"] = ["Agents"]
+    answer_key["must_cover"][0]["semantic_groups"] = [["persistent"], ["history"]]
+    (exercise / "answer_key.yaml").write_text(yaml.safe_dump(answer_key), encoding="utf-8")
+    report = (
+        "- Agent memory preserves persistent conversation history for later tasks.\n"
+        "- A separate implementation note discusses generic tools and schemas [S1].\n"
+    )
+    sources = [
+        {
+            "source_id": "S1",
+            "content": "Generic tools use schemas and arguments.",
+            "doc_ids": ["Agents_1.md:4"],
+        }
+    ]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+
+    assert result["coverage"]["hit"] == 0
+
+
+def test_concept_provenance_resolves_short_and_prefixed_document_ids(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8"))
+    answer_key["require_source_provenance"] = True
+    answer_key["must_cover"][0]["source_files"] = ["Agents"]
+    answer_key["must_cover"][0]["semantic_groups"] = [["persistent"], ["history"]]
+    (exercise / "answer_key.yaml").write_text(yaml.safe_dump(answer_key), encoding="utf-8")
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "knowledge_db.json").write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {
+                        "vector_doc_id": "abcdef12-3456-7890-abcd-ef1234567890",
+                        "filename": "Agents_1.md",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    report = (
+        "Agent memory preserves persistent conversation history and prior tool state so an "
+        "agent can resume later tasks without losing the context needed for decisions [S1].\n"
+    )
+    sources = [
+        {
+            "source_id": "S1",
+            "content": report,
+            "doc_ids": ["document_id:abcdef12:4"],
+        }
+    ]
+
+    result = grade(run, exercise, report, sources)
+
+    assert result["coverage"]["hit"] == 1
+    assert result["source_resolution"]["sources"] == {"S1": ["Agents_1.md"]}
+
+    (run / "det_grade.json").write_text(json.dumps(result), encoding="utf-8")
+    (run / "knowledge_db.json").unlink()
+    portable_result = grade(
+        run,
+        exercise,
+        report,
+        [{"source_id": "S1", "content": report, "doc_ids": ["abcdef12:4"]}],
+    )
+    assert portable_result["coverage"]["hit"] == 1
+
+
+def test_fixed_concept_contract_accepts_plural_embeddings_and_french_messages(
+    tmp_path: Path,
+) -> None:
+    exercise = Path(__file__).parents[1] / "evaluations" / "exercises" / "ai-engineering-syllabus"
+    report = (
+        "Les messages developer définissent les règles et le comportement, tandis que les "
+        "messages user fournissent les entrées et la demande utilisateur [S1].\n\n"
+        "Les embeddings représentent le texte par des vecteurs numériques dans un espace "
+        "sémantique où la similarité rapproche les contenus de sens voisin [S2].\n"
+    )
+    sources = [
+        {"source_id": "S1", "content": report, "doc_ids": ["Text_generation.md:1"]},
+        {
+            "source_id": "S2",
+            "content": report,
+            "doc_ids": ["Advanced_Retrieval_for_Retrieval-Augmented_Generat_1.md:2"],
+        },
+    ]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+    statuses = {item["id"]: item["status"] for item in result["requirements"]}
+
+    assert statuses["system_user_prompts"] == "pass"
+    assert statuses["embeddings"] == "pass"
+
+
+def test_fixed_concept_contract_accepts_explicit_known_zero_shot_gap(tmp_path: Path) -> None:
+    exercise = Path(__file__).parents[1] / "evaluations" / "exercises" / "ai-engineering-syllabus"
+    report = (
+        "Le zero-shot n'est pas documenté dans les sources du corpus fourni; cette lacune "
+        "doit être signalée plutôt que complétée depuis la mémoire du modèle [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": report, "doc_ids": ["Text_generation.md:1"]}]
+
+    result = grade(tmp_path / "run", exercise, report, sources)
+    statuses = {item["id"]: item["status"] for item in result["requirements"]}
+
+    assert statuses["zero_shot"] == "pass"
 
 
 def test_numeric_contract_fails_loudly_when_period_is_stale(tmp_path: Path) -> None:
@@ -642,14 +807,18 @@ def test_cited_growth_language_cannot_bypass_citation_laundering(tmp_path: Path)
     assert result["qualified"] is False
 
 
-def test_explicit_off_whitelist_fact_is_a_blocking_contradiction(tmp_path: Path) -> None:
+def test_off_whitelist_prose_number_is_unverifiable_diagnostic(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 45% exists nowhere in the corpus and is not
+    # a derivation of shown operands — it fails the EXISTENCE check and lands in
+    # the unverifiable diagnostic (per-item penalty, volume-capped), without a
+    # mechanical company/metric attribution.
     exercise = _finance_exercise()
     report = "Apple's operating margin reached 45% in FY2025.\n"
 
     result = grade(tmp_path / "run", exercise, report, [])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [45.0]
-    assert result["qualified"] is False
+    assert result["prose_contradictions"]["items"] == []
+    assert 45.0 in [item["value"] for item in result["unverifiable"]["items"]]
 
 
 def test_uncited_unsupported_range_is_diagnostic(tmp_path: Path) -> None:
@@ -701,7 +870,10 @@ def test_six_uncited_growth_rates_exceed_finance_volume_cap(tmp_path: Path) -> N
     assert result["qualified"] is False
 
 
-def test_wrong_operand_is_charged_once_but_consistent_derivation_is_not(tmp_path: Path) -> None:
+def test_wrong_operand_is_flagged_once_but_consistent_derivation_is_not(tmp_path: Path) -> None:
+    # Arbitrage Pierre (2026-07-15): 22.0 exists nowhere in the corpus (truth is
+    # 22.3) — it fails the EXISTENCE check (unverifiable diagnostic). The 4.2x
+    # consistent with the SHOWN operands is not charged a second time.
     exercise = _finance_exercise()
     report = (
         "Alphabet spending rose from $22.0B in FY2020 to $91.4B in FY2025 [S1]. "
@@ -710,7 +882,9 @@ def test_wrong_operand_is_charged_once_but_consistent_derivation_is_not(tmp_path
 
     result = grade(tmp_path / "run", exercise, report, [{"source_id": "S1", "content": report}])
 
-    assert [item["value"] for item in result["prose_contradictions"]["items"]] == [22.0]
+    assert result["prose_contradictions"]["items"] == []
+    # 22.0 exists nowhere in the corpus and carries a citation: laundering, blocking.
+    assert 22.0 in [item["value"] for item in result["fabrication"]["items"]]
     assert all(item["value"] != 4.2 for item in result["unverifiable"]["items"])
 
 
@@ -728,3 +902,690 @@ def test_wrong_derivation_from_correct_operands_is_diagnostic(tmp_path: Path) ->
         item["value"] == 4.2 and item["reason"] == "invalid_derivation"
         for item in result["unverifiable"]["items"]
     )
+
+
+def test_deterministic_scoring_is_invariant_across_rescores(tmp_path: Path) -> None:
+    # Exigence Pierre (2026-07-15): même rapport => même résultat, à chaque
+    # re-scoring. Couvre la partie déterministe (le juge LLM, non appelé ici,
+    # est mesuré séparément — il ne peut pas être exactement invariant).
+    exercise = _finance_exercise()
+    report = "\n".join(
+        [
+            "# FY2025 Capex and Cash Generation",
+            _fy2025_table(),
+            "",
+            "Amazon capex rose from $40.1B in FY2020 to $131.8B in FY2025.",
+        ]
+    )
+    sources = [{"source_id": "S1", "content": report}]
+
+    results = [grade(tmp_path / "run", exercise, report, sources) for _ in range(3)]
+
+    baseline = json.dumps(results[0], sort_keys=True)
+    assert all(json.dumps(r, sort_keys=True) == baseline for r in results[1:])
+
+
+def _amazon_exercise(tmp_path: Path) -> Path:
+    """Corpus with a multi-year capex series for one company (Amazon)."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Amazon capex was 40.1B in FY2020 and 131.8B in FY2025.\n", encoding="utf-8"
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2020,40.1,USD_billions\n"
+        "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return exercise
+
+
+def test_company_scoped_delta_far_from_operands_is_not_fabrication(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16): a synthesis sentence lists deltas FAR from
+    their operands ("Amazon (+91.7B), ahead of Alphabet (+69.1B)...") — the
+    ±160-char window cannot see the source table. When the clause names a
+    company, the derivation is checked against THAT company's corpus values
+    (same-metric pairs), not the surrounding text. Observed live: all 5
+    gpt-5.6-sol finance runs falsely accused on exact corpus deltas."""
+    exercise = _amazon_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Trends\n{filler}\nAmazon shows the largest increase (+91.7B) [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without the operand numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_company_scoped_growth_percent_is_not_fabrication(tmp_path: Path) -> None:
+    exercise = _amazon_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Trends\n{filler}\nAmazon grew by +228.7% over the period [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without the operand numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_invented_number_next_to_company_name_is_still_fabricated(tmp_path: Path) -> None:
+    """The company-scoped check must not become a laundering hole: an invented
+    figure near a company name stays fabricated when no same-metric pair of
+    that company derives it."""
+    exercise = _amazon_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Trends\n{filler}\nAmazon shows the largest increase (+80.3B) [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without the operand numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 1
+
+
+def test_rounding_precision_convention_is_not_fabrication(tmp_path: Path) -> None:
+    """Codex review #201 (2026-07-16): 'les montants sont arrondis à 0,1 Md$'
+    is a presentation convention, not a data claim — 8 such flags capped a
+    clean gpt-5.6-sol run at 40."""
+    exercise = _amazon_exercise(tmp_path)
+    report_md = (
+        "# Method\nAmazon capex reached 131.8B [S1].\n"
+        "Les montants sont arrondis à 0,1 Md$ et les marges à 0,1 point [S1].\n"
+        "Amounts are rounded to 0.1B for presentation [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_binary_minus_between_operands_is_not_a_negative_number(tmp_path: Path) -> None:
+    """Codex review #201 (2026-07-16): the minus in '131,8 - 40,1' is a binary
+    operator; parsing it as negative -40.1 pushed a shown operand off the
+    whitelist."""
+    exercise = _amazon_exercise(tmp_path)
+    # \u2212 = vrai signe moins Unicode des rapports (un tiret serait parse comme une plage)
+    report_md = "# Calc\nAmazon FCF check: 131,8 \u2212 40,1 = 91,7 Md$ [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def _amazon_ratio_exercise(tmp_path: Path) -> Path:
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Amazon FY2025: capex 131.8B, operating cash flow 139.4B, ratio 94 percent.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n"
+        "Amazon,Dec,Operating cash flow,FY2025,139.4,USD_billions\n"
+        "Amazon,Dec,Operating income,FY2025,70.0,USD_billions\n"
+        "Amazon,Dec,Capex/OCF,FY2025,94,percent\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return exercise
+
+
+def test_recomputed_cross_metric_ratio_is_not_fabrication(tmp_path: Path) -> None:
+    """gpt-5.6-sol recomputed the requested Capex/OCF ratios at higher precision
+    than the corpus rounding (94.5% vs corpus 94) — the exercise explicitly
+    asks for this division. Same-company same-period cross-metric ratios are a
+    legitimate derivation class."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    filler = "The detailed table appears earlier in the report. " * 6
+    report_md = f"# Ratios\n{filler}\nAmazon Capex/OCF recalcule est de 94,5 % [S1].\n"
+    sources = [{"source_id": "S1", "content": "Trend summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_extraction_meta_statement_is_not_a_false_unavailability(tmp_path: Path) -> None:
+    """'One corpus extraction states that Apple operating income is unavailable'
+    reports what a retrieval extraction said — meta-discourse, not a claim
+    about the fact (same family as the evidence-chunk guard)."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "One corpus extraction states that Amazon operating income is unavailable [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_presentation_precision_wording_is_not_fabrication(tmp_path: Path) -> None:
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Method\nAmazon capex reached 131.8B [S1].\n"
+        "Les montants sont présentés à 0,1 Md$ dans les tableaux [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_margin_ratio_cannot_launder_invented_figure(tmp_path: Path) -> None:
+    """Falsified control regression (2026-07-16): a planted 137 was laundered
+    by the ratio of two operating margins (37.3/27.2*100 = 137.13) — a
+    dimensional nonsense. Percent-typed metrics only support DELTAS
+    (percentage points) in the corpus fallback."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "NVIDIA operating margin was 27.2 percent in FY2021 and 37.3 percent in FY2022.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "NVIDIA,Jan,Operating margin,FY2021,27.2,percent\n"
+        "NVIDIA,Jan,Operating margin,FY2022,37.3,percent\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["NVIDIA"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_md = "# Analysis\nNVIDIA revenue grew by an impressive 137% [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 1
+
+
+def test_respectivement_enumeration_of_recomputed_ratios_is_not_fabrication(tmp_path: Path) -> None:
+    """'Les ratios capex/OCF recalculés sont respectivement de 94,5 %, ...' —
+    an ordered enumeration names no company in the paragraph; the values are
+    exact recomputations of per-company corpus amounts. Without a named
+    company the fallback tries every company in scope (still near-exact)."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    filler = "Definitions and reconciliation notes appear here. " * 5
+    report_md = f"# Method\n{filler}\nLes ratios recalcules sont respectivement de 94,5 % [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_guidance_table_rows_never_accuse_actuals(tmp_path: Path) -> None:
+    """gpt-5.6-sol run: the guidance table row '| Alphabet | Environ 75 |
+    4 fev. 2025 |' (a frozen-pack guidance FACT, correctly reported in the
+    guidance section) was attributed as Alphabet Capex FY2025 actual and
+    accused vs 91.4. A table whose header matches guidance markers carries no
+    accusation authority."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Alphabet capex was 91.4B in FY2025. Initial FY2025 guidance: approximately 75B.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Alphabet,Dec,Capex,FY2025,91.4,USD_billions\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Alphabet"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_md = (
+        "# Guidance\n\n"
+        "| Societe | Guidance capex initiale FY2025 | Date de publication | Base indiquee |\n"
+        "|---|---:|---|---|\n"
+        "| Alphabet | Environ 75 | 4 fev. 2025 | Capex publie; variabilite possible [S2] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_source_discrepancy_note_with_value_is_not_false_unavailability(tmp_path: Path) -> None:
+    """gpt-5.6-sol flagged a documentary inconsistency — '[S3] indique
+    l'operating income d'Apple comme indisponible, tandis que les données
+    structurées donnent 133,1 Md$' — exemplary analyst behavior: the clause
+    SHOWS the corpus value, so it cannot be claiming unavailability."""
+    exercise = _write_exercise(tmp_path)
+    report_md = (
+        "# Gaps\n"
+        "Une incoherence documentaire doit etre signalee : [S3] indique le revenue "
+        "d'Apple comme indisponible, tandis que les donnees structurees donnent "
+        "416.2 Md$ pour FY2025 [S4].\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_unit_scale_variant_of_corpus_number_is_not_fabrication(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16, qwen run 15) : le rapport définit sa propre
+    abréviation « milliards de dollars (M$) » puis écrit « de 40,1 M$ à
+    131,8 M$ ». Le scorer lisait M$ = millions -> 0.1318 Md$ hors corpus ->
+    fabrication. L'esprit du test d'existence : le NOMBRE écrit existe dans le
+    corpus ; l'ambiguïté d'échelle d'unité n'est pas une invention."""
+    exercise = _amazon_exercise(tmp_path)
+    report_md = "# Trends\nAmazon capex rose from 40,1 M$ in FY2020 to 131,8 M$ in FY2025 [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_french_guidance_wording_guides_initiaux_is_not_false_unavailability(
+    tmp_path: Path,
+) -> None:
+    """qwen run 15 : « Microsoft, NVIDIA et Apple n'ont pas fourni de guides
+    initiaux de Capex pour le FY2025 » — statement TRUE about guidance, but
+    the guidance vocabulary lacked the French word « guide »."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Guidance\nAmazon capex reached 131.8B [S1].\n"
+        "Amazon n'a pas fourni de guides initiaux de Capex pour le FY2025, "
+        "ces donnees etant indisponibles [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_source_attributed_unavailability_is_meta_discourse(tmp_path: Path) -> None:
+    """gpt-5.6-sol capex-3 (le 60.0 qui creusait sa variance) : « [S7] marks
+    all Apple metrics as unavailable, while the cross-source reconciliation
+    reports Apple's revenue... retained » — une indisponibilité ATTRIBUÉE à
+    une source ([Sx] marks/labels/indique) décrit ce que dit la source, pas le
+    fait ; le modèle décrit un conflit et garde les bonnes valeurs."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "However, [S7] marks all Amazon metrics as unavailable, while the "
+        "cross-source reconciliation reports Amazon's revenue and operating income; "
+        "these are therefore retained [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_binary_minus_after_unit_letter_is_not_negative(tmp_path: Path) -> None:
+    """MiniMax capex-1 : le signe moins Unicode suit la
+    lettre d'unité B, pas un chiffre ; lu comme -131.8 -> hors whitelist."""
+    exercise = _amazon_exercise(tmp_path)
+    report_md = "# Calc\nAmazon FCF: $139.5B \u2212 $131.8B = $7.7B [S1].\n"
+    sources = [{"source_id": "S1", "content": "Summary without numbers."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert all(it["value"] != -131.8 for it in result["fabrication"]["items"])
+
+
+def test_hedged_round_threshold_in_english_is_not_fabrication(tmp_path: Path) -> None:
+    """MiniMax : « Capex/OCF exceeding 50% », « capex 20-50% of OCF » — des
+    seuils de classement d'analyste ; le vocabulaire hedge était francophone."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Buckets\nAmazon capex reached 131.8B [S1].\n"
+        "Capital-extreme reinvestors show Capex/OCF exceeding 50% of OCF [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_calendar_dates_are_not_fabricated_numbers(tmp_path: Path) -> None:
+    """gpt-4.1 capex-4 : « Microsoft (1er juillet 2024 - 30 juin 2025), NVIDIA
+    (1er février 2024 - 31 janvier 2025) » - les jours du mois (30, 31) lus
+    comme des chiffres financiers inventés. Un nombre suivi d'un nom de mois
+    est une date."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Calendriers\nAmazon capex reached 131.8B [S1].\n"
+        "Microsoft (1er juillet 2024 - 30 juin 2025) et NVIDIA (1er fevrier "
+        "2024 - 31 janvier 2025) ont des exercices decales [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_negated_missing_wording_is_not_unavailability(tmp_path: Path) -> None:
+    """gpt-4.1 capex-2 : « l'intégralité des sept métriques a été retrouvée,
+    sans valeur manquante ni donnée non reportée » — une phrase de COMPLÉTUDE ;
+    le scanner voyait « manquante » et accusait 5 sociétés x 7 métriques."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Data Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "Pour Amazon, l'integralite des metriques attendues (chiffre d'affaires, "
+        "capex, flux de tresorerie d'exploitation) a ete retrouvee, sans valeur "
+        "manquante ni donnee non reportee pour FY2025 [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_multi_company_contrast_summary_is_judge_territory(tmp_path: Path) -> None:
+    """gpt-4.1 capex-2 (36 faux WRONG d'un coup) : « l'ensemble des métriques
+    (chiffre d'affaires, ..., Capex/OCF) sont renseignées et disponibles pour
+    Alphabet, Meta, Microsoft, NVIDIA et Apple, tandis qu'elles restent
+    manquantes pour Amazon » — une phrase de synthèse à contraste. Le scanner
+    mécanique n'accuse que les clauses simples (≤2 sociétés) ; les synthèses
+    multi-sociétés relèvent du juge."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Gaps\nAmazon capex reached 131.8B [S1].\n"
+        "Pour FY2025, l'ensemble des metriques (chiffre d'affaires, capex, OCF) "
+        "sont renseignees et disponibles pour Alphabet, Meta, Microsoft, NVIDIA "
+        "et Apple, tandis qu'elles restent manquantes pour Amazon [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_citation_locators_are_not_numbers(tmp_path: Path) -> None:
+    """Mistral : « [S1:22,25] » lu comme 22,25 et « [S1:9,30,53] » devenu
+    93053 — les localisateurs de citation ne sont pas des chiffres."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Body\nAmazon capex reached 131.8B [S1:22,25].\n"
+        "Les mecanismes sont decrits en production [S1:9,30,53].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_respective_growth_enumeration_tries_all_named_companies(tmp_path: Path) -> None:
+    """Mistral : « Meta et Alphabet, avec des hausses respectives de 86,9 % et
+    74,1 % » — chaque valeur appartient à UNE des sociétés nommées ; le
+    fallback n'essayait que la plus proche."""
+    exercise = tmp_path / "exercise"
+    corpus = exercise / "corpus"
+    corpus.mkdir(parents=True)
+    (corpus / "capex_reference_data.md").write_text(
+        "Meta capex was 37.3B in FY2024 and 69.7B in FY2025. "
+        "Alphabet capex was 52.5B in FY2024 and 91.4B in FY2025.\n",
+        encoding="utf-8",
+    )
+    (corpus / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Meta,Dec,Capex,FY2024,37.3,USD_billions\n"
+        "Meta,Dec,Capex,FY2025,69.7,USD_billions\n"
+        "Alphabet,Dec,Capex,FY2024,52.5,USD_billions\n"
+        "Alphabet,Dec,Capex,FY2025,91.4,USD_billions\n",
+        encoding="utf-8",
+    )
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "mode": "numeric",
+                "theme": "test",
+                "companies_in_scope": ["Meta", "Alphabet"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "spec.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "required_chapters": [],
+                "embedded_tables": {"required": False, "min_tables": 0},
+                "length": {"min_words": 5, "max_words": 400},
+                "scoring": {"axes": {"coverage": {"weight": 0.8}, "format": {"weight": 0.2}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_md = (
+        "# Trends\nMeta et Alphabet ont accru leurs investissements sur la periode, "
+        "avec des hausses respectives de 86,9% et 74,1% [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_hedged_threshold_multiple_of_five_is_not_fabrication(tmp_path: Path) -> None:
+    """Mistral : « des ratios inférieurs à 15% » — seuil d'analyste hedgé ;
+    le garde exigeait un multiple de 10."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Buckets\nAmazon capex reached 131.8B [S1].\n"
+        "Certaines societes se distinguent par des ratios inférieurs à 15% [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_conceptual_mode_has_no_mechanical_numeric_gate(tmp_path: Path) -> None:
+    """Arbitrage Pierre (2026-07-16, révélé par Mistral) : en conceptuel, les
+    constantes techniques (« vecteurs de 384 ou 768 dimensions », « chunks de
+    200-500 tokens », « S&P 500 ») relèvent du juge evidence-bound, pas d'une
+    whitelist de chiffres pensée pour la finance. La porte numérique mécanique
+    est désactivée en mode conceptuel."""
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    report_md = (
+        "# Retrieval\nAgent memory relies on embeddings [S1].\n"
+        "Les embeddings produisent des vecteurs de 384 ou 768 dimensions, et les "
+        "chunks de 200-500 tokens equilibrent precision et contexte [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_range_and_threshold_narration_is_not_fabrication(tmp_path: Path) -> None:
+    """gpt-5.1 : « fourchette 130-400 Md$ », « avant de franchir 50 % » —
+    narration par fourchettes et seuils, bornes arrondies de valeurs réelles ;
+    le vocabulaire hedge ne connaissait ni fourchette ni franchir."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Bands\nAmazon capex reached 131.8B [S1].\n"
+        "Les revenus se repartissent dans une fourchette 130-400 Md$ [S1]. "
+        "Le ratio a evolue en fourchette 20 %/30 % avant de franchir 50 % [S1].\n"
+    )
+    sources = [{"source_id": "S1", "content": "Summary."}]
+
+    result = grade(tmp_path / "run", exercise, report_md, sources)
+
+    assert result["fabrication"]["count"] == 0
+
+
+def test_provenance_records_config_sha256(tmp_path: Path) -> None:
+    """Revue Codex (exécution) #3 : la provenance lisait cfg.config_path qui
+    n'existe pas sur le modèle Config -> config_sha256 restait None sur TOUS
+    les packs. Le chemin résolu est exposé par le module config."""
+    from src import config as config_module
+
+    assert hasattr(config_module, "get_config_path"), "accesseur get_config_path manquant"
+
+
+def test_grounded_ambiguous_carries_attribution_annotation(tmp_path: Path) -> None:
+    """Revue Codex (exécution) #2 : _fact_attribution_is_valid était défini
+    mais jamais appelé — la prose whitelistée restait un angle mort total.
+    Câblage CONSULTATIF : chaque item grounded_ambiguous porte une annotation
+    attribution (verified / ambiguous / contradicted) pour la seconde lecture,
+    SANS effet sur le score (arbitrage « fin du devineur d'années » maintenu)."""
+    exercise = _write_exercise(tmp_path)
+    # 416.2 est whitelisté (revenue Apple) mais la prose l'affirme avec
+    # confiance comme ratio Capex/OCF Apple FY2025 -> contradiction résolue.
+    report_md = (
+        "# Rapport\n\nLe ratio Capex/OCF de Apple atteint 416.2% en FY2025 selon "
+        "les données consolidées du corpus étudié pour cet exercice de synthèse "
+        "financière comparative annuelle.\n"
+    )
+    result = grade(tmp_path / "run", exercise, report_md, [])
+    items = result["grounded_ambiguous"]["items"]
+    assert items, "la valeur whitelistée en prose doit être capturée"
+    assert items[0].get("attribution") == "contradicted"
+    assert result["grounded_ambiguous"]["attribution_suspects"] == 1
+    assert result["fabrication"]["count"] == 0
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_root_cause_uses_raw_chunks_over_summaries(tmp_path: Path) -> None:
+    """Revue Codex (exécution) #4 : le root-cause s'appuyait sur les résumés
+    de sources.json (générés par le candidat, non fiables). Quand chunks.json
+    existe, le texte BRUT des chunks est l'évidence autoritaire : un fait
+    présent dans un chunk mais absent du résumé doit être classé
+    « retrieved but absent from report » (faute writer), pas « not retrieved »
+    (faute search)."""
+    exercise = _write_exercise(tmp_path)
+    run = tmp_path / "run"
+    run.mkdir()
+    # résumé du candidat SANS le chiffre — l'ancien root-cause accusait search
+    sources = [{"file_name": "capex_reference_data.md", "content": "Apple financial overview."}]
+    chunk_text = "Apple revenue was 416.2B in FY2025."
+    (run / "chunks.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "chunks": [
+                    {
+                        "chunk_id": "c1",
+                        "filename": "capex_reference_data.md",
+                        "text": chunk_text,
+                        "sha256": hashlib.sha256(chunk_text.encode()).hexdigest(),
+                        "resolved": True,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    # rapport qui NE mentionne PAS le fait -> il est missing
+    report_md = (
+        "# Rapport\n\nSynthèse générale du positionnement des acteurs sans données "
+        "chiffrées précises, volontairement incomplète pour isoler la question du "
+        "diagnostic de cause racine dans cet exercice de test unitaire.\n"
+    )
+    result = grade(run, exercise, report_md, sources)
+    rc = result["root_cause"]
+    assert rc["missing_retrieved_but_absent_from_report"] == ["Apple Revenue"]
+    assert rc["missing_not_retrieved"] == []

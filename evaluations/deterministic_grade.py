@@ -12,9 +12,9 @@ allowed to use), not a model's opinion. The grader:
 - attributes failures to a workflow STAGE via the intermediate artifacts
   (sources.json = what retrieval returned) so we get a root cause.
 
-Everything above is mechanical. A closed, evidence-required LLM entailment is used
-ONLY for qualitative must-cover claims (trends), never for open grading, and is
-optional (skipped if no OPENAI_API_KEY).
+Finance numbers remain mechanical. A closed, evidence-bound judge and adversarial
+verifier in ``evaluations.semantic_judge`` provide conceptual authority and an
+adequacy-only Finance veto; they never override deterministic numeric verdicts.
 
     uv run deterministic-grade benchmarks/runs/<run> --exercise evaluations/exercises/ai-capex-intensity
 """
@@ -22,6 +22,7 @@ optional (skipped if no OPENAI_API_KEY).
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import json
 import re
@@ -172,9 +173,18 @@ def extract_numbers(text: str) -> list[tuple[float, str, int]]:
     for m in _NUM.finditer(text):
         if any(start <= m.start("body") < end for start, end in range_spans):
             continue
+        sign = m.group("sign") or ""
+        if sign in {"-", "\u2212"}:
+            # A minus PRECEDED by a digit is the binary operator of a shown
+            # computation ("131,8 - 40,1"), not a negative value (Codex review
+            # 2026-07-16: the operand fell off the whitelist as -40.1).
+            before = text[: m.start("sign")].rstrip()
+            # chiffre OU lettre d'unité avant le signe moins Unicode
+            if before[-1:].isdigit() or before[-1:].lower() in {"%", "$", "b", "m", "k"}:
+                sign = ""
         parsed = _normalize_number(
             m.group("body"),
-            sign=m.group("sign") or "",
+            sign=sign,
             unit=m.group("unit") or "",
             currency=bool(m.group("currency")),
             accounting_negative=False,
@@ -449,10 +459,101 @@ def _canonical_metrics(text: str) -> list[str]:
     return metrics
 
 
-def _table_claims(
+_GUIDANCE_RE = re.compile(
+    r"guidance|forecast|projection|prevision|pr\u00e9vision|orientation", re.I
+)
+
+
+def _content_table_claims(
+    tables, companies: list[str]
+) -> list[tuple[str, str, str | None, float | None, str]]:
+    """Yield claims from CANONICAL rows — content-anchored, header-free.
+
+    Arbitrage Pierre (2026-07-15) : le syllabus impose le format
+    ``| Company | Metric | Period | Value |``. Une ligne est reconnue par son
+    CONTENU — une société en périmètre + une période FY20xx + une métrique du
+    vocabulaire fermé demandé + une valeur (ou « unavailable ») — jamais par
+    les noms d'en-têtes. Ces claims ont PLEINE AUTORITÉ (crédit ET accusation).
+    """
+    cmap = {c.lower(): c for c in companies}
+    out = []
+    for tbl in tables:
+        # Un tableau dont l'EN-TÊTE annonce de la guidance ne porte aucune
+        # autorité d'accusation : « | Alphabet | Environ 75 | 4 fév. 2025 | »
+        # est un fait guidance du pack gelé, pas un capex réel (faux WRONG
+        # observé sur gpt-5.6-sol : guidance 75 accusée contre l'actual 91.4).
+        if tbl and any(_GUIDANCE_RE.search(cell) for cell in tbl[0]):
+            continue
+        current_company = None
+        for row in tbl[1:]:
+            if not row:
+                continue
+            cells = [c.strip() for c in row]
+            # Ancre société : les cellules ne doivent nommer qu'UNE société.
+            comp_hits = [
+                (i, cmap[name])
+                for i, cell in enumerate(cells)
+                for name in cmap
+                if re.search(rf"\b{re.escape(name)}\b", cell, re.I)
+            ]
+            found = list(dict.fromkeys(c for _i, c in comp_hits))
+            if len(found) == 1:
+                co = found[0]
+                current_company = co
+                company_idx = comp_hits[0][0]
+            elif not found and cells and not cells[0] and current_company:
+                co = current_company  # ligne de continuation (1re cellule vide)
+                company_idx = 0
+            else:
+                continue
+            # Ancre période : exactement UNE période FY20xx distincte.
+            period_hits = [
+                (i, p) for i, cell in enumerate(cells) if i != company_idx and (p := _period(cell))
+            ]
+            periods = list(dict.fromkeys(p for _i, p in period_hits))
+            if len(periods) != 1:
+                continue
+            period = periods[0]
+            period_idxs = {i for i, _p in period_hits}
+            # Ancre métrique : exactement UNE métrique du vocabulaire fermé.
+            metric_hits = []
+            for i, cell in enumerate(cells):
+                if i == company_idx or i in period_idxs:
+                    continue
+                canonical = _canonical_metric(cell)
+                if canonical:
+                    metric_hits.append((i, canonical))
+            metrics = list(dict.fromkeys(m for _i, m in metric_hits))
+            if len(metrics) != 1:
+                continue
+            metric = metrics[0]
+            metric_idxs = {i for i, _m in metric_hits}
+            # Ancre valeur : UNE cellule restante numérique, ou « unavailable ».
+            rest = [
+                cells[i]
+                for i in range(len(cells))
+                if i != company_idx and i not in period_idxs and i not in metric_idxs and cells[i]
+            ]
+            numeric = [v for c in rest if (v := _single_cell_number(c)) is not None]
+            if len(numeric) == 1:
+                out.append((co, metric, period, numeric[0], "numeric"))
+            elif not numeric and any(_UNAVAILABLE_RE.search(c) for c in rest):
+                out.append((co, metric, period, None, "unavailable"))
+    return out
+
+
+def _assisted_table_claims(
     tables, companies: list[str], default_period: str | None = None
 ) -> list[tuple[str, str, str | None, float | None, str]]:
-    """Yield numeric and explicit-unavailability claims from Markdown tables."""
+    """Header-mapped claims (wide/long tables) — ASSIST ONLY, never accuse.
+
+    Arbitrage Pierre (2026-07-15) : la lecture par noms d'en-têtes peut se
+    tromper (langues, synonymes, « Earliest capex »…). Un match via en-têtes =
+    double coïncidence (valeur + société + corpus) → crédit sûr. Un écart via
+    en-têtes peut venir d'une mauvaise lecture → JAMAIS d'accusation numérique.
+    Exception : une cellule « unavailable » est l'affirmation explicite du
+    modèle, pas une devinette de nombre — elle reste accusable.
+    """
     cmap = {c.lower(): c for c in companies}
     out = []
     for tbl in tables:
@@ -477,12 +578,15 @@ def _table_claims(
         value_col = next(
             (i for i, h in enumerate(header) if h in {"value", "valeur", "montant"}), None
         )
-        # map each column index to a metric key
         col_metrics = {}
+        col_periods = {}
         for i, h in enumerate(header):
             metrics = _canonical_metrics(h)
             if metrics:
                 col_metrics[i] = metrics
+                header_period = _period(tbl[0][i])
+                if header_period:
+                    col_periods[i] = header_period.lower()
         current_company = None
         for row in tbl[1:]:
             if not row or company_col >= len(row):
@@ -516,7 +620,7 @@ def _table_claims(
                     continue
                 metrics = col_metrics[i]
                 values = _cell_numbers(cell)
-                claim_period = period or _period(cell) or default_period
+                claim_period = col_periods.get(i) or period or _period(cell) or default_period
                 if len(metrics) == len(values):
                     out.extend(
                         (co, metric, claim_period, value, "numeric")
@@ -531,11 +635,30 @@ def _table_claims(
     return out
 
 
+def _table_claims(
+    tables, companies: list[str], default_period: str | None = None
+) -> list[tuple[str, str, str | None, float | None, str, str]]:
+    """Combined claims with authority: content rows accuse, header rows assist."""
+    full = [
+        (co, metric, period, value, status, "content")
+        for co, metric, period, value, status in _content_table_claims(tables, companies)
+    ]
+    seen = {(co, metric, period, value) for co, metric, period, value, _s, _a in full}
+    assisted = [
+        (co, metric, period, value, status, "assisted")
+        for co, metric, period, value, status in _assisted_table_claims(
+            tables, companies, default_period
+        )
+        if (co, metric, period, value) not in seen
+    ]
+    return full + assisted
+
+
 def table_cells(tables, companies: list[str]) -> list[tuple[str, str, str | None, float]]:
-    """Yield company/metric/period/value facts from wide and canonical long tables."""
+    """Yield company/metric/period/value facts from canonical and header-mapped tables."""
     return [
         (company, metric, period, value)
-        for company, metric, period, value, status in _table_claims(tables, companies)
+        for company, metric, period, value, status, _authority in _table_claims(tables, companies)
         if status == "numeric" and value is not None
     ]
 
@@ -558,6 +681,16 @@ def _hash_tree(path: Path) -> str:
 
 def _knowledge_document_names(run_dir: Path) -> dict[str, str]:
     """Map vector document IDs to original files when a run exposes its KB manifest."""
+    grade_path = run_dir / "det_grade.json"
+    if grade_path.is_file():
+        try:
+            previous_grade = json.loads(grade_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            previous_grade = {}
+        snapshot = (previous_grade.get("source_resolution") or {}).get("documents") or {}
+        if isinstance(snapshot, dict) and snapshot:
+            return {str(document_id): str(file_name) for document_id, file_name in snapshot.items()}
+
     candidates = [
         run_dir / "knowledge_db.json",
         run_dir / "data" / "knowledge_db.json",
@@ -591,8 +724,20 @@ def _knowledge_document_names(run_dir: Path) -> dict[str, str]:
 def _source_origins(source: dict, document_names: dict[str, str]) -> set[str]:
     origins = set()
     for doc_id in source.get("doc_ids") or []:
-        base = str(doc_id).split(":", 1)[0]
-        origins.add(document_names.get(base, base))
+        raw_id = str(doc_id)
+        if raw_id.startswith("document_id:"):
+            raw_id = raw_id.removeprefix("document_id:")
+        base = raw_id.split(":", 1)[0]
+        origin = document_names.get(base)
+        if origin is None:
+            prefix_matches = {
+                file_name
+                for document_id, file_name in document_names.items()
+                if document_id.startswith(base)
+            }
+            if len(prefix_matches) == 1:
+                origin = next(iter(prefix_matches))
+        origins.add(origin or base)
     return origins
 
 
@@ -667,46 +812,84 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 for expected in expected_files
             )
 
+        def _local_explanation_units(paragraph: str) -> list[str]:
+            units = []
+            for raw_line in paragraph.splitlines():
+                line = re.sub(r"^\s*(?:[-*+]\s+|#{1,6}\s+)", "", raw_line).strip()
+                if not line or set(line) <= {"-", "_", "*"}:
+                    continue
+                sentences = [
+                    sentence.strip()
+                    for sentence in re.split(r"(?<=[.!?])\s+", line)
+                    if sentence.strip()
+                ]
+                units.extend(sentences)
+                units.extend(
+                    f"{first} {second}"
+                    for first, second in pairwise(sentences)
+                    if len((first + " " + second).split()) <= 160
+                )
+            return units
+
         def _concept_evidence(concept: dict) -> tuple[bool, str | None]:
             anchors = concept.get("anchors_any") or []
             for paragraph in paragraphs:
-                normalized_paragraph = re.sub(r"[`*_]", "", paragraph)
-                if len(normalized_paragraph.split()) < min_explanation_words:
-                    continue
-                if not any(_contains_anchor(normalized_paragraph, anchor) for anchor in anchors):
-                    continue
-                citations = _citation_ids(paragraph)
-                if require_citation and not any(
-                    _citation_has_expected_origin(citation, concept) for citation in citations
-                ):
-                    continue
-                cited_origins = {
-                    origin
-                    for citation in citations
-                    for origin in _source_origins(source_by_id.get(citation, {}), document_names)
-                }
-                if len(cited_origins) < int(concept.get("min_cited_origins", 0)):
-                    continue
-                groups = concept.get("semantic_groups") or []
-                if any(not _matches_any(normalized_paragraph, group) for group in groups):
-                    continue
-                gap_language = concept.get("gap_language_any") or [
-                    "not covered",
-                    "not documented",
-                    "not supported",
-                    "absent",
-                    "non documente",
-                    "non couvert",
-                    "pas dans les sources",
-                    "source gap",
-                ]
-                states_gap = _matches_any(normalized_paragraph, gap_language)
-                expected_status = concept.get("expected_status", "supported")
-                if expected_status == "source_gap" and not states_gap:
-                    continue
-                if expected_status == "supported" and states_gap:
-                    continue
-                return True, paragraph.strip()[:240]
+                for unit in _local_explanation_units(paragraph):
+                    normalized_unit = re.sub(r"[`*_]", "", unit)
+                    if len(normalized_unit.split()) < min_explanation_words:
+                        continue
+                    if not any(_contains_anchor(normalized_unit, anchor) for anchor in anchors):
+                        continue
+                    citations = _citation_ids(unit)
+                    expected_citations = [
+                        citation
+                        for citation in citations
+                        if _citation_has_expected_origin(citation, concept)
+                    ]
+                    if require_citation and not expected_citations:
+                        continue
+                    cited_origins = {
+                        origin
+                        for citation in citations
+                        for origin in _source_origins(
+                            source_by_id.get(citation, {}), document_names
+                        )
+                    }
+                    if len(cited_origins) < int(concept.get("min_cited_origins", 0)):
+                        continue
+                    groups = concept.get("semantic_groups") or []
+                    if any(not _matches_any(normalized_unit, group) for group in groups):
+                        continue
+                    gap_language = concept.get("gap_language_any") or [
+                        "not covered",
+                        "not documented",
+                        "not supported",
+                        "absent",
+                        "non documente",
+                        "pas documente",
+                        "non couvert",
+                        "pas dans les sources",
+                        "source gap",
+                    ]
+                    states_gap = _matches_any(normalized_unit, gap_language)
+                    expected_status = concept.get("expected_status", "supported")
+                    if expected_status == "source_gap" and not states_gap:
+                        continue
+                    if expected_status == "supported" and states_gap:
+                        continue
+                    if expected_status == "supported":
+                        cited_content = "\n".join(
+                            source_by_id[citation].get("content") or ""
+                            for citation in expected_citations
+                        )
+                        normalized_cited_content = re.sub(r"[`*_]", "", cited_content)
+                        if anchors and not any(
+                            _contains_anchor(normalized_cited_content, anchor) for anchor in anchors
+                        ):
+                            continue
+                        if any(not _matches_any(cited_content, group) for group in groups):
+                            continue
+                    return True, unit.strip()[:240]
             return False, None
 
         evidence_by_id = {concept["id"]: _concept_evidence(concept) for concept in must}
@@ -762,8 +945,8 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 default_period = candidate_period
         claims = _table_claims(parse_tables(report_body), companies, default_period)
         cells = [
-            (company, metric, period, value)
-            for company, metric, period, value, status in claims
+            (company, metric, period, value, authority)
+            for company, metric, period, value, status, authority in claims
             if status == "numeric" and value is not None
         ]
 
@@ -773,16 +956,21 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             m
             for m in must
             if any(
-                c[0] == m[0] and c[1] == m[1] and c[2] == m[2] and close(c[3], m[3]) for c in cells
+                c[0] == m[0]
+                and c[1] == m[1]
+                and (c[2] or "").lower() == (m[2] or "").lower()
+                and close(c[3], m[3])
+                for c in cells
             )
         ]
         coverage = len(covered) / len(must) if must else 0.0
 
-        # accuracy (precision): EVERY stated cell must match some corpus FY.
-        # Iterate all cells (not deduped by co/metric) so an internally inconsistent
-        # report (right value in one table, wrong in another) is caught.
+        # accuracy (precision): a MATCH is credited from any parsing (content or
+        # header-assisted — double coincidence, safe). A MISMATCH only accuses
+        # from content-anchored canonical rows: header-mapped readings can be
+        # OUR misreading, never the model's fault (arbitrage Pierre 2026-07-15).
         matches, wrongs, seen = [], [], set()
-        for co, metric, period, val in cells:
+        for co, metric, period, val, authority in cells:
             any_fy = [
                 v
                 for (c, m, fiscal_year), v in facts.items()
@@ -796,12 +984,12 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             seen.add(key)
             if any_fy and any(close(val, v) for v in any_fy):
                 matches.append((co, metric, val))
-            else:
+            elif authority == "content":
                 truth = facts.get((co.lower(), metric.lower(), (latest_fy.get(co) or "").lower()))
                 wrongs.append((co, metric, val, truth))
 
-        for co, metric, period, _value, status in claims:
-            if status != "unavailable":
+        for co, metric, period, _value, status, authority in claims:
+            if status != "unavailable" or authority != "content":
                 continue
             claim_period = period or expected_periods.get(co) or latest_fy.get(co)
             if facts.get((co.lower(), metric.lower(), (claim_period or "").lower())) is not None:
@@ -834,7 +1022,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         r"absence (?:de|d')|non divulgue|pas disponibles?",
         re.I,
     )
-    guidance_re = re.compile(r"guidance|forecast|projection|prevision|orientation", re.I)
+    guidance_re = re.compile(r"guidance|guide|forecast|projection|prevision|orientation", re.I)
+    # Meta-discourse about the RETRIEVAL ("unavailable in that evidence chunk")
+    # is not a claim about the fact itself — never accuse on it.
+    evidence_re = re.compile(r"chunk|evidence|retriev|extract|extrait|preuve|corpus fragment", re.I)
     contradictions = []
     current_company = None
     for line in report_body.splitlines():
@@ -846,8 +1037,30 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             current_company = explicit_companies[0] if len(explicit_companies) == 1 else None
         for clause in re.split(r"(?<=[.!?;])\s+|,\s+(?:and|et|but|mais)\s+", line):
             normalized_clause = _deaccent(clause.lower())
-            if not unavailable_re.search(normalized_clause) or guidance_re.search(
-                normalized_clause
+            if (
+                not unavailable_re.search(normalized_clause)
+                or guidance_re.search(normalized_clause)
+                or evidence_re.search(normalized_clause)
+            ):
+                continue
+            # Unavailability ATTRIBUTED to a source (« [S7] marks all Apple
+            # metrics as unavailable, while... retained ») describes what THE
+            # SOURCE says, not the fact — meta-discourse (gpt-5.6-sol capex-3
+            # perdait 2 points de médiane là-dessus).
+            if re.search(
+                r"\[s\d+[\]:][^.!?]{0,50}?"
+                r"(marks?|labels?|says?|states?|indique|mentionne|signale|reports?)",
+                normalized_clause,
+            ):
+                continue
+            # A clause that SHOWS a corpus value cannot be claiming
+            # unavailability — it is a documentary-discrepancy note
+            # (« [S3] indique X comme indisponible, tandis que les données
+            # donnent 133,1 Md$ ») : exemplary analyst behavior, not an error.
+            if any(
+                in_whitelist(value, whitelist)
+                for value, _u, _p in extract_numbers(clause)
+                if not _is_year(value)
             ):
                 continue
             clause_companies = [
@@ -855,10 +1068,24 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                 for company in companies
                 if re.search(rf"\b{re.escape(company)}\b", clause, re.I)
             ] or ([current_company] if current_company else [])
+            # Une clause qui nomme PLUS DE DEUX sociétés est une synthèse à
+            # contrastes (« disponibles pour Alphabet, Meta, Microsoft…,
+            # manquantes pour Amazon ») : l'attribution mécanique y a produit
+            # 36 faux WRONG d'un coup (gpt-4.1 capex-2). Le scanner ne juge
+            # que les clauses simples ; les synthèses relèvent du juge.
+            if len(clause_companies) > 2:
+                continue
             mentioned_years = re.findall(r"\b(?:FY\s*)?(20\d{2})\b", normalized_clause, re.I)
             for company in clause_companies:
                 latest = latest_fy.get(company)
-                if mentioned_years and latest and latest.removeprefix("FY") not in mentioned_years:
+                # Accuse only when the latest FY is the ONLY year mentioned (or
+                # none): a multi-year clause ("FY2020 and FY2021 ... unavailable
+                # ... FY2020->FY2025 basis") is nuance about OTHER periods.
+                if (
+                    mentioned_years
+                    and latest
+                    and set(mentioned_years) != {latest.removeprefix("FY")}
+                ):
                     continue
                 for metric, aliases in METRIC_ALIASES.items():
                     if not any(_deaccent(alias.lower()) in normalized_clause for alias in aliases):
@@ -898,7 +1125,16 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             )
 
     # ---- fabrication gate (ZERO TOLERANCE) ----
-    report_nums = extract_numbers(report_md)
+    # Arbitrage Pierre (2026-07-16, révélé par Mistral) : la porte numérique
+    # mécanique est réservée au mode numeric. En conceptuel, les constantes
+    # techniques (« 384 ou 768 dimensions », « 200-500 tokens », « S&P 500 »)
+    # relèvent du juge evidence-bound — double peine et faux positifs sinon.
+    # Les localisateurs de citation « [S1:22,25] » ne sont pas des chiffres
+    # (Mistral : lus 22,25 et 93053). Masqués par des espaces — offsets intacts.
+    masked_report = re.sub(
+        r"\[S\d+[^\]]*\]", lambda m: " " * len(m.group(0)), report_md, flags=re.I
+    )
+    report_nums = extract_numbers(masked_report) if mode == "numeric" else []
     # Spans where numbers are NOT grounding claims: fenced/inline code (example data)
     # and heading numbering prefixes such as "## 3.1". Skip fabrication checks there.
     _ignore = []
@@ -1177,7 +1413,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         elif company_matches:
             company = min(company_matches)[1]
         else:
-            return "unverifiable"
+            # Enumération sans société (« les ratios recalculés sont
+            # respectivement de 94,5 %, 55,5 %… ») : le fallback corpus essaie
+            # chaque société du périmètre, toujours en quasi-exact.
+            company = None
 
         metric_matches = []
         for metric, aliases in METRIC_ALIASES.items():
@@ -1188,8 +1427,107 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     metric_matches.append(
                         (abs(match.start() - relative_pos), match.start(), metric)
                     )
-        if not metric_matches:
-            return "unverifiable"
+
+        def _company_corpus_derivation() -> bool:
+            # A figure immediately followed by a fiscal year ("$22.0B in
+            # FY2020") is presented as a corpus VALUE, not a computation — a
+            # typo'd operand must not find an accidental excuse in the
+            # company's series. Computed figures (deltas, ratios) are never
+            # period-suffixed in practice.
+            fy_after = re.search(r"\bFY\s*20\d{2}\b", report_md[pos : pos + 30], re.I)
+            if fy_after and "%" not in report_md[pos : pos + fy_after.start()]:
+                # Un MONTANT daté (« $22.0B in FY2020 ») est une valeur, pas un
+                # calcul. Un POURCENTAGE suivi d'années (« 86,9 % en FY2025 par
+                # rapport à FY2020 ») est un étiquetage de croissance.
+                return False
+            # Arbitrage Pierre (2026-07-16) : les opérandes vivent dans le
+            # corpus, pas forcément dans le paragraphe (« Amazon affiche la
+            # plus forte augmentation absolue (+91,7 Md$) », ratios Capex/OCF
+            # recalculés). Paires restreintes à la société nommée : séries
+            # même-métrique (deltas, croissances) + valeurs même-période
+            # (ratios cross-métrique, ex. capex ÷ OCF). Jamais le corpus
+            # entier — sinon paires fortuites = blanchiment.
+            # Toutes les sociétés nommées du paragraphe (« hausses respectives
+            # de 86,9 % et 74,1 % » : chaque valeur appartient à L'UNE d'elles),
+            # pas seulement la plus proche. Ensemble borné, quasi-exact inchangé.
+            named = list(dict.fromkeys(c for _pos, c in company_matches))
+            candidates = [c.lower() for c in named] if named else [c.lower() for c in companies]
+            series: dict[str, list[float]] = {}
+            by_period: dict[str, list[float]] = {}
+            for (fact_company, fact_metric, period), value in facts.items():
+                if fact_company not in candidates:
+                    continue
+                series.setdefault((fact_company, fact_metric), []).append(value)
+                # Ratio operands must be AMOUNTS: a percent-typed metric
+                # (Capex/OCF, Operating margin) as operand yields nonsense
+                # ratios that collide with invented figures (62.0/84.9=73.03
+                # nearly laundered a fabricated 73%).
+                if "/" not in fact_metric and "margin" not in fact_metric:
+                    by_period.setdefault((fact_company, period), []).append(value)
+
+            def _near_exact_pair(a: float, b: float, percent_typed: bool) -> bool:
+                # Operands are NOT shown in the text: the excuse must be
+                # near-exact. _is_derived's display tolerances (±0.6, 2% rel)
+                # over whole corpus series laundered an invented 73% (Amazon
+                # OCF 84.9->115.9 = +73.25%). For percent-typed metrics
+                # (margins, capex/OCF) only the DELTA makes sense (percentage
+                # points): a ratio of two margins laundered a planted 137
+                # (37.3/27.2*100 = 137.13) on the falsified control.
+                candidates = [abs(a - b)]
+                if b and not percent_typed:
+                    candidates += [(a / b - 1.0) * 100.0, a / b * 100.0]
+                return any(close(x, c, tol_abs=0.15, tol_rel=0.002) for c in candidates)
+
+            # Deltas/growths need a company anchor: over ALL companies the
+            # candidate density launders (six invented growth rates all found
+            # accidental matches in tests). Company-less prose only supports
+            # same-period ratios (the observed legitimate enumeration case).
+            if company is not None and any(
+                _near_exact_pair(a, b, "/" in metric_name or "margin" in metric_name)
+                for (_co, metric_name), values in series.items()
+                for a in values
+                for b in values
+                if a != b
+            ):
+                return True
+            if company is None:
+                # Sans société nommée, une seule excuse subsiste : x est la
+                # recomputation PRÉCISE d'un fait ratio DÉJÀ PUBLIÉ dans le
+                # corpus (94,5 recalcule le « 94 » arrondi). Double condition
+                # — à distance d'arrondi d'un fait ratio stocké ET quasi égal
+                # au quotient des montants de la même (société, période) —
+                # sinon la densité des paires blanchit (4/6 taux inventés
+                # matchaient un ratio fortuit en test).
+                ratio_facts = {
+                    (fact_company, period): value
+                    for (fact_company, fact_metric, period), value in facts.items()
+                    if "/" in fact_metric
+                }
+                return any(
+                    abs(x - stored) <= 0.55
+                    and any(
+                        b and close(x, a / b * 100.0, tol_abs=0.15, tol_rel=0.002)
+                        for a in by_period.get(key, [])
+                        for b in by_period.get(key, [])
+                        if a != b
+                    )
+                    for key, stored in ratio_facts.items()
+                )
+            # Same-period cross-metric: RATIOS only (capex ÷ OCF…), near-exact.
+            # Deltas/growth make no sense within one period, and the loose
+            # _is_derived tolerances over widened pairs laundered an invented
+            # 73% in tests — ratios recomputed from exact operands must land
+            # within rounding distance.
+            return any(
+                b != 0 and close(x, a / b * 100.0, tol_abs=0.15, tol_rel=0.002)
+                for values in by_period.values()
+                for a in values
+                for b in values
+                if a != b
+            )
+
+        if not metric_matches or company is None:
+            return "valid" if _company_corpus_derivation() else "unverifiable"
         prior_metrics = [item for item in metric_matches if item[1] <= relative_pos]
         metric = min(prior_metrics or metric_matches)[2]
 
@@ -1235,7 +1573,10 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     if unit not in {"%", "x", "\u00d7"}
                 ]
                 if not period_positions or not raw_candidates:
-                    return "unverifiable"
+                    # Paragraphe sans opérandes bruts (que des %) : dernier
+                    # recours corpus avant de renoncer — l'erreur d'étiquetage
+                    # de période d'un chiffre VRAI est du ressort du juge.
+                    return "valid" if _company_corpus_derivation() else "unverifiable"
                 displayed_operands.append(
                     min(
                         raw_candidates,
@@ -1245,6 +1586,11 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
                     )[0]
                 )
             if _is_derived(x, displayed_operands):
+                return "valid"
+            # Avant de condamner : le fallback corpus (sociétés nommées,
+            # quasi-exact) — « hausses respectives de 86,9 % et 74,1 % » a des
+            # périodes dans le paragraphe mais ses opérandes dans le corpus.
+            if _company_corpus_derivation():
                 return "valid"
             expected_operands = [
                 facts.get((company.lower(), metric.lower(), period)) for period in periods
@@ -1261,7 +1607,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             ]
             if len(grounded_operands) >= 2 and _is_derived(x, grounded_operands):
                 return "valid"
-        return "unverifiable"
+        return "valid" if _company_corpus_derivation() else "unverifiable"
 
     def _derivable_from_corpus(x: float, pos: int) -> bool:
         boundary = report_md.rfind("\n\n", 0, pos)
@@ -1310,6 +1656,24 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "dans les",
         "au-dessus",
         "au dessus",
+        # fourchettes et seuils (gpt-5.1 : « fourchette 130-400 », « franchir 50 % »)
+        "fourchette",
+        "franchir",
+        "franchi",
+        "crossed",
+        "crossing",
+        "band",
+        "entre ",
+        # anglais (MiniMax bucketise en anglais : « exceeding 50% », « 20-50% »)
+        "exceeding",
+        "above",
+        "over",
+        "under",
+        "below",
+        "more than",
+        "less than",
+        "at least",
+        "up to",
         "de l'ordre",
         "autour de",
         "around",
@@ -1361,32 +1725,71 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             ):
                 continue
             citation_support_failed = True
-        elif mode == "numeric" and unit not in {"x", "\u00d7"}:
-            attribution_valid = _fact_attribution_is_valid(val, unit, pos)
-            if attribution_valid is True:
-                continue
-            if attribution_valid is False:
-                ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
-                prose_contradictions.append(
-                    {
-                        "value": val,
-                        "unit": unit,
-                        "context": ctx.strip(),
-                        "reason": "contradicted_fact",
-                    }
-                )
-                continue
+        # Arbitrage Pierre (2026-07-15) \u2014 fin du \u00ab devineur d'ann\u00e9es \u00bb : prose
+        # numbers are NEVER attributed to a company/metric/period mechanically.
+        # Free-text presentation has an unbounded format tail; guessing produced
+        # false accusations on correct historical values (calibration failed on
+        # the reference model). For prose the only mechanical question left is
+        # EXISTENCE: does the figure exist in the frozen corpus (or derive from
+        # shown corpus operands)? Analysis correctness belongs to the adequacy
+        # judge. Tables keep full attribution via _table_claims (reliable).
         # skip round-ten integers used as a hedge/threshold ("marges > 30%"):
         # a reasonable summary, not an invented precise statistic.
         pre = report_md[max(0, pos - 28) : pos].lower()
-        if float(val).is_integer() and val % 10 == 0 and any(h in pre for h in hedge_words):
+        if float(val).is_integer() and val % 5 == 0 and any(h in pre for h in hedge_words):
+            continue
+        # Un nombre suivi d'un nom de mois est une DATE (« 30 juin 2025 »,
+        # « 31 janvier 2025 » — gpt-4.1 décrit les calendriers fiscaux) :
+        # jamais un chiffre financier.
+        if re.match(
+            r"\s*(?:er)?\s*(janv|f[ée]vr|mars|avril|mai|juin|juil|ao[uû]t|sept|oct|nov|d[ée]c"
+            r"|jan\b|feb|mar\b|apr|may|jun|jul|aug|sep|oct|nov|dec)",
+            report_md[pos + len(str(val).rstrip("0").rstrip(".")) :][:14].lower(),
+        ):
+            continue
+        # Unit-scale variant (arbitrage Pierre 2026-07-16, qwen run 15) : le
+        # rapport peut définir sa propre abréviation (« milliards de dollars
+        # (M$) ») que le parseur lit comme des millions. L'esprit du test
+        # d'existence porte sur le NOMBRE écrit : si le même numéral existe
+        # dans le corpus à l'échelle voisine (x1000 ou /1000), ce n'est pas
+        # une invention.
+        # Une seule direction (nombre lu en millions, écrit en milliards) et
+        # quasi exact en relatif : la direction inverse avec tolérance absolue
+        # excusait presque tout (0.022 ~ n'importe quelle petite valeur).
+        if any(close(val * 1000.0, w, tol_abs=0.01, tol_rel=0.0) for w in whitelist):
+            continue
+        # Presentation conventions state a PRECISION, not a data value:
+        # « les montants sont arrondis à 0,1 Md$ », "rounded to 0.1B",
+        # « concordent à 0,1 Md$ près » (Codex review 2026-07-16: 8 such flags
+        # capped a clean gpt-5.6-sol run at 40). Bounded to small grains so a
+        # real fabricated figure cannot shelter behind rounding language.
+        if abs(val) <= 1 and re.search(
+            r"arrond|rounded|rounding|concorden?t|pr[ée]sent[ée]|pr[ée]s\b|precision|pr[ée]cision|d[ée]cimal",
+            report_md[max(0, pos - 70) : pos + 50].lower(),
+        ):
             continue
         # skip correct derivations shown next to their operands (growth %, delta,
         # ratio, multiple) — first-level analysis the task explicitly asks for.
         window = report_md[max(0, pos - 160) : pos + 160]
         neighbors = [v for v, _u, _p in extract_numbers(window) if in_whitelist(v, whitelist)]
         derivation_status = _derivation_status(val, pos)
-        if (unit == "%" and _is_derived(val, neighbors)) or derivation_status == "valid":
+        # $ deltas: "from $15.4B to $64.6B, up $49.2B" — a correct SUBTRACTION of
+        # shown corpus operands is first-level analysis, not an invented figure.
+        # Restricted to |a-b| (no ratio ops) to keep collision risk low.
+        # A computed delta is near-exact by nature: tight tolerance, otherwise
+        # accidental pairs among ~180 corpus values launder real fabrications
+        # (observed: 83.0-3.2=79.8 nearly excusing an invented 80.3).
+        derived_delta = unit != "%" and any(
+            close(val, abs(a - b), tol_abs=0.15, tol_rel=0.005)
+            for a in neighbors
+            for b in neighbors
+            if a != b
+        )
+        if (
+            (unit == "%" and _is_derived(val, neighbors))
+            or derived_delta
+            or derivation_status == "valid"
+        ):
             continue
         ctx = report_md[max(0, pos - 40) : pos + 20].replace("\n", " ")
         item = {"value": val, "unit": unit, "context": ctx.strip()}
@@ -1428,6 +1831,17 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             fabricated.append(item)
         elif in_whitelist(val, whitelist):
             item["reason"] = "grounded_ambiguous_attribution"
+            # Revue Codex (exécution) #2 : le détecteur d'attribution tourne en
+            # CONSULTATIF sur la prose whitelistée — verified / ambiguous /
+            # contradicted, archivé pour la seconde lecture. Aucun effet sur le
+            # score : l'arbitrage « fin du devineur d'années » (2026-07-15)
+            # tient tant que le détecteur n'est pas validé contre la campagne.
+            attribution = _fact_attribution_is_valid(val, unit, pos)
+            item["attribution"] = (
+                "ambiguous"
+                if attribution is None
+                else ("verified" if attribution else "contradicted")
+            )
             grounded_ambiguous.append(item)
         elif corpus_derivable:
             item["reason"] = "derivable_but_operands_not_shown"
@@ -1519,12 +1933,34 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             if source_file is None:
                 source_violations.append(f"frozen source hash mismatch: {file_pattern}")
 
-    # ---- root cause via intermediate artifacts (sources.json) ----
-    src_blob = "\n".join(
-        (s.get("content") or "") + " " + (s.get("file_name") or "") for s in sources
-    )
+    # ---- root cause via intermediate artifacts ----
+    # Revue Codex (exécution) #4 : les résumés de sources.json sont générés
+    # par le CANDIDAT — un résumé qui omet le chiffre faisait accuser search
+    # à la place du writer. Quand chunks.json (texte brut archivé) existe,
+    # c'est lui l'évidence autoritaire ; les résumés ne restent qu'un repli
+    # pour les packs antérieurs au snapshot.
+    evidence_units = []
+    evidence_origin = "sources_summaries"
+    try:
+        chunk_payload = json.loads((run_dir / "chunks.json").read_text(encoding="utf-8"))
+        evidence_units = [
+            ((chunk.get("filename") or "") + " " + (chunk.get("text") or "")).strip()
+            for chunk in chunk_payload.get("chunks") or []
+        ]
+        if evidence_units:
+            evidence_origin = "raw_chunks"
+    except (OSError, ValueError):
+        pass
+    if not evidence_units:
+        evidence_units = [
+            " ".join(
+                part for part in (s.get("topic"), s.get("file_name"), s.get("content")) if part
+            )
+            for s in sources
+        ]
+    src_blob = "\n".join(evidence_units)
     missing = [m for m in must if m not in covered]
-    root_cause = {"n_retrieved_sources": len(sources)}
+    root_cause = {"n_retrieved_sources": len(sources), "evidence_origin": evidence_origin}
 
     def _metric_near_value(text: str, metric: str, pos: int) -> bool:
         aliases = METRIC_ALIASES.get(metric, (metric.lower(),))
@@ -1534,12 +1970,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     def _retrieved_numeric(m) -> bool:
         company, metric, _fy, value = m
         company_pat = re.compile(rf"\b{re.escape(company)}\b", re.I)
-        for source in sources:
-            text = " ".join(
-                part
-                for part in (source.get("topic"), source.get("file_name"), source.get("content"))
-                if part
-            )
+        for text in evidence_units:
             if not company_pat.search(text):
                 continue
             for found, _unit, pos in extract_numbers(text):
@@ -1669,18 +2100,26 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     max_unverifiable = unverifiable_spec.get("max_for_qualification")
 
     qualification_blockers = []
-    if critical_requirement_failures:
+    if critical_requirement_failures and mode != "conceptual":
         qualification_blockers.append("critical requirements failed")
-    if wrongs or contradictions or prose_contradictions:
+    if mode != "conceptual" and (wrongs or contradictions or prose_contradictions):
         qualification_blockers.append("wrong factual claims")
-    if fabricated:
+    if mode != "conceptual" and fabricated:
         qualification_blockers.append("fabricated claims")
-    if max_unverifiable is not None and len(unverifiable) > int(max_unverifiable):
+    if (
+        mode != "conceptual"
+        and max_unverifiable is not None
+        and len(unverifiable) > int(max_unverifiable)
+    ):
         qualification_blockers.append("too many unverifiable numeric claims")
     if format_blockers:
         qualification_blockers.append("report contract not met")
     if source_violations:
         qualification_blockers.append("source policy violations")
+    if mode == "conceptual":
+        qualification_blockers.append("conceptual judge not run")
+    elif (ak.get("semantic_judge") or {}).get("authority") == "adequacy_veto":
+        qualification_blockers.append("finance adequacy judge not run")
 
     answer_key_path = exercise / "answer_key.yaml"
     spec_path = exercise / "spec.yaml"
@@ -1693,12 +2132,37 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "report_sha256": _sha256_bytes(report_md.encode()),
         "sources_sha256": _sha256_bytes(sources_payload),
     }
-    if source_manifest_path.is_file():
-        provenance["source_manifest_sha256"] = _sha256_bytes(source_manifest_path.read_bytes())
+    frozen_manifest_path = (
+        source_manifest_path
+        if source_manifest_path.is_file()
+        else exercise / "corpus" / "manifest.json"
+    )
+    if frozen_manifest_path.is_file():
+        provenance["source_manifest_sha256"] = _sha256_bytes(frozen_manifest_path.read_bytes())
+    chunks_path = run_dir / "chunks.json"
+    if chunks_path.is_file():
+        provenance["chunks_sha256"] = _sha256_bytes(chunks_path.read_bytes())
+    portable_report_path = run_dir / "report.md"
+    if portable_report_path.is_file():
+        provenance["portable_report_sha256"] = _sha256_bytes(portable_report_path.read_bytes())
+    if (run_dir / "raw_sources").is_dir():
+        provenance["raw_sources_sha256"] = _hash_tree(run_dir / "raw_sources")
+
+    source_resolution = {
+        "documents": dict(sorted(document_names.items())),
+        "sources": {
+            source_id: sorted(_source_origins(source, document_names))
+            for source_id, source in sorted(source_by_id.items())
+        },
+    }
 
     return {
         "exercise": exercise.name,
+        "mode": mode,
         "score": score,
+        "score_authority": (
+            "lexical_diagnostic" if mode == "conceptual" else "deterministic_numeric"
+        ),
         "qualified": not qualification_blockers,
         "qualification": {
             "passed": not qualification_blockers,
@@ -1727,6 +2191,9 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         },
         "grounded_ambiguous": {
             "count": len(grounded_ambiguous),
+            "attribution_suspects": sum(
+                1 for item in grounded_ambiguous if item.get("attribution") == "contradicted"
+            ),
             "items": grounded_ambiguous[:20],
         },
         "agenda_discipline": {"distractors_cited": distractor_hits},
@@ -1743,10 +2210,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         "source_policy": {"violations": source_violations},
         "root_cause": root_cause,
         "provenance": provenance,
+        "source_resolution": source_resolution,
     }
 
 
 def _locate_report(run_dir: Path, stats: dict) -> Path | None:
+    portable_report = run_dir / "report.md"
+    if portable_report.is_file():
+        return portable_report
     name = stats.get("report_file")
     for base in (stats.get("output_dir"), "output", "."):
         if base and name and (Path(base) / name).is_file():
@@ -1756,10 +2227,26 @@ def _locate_report(run_dir: Path, stats: dict) -> Path | None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Deterministic grader for research exercises")
+    from dotenv import load_dotenv
+
+    load_dotenv()  # the semantic judge reads OPENAI_API_KEY from the environment
+    p = argparse.ArgumentParser(description="Evidence-bound grader for research exercises")
     p.add_argument("run_dir", help="benchmarks/runs/<run> directory")
     p.add_argument("--exercise", required=True, help="evaluations/exercises/<name> directory")
     p.add_argument("--report", help="explicit path to the report .md (else located via stats.json)")
+    p.add_argument(
+        "--skip-semantic-judge",
+        "--skip-concept-judge",
+        dest="skip_semantic_judge",
+        action="store_true",
+        help="emit non-qualifying diagnostics without calling the semantic judge",
+    )
+    p.add_argument(
+        "--judge-concurrency",
+        type=int,
+        default=4,
+        help="maximum concurrent semantic judge calls",
+    )
     args = p.parse_args()
 
     run_dir = Path(args.run_dir)
@@ -1774,6 +2261,46 @@ def main() -> None:
     report_md = report_path.read_text(encoding="utf-8")
 
     result = grade(run_dir, exercise, report_md, sources)
+    answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8")) or {}
+    if answer_key.get("semantic_judge") and not args.skip_semantic_judge:
+        from .semantic_judge import (
+            adjudicate_semantic_run,
+            apply_conceptual_adjudication,
+            apply_finance_adequacy_veto,
+        )
+
+        adjudication = asyncio.run(
+            adjudicate_semantic_run(
+                run_dir=run_dir,
+                exercise=exercise,
+                report=report_md,
+                sources=sources,
+                request=str(stats.get("query") or ""),
+                concurrency=args.judge_concurrency,
+            )
+        )
+        judge_path = run_dir / "semantic_judge.json"
+        judge_path.write_text(
+            json.dumps(adjudication.model_dump(mode="json"), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        contract_path = run_dir / "adjudication_contract.json"
+        contract_path.write_text(
+            json.dumps(
+                {"contract": adjudication.contract, "judge": adjudication.judge},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        if result["mode"] == "conceptual":
+            result = apply_conceptual_adjudication(result, adjudication)
+        else:
+            result = apply_finance_adequacy_veto(result, adjudication)
+        result["provenance"]["semantic_judge_sha256"] = _sha256_bytes(judge_path.read_bytes())
+        result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
+            contract_path.read_bytes()
+        )
     (run_dir / "det_grade.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -1781,7 +2308,7 @@ def main() -> None:
     r = result
     print(f"\n=== {r['exercise']}  |  SCORE {r['score']}/100 ===")
     print(
-        f"coverage : {r['coverage']['hit']}/{r['coverage']['total']} headline facts ({r['coverage']['pct']:.0%})"
+        f"coverage : {r['coverage']['hit']}/{r['coverage']['total']} ({r['coverage']['pct']:.0%})"
     )
     print(f"accuracy : {r['accuracy']['matching']} ok / {r['accuracy']['wrong']} WRONG")
     for w in r["accuracy"]["wrong_details"]:

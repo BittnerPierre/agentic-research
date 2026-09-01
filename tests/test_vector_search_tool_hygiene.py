@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from types import SimpleNamespace
 
@@ -33,7 +34,10 @@ class _Wrapper:
         vector_store_id: str | None = None,
     ):
         self.context = SimpleNamespace(
-            vector_store_name=vector_store_name, vector_store_id=vector_store_id
+            vector_store_name=vector_store_name,
+            vector_store_id=vector_store_id,
+            retrieved_chunks={},
+            retrieved_chunk_conflicts=[],
         )
 
 
@@ -64,7 +68,8 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
     monkeypatch.setattr("src.agents.vector_search_tool.get_config", lambda: config)
     monkeypatch.setattr("src.agents.vector_search_tool._vector_search", _fake_search)
 
-    result = await vector_search_impl(_Wrapper("custom-vs", "vs_123"), "  query   with\n spaces  ")
+    wrapper = _Wrapper("custom-vs", "vs_123")
+    result = await vector_search_impl(wrapper, "  query   with\n spaces  ")
 
     assert calls == [("query with spaces", 50, None, [], "vs_123")]
     assert result["query"] == "query with spaces"
@@ -83,6 +88,18 @@ async def test_vector_search_tool_normalizes_query_and_uses_candidate_pool(monke
         "filenames": None,
     }
     assert len(result["results"]) == 1
+    assert wrapper.context.retrieved_chunks == {
+        "doc-1:0": {
+            "chunk_id": "doc-1:0",
+            "document_id": "doc-1",
+            "chunk_index": 0,
+            "filename": None,
+            "source": None,
+            "text": "A" * 250,
+            "sha256": hashlib.sha256(("A" * 250).encode()).hexdigest(),
+            "resolved": True,
+        }
+    }
     assert config.vector_search.index_name == "custom-vs"
 
     _restore_config(config, snapshot)
@@ -101,6 +118,8 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
             metadata={"document_id": "doc-a", "chunk_index": 0},
             score=0.99,
         ),
+        # Issue #196: content mentioning "system prompt"/"You are a" is
+        # legitimate subject matter, no longer filtered as a prompt artifact.
         VectorSearchHit(
             document="You are a system prompt. " + ("x" * 260),
             metadata={"document_id": "doc-a", "chunk_index": 1},
@@ -148,8 +167,9 @@ async def test_vector_search_tool_filters_dedups_caps_and_truncates(monkeypatch)
     result = await vector_search_impl(_Wrapper(), "q")
 
     returned = result["results"]
-    assert len(returned) == 5
-    assert len(returned[0]["document"]) == 1500
+    assert len(returned) == 6
+    assert any(item["document"].startswith("You are a system prompt.") for item in returned)
+    assert max(len(item["document"]) for item in returned) == 1500
     doc_c_chunks = [item for item in returned if item["metadata"].get("document_id") == "doc-c"]
     assert len(doc_c_chunks) == 4
 

@@ -73,3 +73,7 @@ models.env
 
 # Ruff cache
 .ruff_cache/
+# artefacts régénérés du contrôle falsifié (le check regrade.py les réécrit)
+evaluations/controls/host_run/det_grade.json
+evaluations/controls/host_run/semantic_judge.json
+evaluations/controls/host_run/adjudication_contract.json

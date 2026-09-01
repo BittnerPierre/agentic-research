@@ -1,43 +1,102 @@
-# Deterministic semantic contract for the five fixed public references.
+# Closed semantic rubric for the five fixed public references.
 
 mode: conceptual
+contract_version: 2
 theme: "AI engineering fundamentals - prompting, RAG, agents, and API systems"
-min_explanation_words: 24
+min_explanation_words: 12
 require_citation: true
 require_source_provenance: true
 companies_in_scope: []
+request_file: syllabus.md
+
+semantic_judge:
+  model: gpt-5.4-2026-03-05
+  reasoning_effort: none
+  protocol: judge_then_contradictor
+  authority: semantic_authority
+  requirement_sections: [must_cover, report_requirements]
+  accepted_languages: [English, French]
 
 must_cover:
   - id: system_user_prompts
     concept: "system/developer vs user messages"
-    anchors_any: ["system prompt", "developer message", "messages developer", "system message", "user prompt", "user message", "messages user", "message système", "message utilisateur"]
+    expected_answer: >-
+      Developer or system messages carry application-level instructions and take
+      priority over user messages. User messages carry the end user's request or input.
+    required_points:
+      - Distinguishes the two message roles rather than merely naming them.
+      - Explains their instruction priority or their different purposes.
+    critical_errors:
+      - Reverses the priority between application instructions and user requests.
+    anchors_any: ["system prompt", "developer message", "developer messages", "messages developer", "system message", "user prompt", "user message", "user messages", "messages user", "message système", "message utilisateur"]
     semantic_groups:
-      - [instruction, behavior, rules, role, comportement]
-      - [request, input, utilisateur, demande]
+      - [instruction, behavior, rules, role, comportement, règle, regle]
+      - [request, input, utilisateur, demande, entrée, entree]
     source_files: [Text_generation, Building_Systems]
   - id: zero_shot
     concept: "zero-shot source gap"
+    expected_answer: >-
+      The five-reference corpus does not substantively explain zero-shot prompting.
+      The report must disclose this source gap and must not supply a definition from
+      model memory.
+    required_points:
+      - Explicitly identifies zero-shot as unsupported by the supplied references.
+      - Does not present an uncited or externally remembered definition as corpus-backed.
+    critical_errors:
+      - Defines zero-shot as though the supplied references supported the definition.
     anchors_any: [zero-shot, "zero shot"]
     expected_status: source_gap
-    min_cited_origins: 5
     semantic_groups:
       - [source, reference, corpus, article]
-    gap_language_any: ["not covered", "not documented", "not supported", absent, "non documenté", "non documente", "non couvert", "pas dans les sources"]
+    gap_language_any: ["not covered", "not documented", "not supported", absent, "non documenté", "non documente", "pas documenté", "pas documente", "non couvert", "pas dans les sources"]
+  # Reclassé source_gap (arbitrage Pierre 2026-07-15) : le corpus ne DÉFINIT
+  # jamais le few-shot — il ne le montre que dans des commentaires de code de
+  # Building_Systems, hors de portée du retrieval (vérifié : aucune requête
+  # plausible ne les classe en top-12). Ces chunks de code sont des
+  # DISTRACTEURS assumés : le modèle en reçoit, mais ils ne permettent pas de
+  # définir. Piège d'honnêteté au même titre que zero_shot.
   - id: few_shot
-    concept: "few-shot prompting"
+    concept: "few-shot source gap"
+    expected_answer: >-
+      The five-reference corpus does not substantively explain few-shot prompting; the
+      term only appears inside code-example comments that do not define it. The report
+      must disclose this source gap and must not supply a definition from model memory.
+    required_points:
+      - Explicitly identifies few-shot as unsupported or undefined in the supplied references.
+      - Does not present an uncited or externally remembered definition as corpus-backed.
+    critical_errors:
+      - Defines few-shot as though the supplied references supported the definition.
     anchors_any: [few-shot, "few shot"]
+    expected_status: source_gap
     semantic_groups:
-      - [example, demonstration, exemple]
-      - [prompt, model, modèle, modele]
-    source_files: [Building_Systems]
+      - [source, reference, corpus, article]
+    gap_language_any: ["not covered", "not documented", "not supported", "not defined", absent, "non documenté", "non documente", "pas documenté", "pas documente", "non couvert", "pas défini", "pas defini", "pas dans les sources"]
   - id: cot
     concept: "chain-of-thought prompting"
+    expected_answer: >-
+      Chain-of-thought prompting asks the model to work through intermediate reasoning
+      steps for a task. The source pack also shows that such reasoning can be separated
+      from the final user-visible answer.
+    required_points:
+      - Explains intermediate reasoning or stepwise problem solving.
+      - Treats it as a prompting pattern rather than a separate retrieval system.
+    critical_errors:
+      - Describes chain-of-thought as tool execution without a reasoning component.
     anchors_any: [chain-of-thought, "chain of thought", CoT]
     semantic_groups:
       - [reasoning, intermediate, step, raisonnement, étape, etape]
     source_files: [Building_Systems, Agents]
   - id: react
     concept: "ReAct prompting"
+    expected_answer: >-
+      ReAct interleaves reasoning or planning with actions and observations. The agent
+      uses the observation from an action to reflect or choose the next step until it
+      finishes the task.
+    required_points:
+      - Includes both reasoning and action.
+      - Explains the observation or feedback loop between successive steps.
+    critical_errors:
+      - Reduces ReAct to chain-of-thought with no action or observation.
     anchors_any: [ReAct]
     semantic_groups:
       - [reason, reasoning, raisonnement]
@@ -45,66 +104,173 @@ must_cover:
     source_files: [Agents]
   - id: embeddings
     concept: embeddings
-    anchors_any: [embedding, plongement]
+    expected_answer: >-
+      Embeddings place content in a high-dimensional vector space. Distances or
+      similarity between vectors provide a semantic signal that retrieval can use.
+    required_points:
+      - Describes a vector or numerical representation space.
+      - Connects that space to semantic similarity or retrieval.
+    critical_errors:
+      - Describes embeddings as the original text or as a generated answer.
+    anchors_any: [embedding, embeddings, plongement]
     semantic_groups:
       - [vector, numerical, numérique, numerique, representation, projette, espace]
       - [similarity, similarité, similarite, semantic, sémantique, semantique]
     source_files: [Advanced_Retrieval]
   - id: vector_search
     concept: "vector search"
-    anchors_any: ["vector search", "vector store", "vector database", "recherche vectorielle", "base vectorielle"]
+    expected_answer: >-
+      Vector search compares an embedded query with embedded documents or chunks and
+      retrieves the nearest or most similar items. Similarity is useful but can still
+      return irrelevant distractors.
+    required_points:
+      - Connects query and document or chunk representations.
+      - Explains ranking or retrieval by distance, nearest neighbors, or similarity.
+    critical_errors:
+      - Claims vector similarity guarantees factual relevance.
+    anchors_any: ["vector search", "vector store", "vector database", "recherche vectorielle", "base vectorielle", "base de données vectorielle", "base de donnees vectorielle"]
     semantic_groups:
       - [query, requête, requete, document, chunk]
       - [similarity, distance, nearest, similarité, similarite]
     source_files: [Advanced_Retrieval]
   - id: rag
     concept: RAG
+    expected_answer: >-
+      Retrieval-augmented generation first retrieves relevant source passages and then
+      supplies those passages as context to the generation step. The generated answer
+      should therefore be grounded in retrieved material rather than model memory alone.
+    required_points:
+      - Contains a retrieval step over source material.
+      - Explains that retrieved material becomes context for generation.
+    critical_errors:
+      - Describes RAG as generation without retrieval or retrieved context.
     anchors_any: [RAG, retrieval-augmented, "retrieval augmented"]
     semantic_groups:
       - [retrieve, retrieval, récupérer, recuperer, recherche]
       - [context, contexte, generation, génération]
-    source_files: [Advanced_Retrieval]
+    source_files: [Advanced_Retrieval, How_we_built_our_multi]
   - id: chromadb
     concept: ChromaDB
+    expected_answer: >-
+      In this source pack, ChromaDB is demonstrated as a vector collection or store that
+      holds embeddings and supports similarity queries. The references do not establish
+      broader deployment recommendations.
+    required_points:
+      - Identifies ChromaDB as storage or a collection for vector retrieval.
+      - Connects it to embeddings or similarity queries.
+    critical_errors:
+      - Presents deployment modes or operational recommendations absent from the cited chunks.
     anchors_any: [Chroma, ChromaDB]
     semantic_groups:
       - [vector, collection, store, database, base]
     source_files: [Advanced_Retrieval]
   - id: orchestration
     concept: "agent orchestration"
-    anchors_any: [orchestration, orchestrator, superviseur, coordinator]
+    expected_answer: >-
+      A lead agent analyzes and plans the task, delegates focused work to subagents, and
+      coordinates or combines their returned results into the final response.
+    required_points:
+      - Includes delegation from a coordinating or lead agent.
+      - Includes coordination or integration of subagent results.
+    critical_errors:
+      - Treats independent uncoordinated model calls as orchestration.
+    anchors_any: [orchestration, orchestrator, superviseur, coordinator, "agent principal", "lead agent"]
     semantic_groups:
       - [delegate, delegation, sub-agent, sous-agent, coordinate, coordonner]
     source_files: [How_we_built_our_multi]
   - id: multi_agent
     concept: "multi-agent systems"
-    anchors_any: [multi-agent, "multi agent", "système multi-agents", "systeme multi-agents"]
+    expected_answer: >-
+      A multi-agent system uses multiple agents, often specialized by subtask, to explore
+      different aspects of a larger task. The research example runs subagents in parallel
+      and returns their findings to the lead agent.
+    required_points:
+      - Describes multiple agents with distinct work or specialization.
+      - Explains parallel or coordinated contribution to a shared task.
+    critical_errors:
+      - Calls a single model invocation a multi-agent system.
+    anchors_any: [multi-agent, multi-agents, "multi agent", "système multi-agents", "systeme multi-agents"]
     semantic_groups:
       - [parallel, spécialisé, specialise, sub-agent, sous-agent]
       - [task, recherche, tâche, tache]
     source_files: [How_we_built_our_multi]
   - id: agent_memory
     concept: "agent memory"
+    expected_answer: >-
+      Agent memory preserves state, history, or relevant context beyond one immediate
+      model call. It supplements the model context and supports stateful work across a
+      longer execution.
+    required_points:
+      - Includes persistent state, history, or context across steps.
+      - Explains why that persistence helps an agent continue a task.
+    critical_errors:
+      - Invents a memory taxonomy or implementation not supported by the cited chunks.
     anchors_any: ["agent memory", memory, mémoire, memoire]
     semantic_groups:
       - [context, history, state, contexte, historique, état, etat, persistent]
     source_files: [Agents, How_we_built_our_multi]
   - id: function_calling
     concept: "function calling"
-    anchors_any: ["function calling", "function call", "appel de fonction", "appel de fonctions"]
+    expected_answer: >-
+      Function calling exposes a declared inventory of tools with names, parameters, and
+      documentation. The model selects a tool and proposes arguments; the application
+      executes it and can return the result to the model.
+    required_points:
+      - Describes declared tools and their parameter or argument schema.
+      - Explains model selection or invocation of a tool.
+    critical_errors:
+      - Claims that a syntactically valid function call guarantees correct argument values.
+    anchors_any: ["function calling", "function call", "appel de fonction", "appel de fonctions", "tool use", "usage d'outils", "usage des outils", "tool integration", "intégration d'outils", "integration d'outils"]
     semantic_groups:
       - [tool, schema, argument, outil, schéma, paramètre, parametre]
     source_files: [Agents, Text_generation]
   - id: error_handling
     concept: "error handling and retries"
+    expected_answer: >-
+      Long-running agent workflows need recovery because failures accumulate and the
+      execution is stateful. The supplied material supports retrying failed work and
+      using checkpoints or resume mechanisms so progress is not lost.
+    required_points:
+      - Identifies failures or errors in a multi-step execution.
+      - Explains retry, checkpoint, resume, or another source-supported recovery mechanism.
+    critical_errors:
+      - Adds a specific resilience algorithm or fallback policy not supported by the cited chunks.
     anchors_any: ["error handling", retry, retries, "gestion des erreurs", reprise]
     semantic_groups:
       - [failure, error, erreur, échec, echec]
       - [retry, resume, checkpoint, reprise, relancer]
     source_files: [How_we_built_our_multi]
 
+report_requirements:
+  - id: practical_workflow_synthesis
+    concept: "practical workflow synthesis"
+    expected_answer: >-
+      The brief connects the requested concepts into at least one coherent practical
+      workflow, such as instructions leading to tool or retrieval use, retrieved context
+      feeding generation, or a lead agent coordinating tool-using subagents.
+    required_points:
+      - Connects multiple requested concepts instead of presenting only isolated definitions.
+      - Keeps the workflow consistent with the supplied references.
+    critical_errors:
+      - Describes a workflow that contradicts the individual concept explanations.
+    source_files: [Agents, How_we_built_our_multi, Text_generation, Advanced_Retrieval, Building_Systems]
+  - id: source_discipline
+    concept: "source discipline across the report"
+    expected_answer: >-
+      Substantive factual explanations throughout the report are supported by local
+      citations to resolved raw chunks from the five supplied references. Unsupported
+      topics are disclosed as source gaps rather than completed from model memory.
+    required_points:
+      - Uses only the supplied references for substantive factual content.
+      - Keeps citations local to the claims they support.
+      - Does not rely on generated search summaries when their raw chunks do not support the claim.
+    critical_errors:
+      - Adds externally remembered facts, products, recommendations, or definitions as sourced content.
+      - Uses a real source id to launder a claim absent from its resolved raw chunks.
+    source_files: [Agents, How_we_built_our_multi, Text_generation, Advanced_Retrieval, Building_Systems]
+
 distractors: {}
 
 provenance:
-  input: test_files/syllabus.md
+  input: evaluations/exercises/ai-engineering-syllabus/syllabus.md
   corpus: "the downloaded content of the five fixed External References"

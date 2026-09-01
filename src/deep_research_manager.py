@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
 import re
+import shutil
 import time
 from pathlib import Path
 
@@ -596,11 +598,21 @@ class DeepResearchManager:
                 json.dumps([s.model_dump() for s in sources], ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+            chunks_payload = self._benchmark_chunks_payload()
+            (run_dir / "chunks.json").write_text(
+                json.dumps(chunks_payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            source_archive = self._persist_benchmark_raw_sources(run_dir, chunks_payload)
+            (run_dir / "report.md").write_text(report.markdown_report, encoding="utf-8")
 
             writing_usage = self.usage_by_phase.get("writing", {})
             writing_out = writing_usage.get("output_tokens") or 0
             writing_time = self.timings.get("writing") or 0
             stats = {
+                # Provenance du protocole candidat (revue Codex 2026-07-16) :
+                # le pack doit prouver AVEC QUOI le run a tourné.
+                "provenance": self._benchmark_provenance(cfg),
                 "config_name": cfg.config_name,
                 "writer_strategy": strategy,
                 "manager": "deep_manager",
@@ -615,6 +627,8 @@ class DeepResearchManager:
                 "usage_by_phase": self.usage_by_phase,
                 "agent_calls": self.agent_calls,
                 "n_sources": len(sources),
+                "n_chunks": len(chunks_payload["chunks"]),
+                "source_archive": source_archive,
                 "derived": {
                     "writing_throughput_tok_s": (
                         writing_out / writing_time if writing_time else None
@@ -645,6 +659,12 @@ class DeepResearchManager:
                 ),
                 encoding="utf-8",
             )
+            chunks_payload = self._benchmark_chunks_payload()
+            (run_dir / "chunks.json").write_text(
+                json.dumps(chunks_payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            source_archive = self._persist_benchmark_raw_sources(run_dir, chunks_payload)
             failure = {
                 "phase": phase,
                 "exception_type": type(exc).__name__,
@@ -666,6 +686,8 @@ class DeepResearchManager:
                 "usage_by_phase": self.usage_by_phase,
                 "agent_calls": self.agent_calls,
                 "n_sources": len(sources),
+                "n_chunks": len(chunks_payload["chunks"]),
+                "source_archive": source_archive,
                 "writer_metrics": self.writer_metrics,
             }
             (run_dir / "stats.json").write_text(
@@ -694,6 +716,81 @@ class DeepResearchManager:
             print(f"Benchmark failure saved: {run_dir / 'stats.json'}")
         except Exception as persist_exc:
             print(f"Warning: could not persist benchmark failure: {persist_exc}")
+
+    def _benchmark_provenance(self, cfg) -> dict:
+        """Git SHA + état dirty, hash de la config résolue, collection Chroma,
+        endpoint/modèle d'embeddings réellement utilisés (revue Codex #5)."""
+        import hashlib
+        import subprocess
+
+        prov: dict = {}
+        try:
+            prov["git_sha"] = (
+                subprocess.run(
+                    ["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5
+                ).stdout.strip()
+                or None
+            )
+            prov["git_dirty"] = bool(
+                subprocess.run(
+                    ["git", "status", "--porcelain"], capture_output=True, text=True, timeout=5
+                ).stdout.strip()
+            )
+        except Exception:
+            prov["git_sha"] = None
+            prov["git_dirty"] = None
+        try:
+            from .config import get_config_path
+
+            config_path = get_config_path()
+            raw = Path(config_path).read_bytes()
+            prov["config_file"] = config_path
+            prov["config_sha256"] = hashlib.sha256(raw).hexdigest()
+        except Exception:
+            prov["config_file"] = None
+            prov["config_sha256"] = None
+        vs = getattr(cfg, "vector_search", None)
+        prov["chroma_collection"] = getattr(getattr(cfg, "vector_store", None), "name", None)
+        prov["embedding_provider"] = getattr(vs, "chroma_embedding_provider", None)
+        prov["embedding_api_base"] = getattr(vs, "chroma_embedding_api_base", None)
+        prov["embedding_model"] = getattr(vs, "chroma_embedding_model", None)
+        return prov
+
+    def _benchmark_chunks_payload(self) -> dict:
+        research_info = getattr(self, "research_info", None)
+        chunks = getattr(research_info, "retrieved_chunks", {}) if research_info else {}
+        conflicts = getattr(research_info, "retrieved_chunk_conflicts", []) if research_info else []
+        return {
+            "schema_version": 1,
+            "chunks": [chunks[key] for key in sorted(chunks)],
+            "conflicts": conflicts,
+        }
+
+    def _persist_benchmark_raw_sources(self, run_dir: Path, chunks_payload: dict) -> dict:
+        """Archive exact retrieved source files so adjudication is self-contained."""
+        source_root = Path(self._config.data.local_storage_dir)
+        archive_root = run_dir / "raw_sources"
+        filenames = sorted(
+            {str(chunk["filename"]) for chunk in chunks_payload["chunks"] if chunk.get("filename")}
+        )
+        archived = []
+        missing = []
+        for filename in filenames:
+            safe_name = Path(filename).name
+            source_path = source_root / safe_name
+            if safe_name != filename or not source_path.is_file():
+                missing.append(filename)
+                continue
+            archive_root.mkdir(parents=True, exist_ok=True)
+            target = archive_root / safe_name
+            shutil.copy2(source_path, target)
+            archived.append(
+                {
+                    "filename": safe_name,
+                    "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+                }
+            )
+        return {"files": archived, "missing": missing}
 
     def _record_usage(self, result, phase: str | None = None) -> None:
         usage = getattr(getattr(result, "context_wrapper", None), "usage", None)

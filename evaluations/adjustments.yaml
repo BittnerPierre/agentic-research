@@ -1,0 +1,95 @@
+# Tableau d'exceptions post-examen (arbitrage Pierre, 2026-07-16).
+#
+# Principe : l'évaluateur n'est JAMAIS modifié pour une exception — il est figé
+# et reproductible, et re-noterait la même copie avec la même erreur. Quand une
+# relecture humaine post-publication établit qu'une réponse acceptée a été mal
+# notée, la note est ajustée ICI, à la main, avec justification — comme un
+# étudiant qui conteste sa copie auprès du professeur. L'ajustement est de la
+# DONNÉE, pas du code. Les copies non contestées ne sont pas revues (« c'est la
+# vie »). Les tableaux de campagne appliquent ces ajustements avec un renvoi.
+#
+# Champs : run (dossier benchmarks/runs), campagne (output_dir), exercice,
+# score_evaluateur, score_ajuste, motif, verification, arbitre, date.
+
+adjustments:
+  - run: "20260716_095802_minimax27-decomposed_decomposed"
+    campagne: "camp-mm27-capex-5"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 88.3
+    motif: >-
+      4 « fabrications » excusées après relecture : 2× « plus de $357B
+      combinés » (Amazon+Alphabet+Meta+Microsoft, capex FY2025) — la somme
+      exacte du corpus est 357,5, l'affirmation est vraie et couverte ; 2×
+      seuils de classement d'analyste (« capex > 50 % de l'OCF »,
+      « 20-50 % ») — des buckets, pas des données. L'évaluateur n'a
+      volontairement PAS de dérivation « somme de sociétés » (surface de
+      blanchiment : ~63 sous-ensembles × métriques × années) et cette ligne
+      dure est maintenue : l'exception est notée ici au lieu d'élargir le
+      code.
+    verification: >-
+      Somme recalculée à la main depuis key_metrics.csv
+      (131.8+91.4+69.7+64.6=357.5). Note ajustée par analogie avec le jumeau
+      propre camp-mm27-capex-3 (même couverture 42/42, 0 faux chiffre,
+      unverifiable 5 vs 4, même profil de longueur) noté 88.3 par
+      l'évaluateur.
+    arbitre: "Pierre"
+    date: "2026-07-16"
+
+  - run: "20260716_220847_deepseek-v4-flash-decomposed_decomposed"
+    campagne: "camp-dsv4-capex-4"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 88.0
+    motif: >-
+      Fab unique « $731.8B in operating cash flow » (agrégat 6 sociétés) —
+      somme EXACTE du corpus, même nature que le 357 de mm27-capex-5. Les
+      sommes multi-sociétés restent volontairement hors catalogue.
+    verification: >-
+      Somme recalculée à la main : OCF FY2025 = 731.8 exact. Score par
+      analogie avec le jumeau propre camp-dsv4-capex-2 (88.0, couverture
+      42/42, 0 faux chiffre).
+    arbitre: "Pierre"
+    date: "2026-07-16"
+  - run: "20260716_224419_deepseek-v4-flash-decomposed_decomposed"
+    campagne: "camp-dsv4-capex-1"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 88.0
+    motif: >-
+      Fabs = agrégats hors contrat : 373 et 731.8 EXACTS ; « roughly $104B »
+      (vrai : 100.3, écart 3.7 %) et « ~3.6x » (vrai : 3.72) — approximations
+      explicitement couvertes (roughly, ~) et cohérentes entre elles.
+      Arbitrage : approximation couverte ≤4 % sur agrégat hors contrat,
+      acceptée AU CAS PAR CAS — ne constitue PAS un précédent pour un
+      chiffre non couvert.
+    verification: >-
+      Sommes recalculées à la main : capex FY2025 = 373.4 (exact), OCF =
+      731.8 (exact), capex FY2020 = 100.3 (5 sociétés, NVIDIA n/d).
+    arbitre: "Pierre"
+    date: "2026-07-16"
+  - run: "20260716_123120_qwen36-decomposed_decomposed"
+    campagne: "bench-capex-qwen-14"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 40.0
+    motif: >-
+      RECTIFICATION DE COMPTE sans effet de score : le « 373,4 » avait été
+      classé fabrication réelle par erreur de contre-calcul (filtre qui
+      additionnait aussi les lignes Capex/OCF) — il est VRAI (somme capex
+      exacte). Restent 2 fabrications réelles (733.3 vs 731.8 ; 359.9 vs
+      358.4) : lettre F et score inchangés. Traitement égal avec mm27/dsv4.
+    verification: "Somme capex FY2025 recalculée = 373.4 exact."
+    arbitre: "Pierre"
+    date: "2026-07-16"
+
+exclusions:
+  - campagne: "camp-dsv4-capex-3"
+    motif: >-
+      Incident d'environnement suspecté : le run a couru dans la fenêtre du
+      kill de l'arbre de processus (nettoyage différé ~23h06) et du lancement
+      d'une application lourde sur la machine hôte. Profil d'effondrement du
+      writer (retrieval OK, 2/7 chapitres, 0 tableau, couverture 0/42) non
+      attribuable au modèle. Remplacé par camp-dsv4-capex-6.
+    arbitre: "Pierre"
+    date: "2026-07-16"

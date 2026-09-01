@@ -1,6 +1,6 @@
 # FY2025 AI Capex Intensity Exercise
 
-This deterministic exercise tests a junior-analyst report across Amazon, Alphabet,
+This evidence-bound exercise tests a junior-analyst report across Amazon, Alphabet,
 Meta, Microsoft, NVIDIA, and Apple. It is calibrated for medium 24B-250B models:
 the task asks for factual extraction, simple ratios, source gaps, and neutral trends,
 not an investment thesis.
@@ -24,11 +24,20 @@ uv run python evaluations/exercises/ai-capex-intensity/generate.py \
 
 ## Qualification
 
-`deterministic_grade.py` emits both a diagnostic score and `qualified`. Qualification
-requires every critical report requirement, no wrong or fabricated factual claim,
-the requested report structure, and the frozen source policy. Tone, exact table layout,
-and ambiguous but non-contradictory prose remain diagnostic to avoid penalizing medium
-models for stylistic variance.
+`deterministic_grade.py` remains the sole authority for the score and every numeric
+verdict. Qualification additionally requires a pinned semantic adequacy check to pass
+the six closed requirements declared in `answer_key.yaml`. That check is a veto only:
+it can block a report whose requested analysis is missing or misleading, but can never
+change numeric coverage, accuracy, fabrication, contradictions, or score, and can never
+rehabilitate a deterministic failure.
+
+Each official run therefore needs `report.md`, `stats.json`, `sources.json`,
+`chunks.json`, and the retrieved files under `raw_sources/` in its run directory. The
+grader verifies raw chunks and archived sources against the hashes in
+`corpus/manifest.json`, stores full judge I/O in `semantic_judge.json`, and fails closed
+on missing evidence, judge disagreement, or invalid structured output. Use
+`--skip-semantic-judge` only for local deterministic diagnostics; that result is always
+non-qualifying.
 
 ## Interface versions
 

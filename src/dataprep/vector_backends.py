@@ -40,10 +40,6 @@ _NOISE_LINE_RE = re.compile(
     r"(\[\[edit\]|cookie|open in app|sitemap|copy as markdown|ask docs ai|page not found)",
     re.IGNORECASE,
 )
-_ARTIFACT_RE = re.compile(
-    r"(RECOMMENDED_PROMPT_PREFIX|You are a|system prompt|tool_call|BEGIN|END)",
-    re.IGNORECASE,
-)
 
 
 def _strip_front_matter(text: str) -> str:
@@ -54,9 +50,12 @@ def _strip_markdown_links(text: str) -> str:
     return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
 
 
-def _clean_for_rag(text: str) -> str:
+def clean_for_rag(text: str) -> str:
     cleaned = _strip_front_matter(text)
-    cleaned = re.sub(r"```[\s\S]*?```", "\n", cleaned)
+    # Keep fenced code CONTENT (code examples are content for technical
+    # corpora — issue #196: Chroma usage and few-shot prompts lived only in
+    # fenced blocks); drop just the fence marker lines.
+    cleaned = re.sub(r"^```[^\n]*$", "", cleaned, flags=re.MULTILINE)
     cleaned = cleaned.replace(
         "*Document traité automatiquement par le système de recherche agentique*", ""
     )
@@ -69,7 +68,10 @@ def _clean_for_rag(text: str) -> str:
     for raw_line in cleaned.splitlines():
         line = raw_line.strip()
         lowered = line.lower()
-        if any(marker in lowered for marker in _NOISE_SECTION_MARKERS):
+        # Trailing-boilerplate markers cut everything after them, so they must
+        # anchor the line (issue #196: a prompt example "Primary categories:
+        # Billing..." mid-article truncated 90% of the document).
+        if any(lowered.startswith(marker) for marker in _NOISE_SECTION_MARKERS):
             break
         if _NOISE_LINE_RE.search(line):
             continue
@@ -79,6 +81,10 @@ def _clean_for_rag(text: str) -> str:
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
+
+
+# Backward-compatible private name for existing callers.
+_clean_for_rag = clean_for_rag
 
 
 def _chunk_dense_text(text: str, max_chars: int, overlap: int) -> list[str]:
@@ -134,8 +140,8 @@ def _is_high_quality_chunk(chunk: str) -> bool:
         return False
     if _non_alnum_ratio(chunk) > 0.45:
         return False
-    if _ARTIFACT_RE.search(chunk):
-        return False
+    # No content-marker filtering here (issue #196): a "system prompt"/"You
+    # are a" pattern is the subject matter of prompting corpora, not noise.
     if chunk.count("http") > 6:
         return False
     return True

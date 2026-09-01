@@ -117,6 +117,12 @@ class ResearchInfo:
     search_results: list[str] = field(default_factory=list)
     """List of filenames resulting from research (e.g., .txt, .md, .pdf files)."""
 
+    retrieved_chunks: dict[str, dict] = field(default_factory=dict)
+    """Raw vector-search chunks returned to search agents, keyed by stable chunk id."""
+
+    retrieved_chunk_conflicts: list[dict] = field(default_factory=list)
+    """Conflicting payloads observed for the same supposedly stable chunk id."""
+
 
 class ReportData(BaseModel):
     file_name: str
