@@ -19,7 +19,8 @@ while [ $# -gt 0 ]; do
   shift
 done
 OK=0
-cfg_get() { grep -E "^[[:space:]]*$1:" "$CFG" 2>/dev/null | head -1 | sed 's/.*: *//; s/"//g'; }
+# Coupe à la PREMIÈRE occurrence « clé: » (un sed glouton amputait les URLs à leur dernier deux-points).
+cfg_get() { grep -E "^[[:space:]]*$1:" "$CFG" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g'; }
 
 check() { # label, ok(0/1), détail, remède
   if [ "$2" = "0" ]; then echo "✓ $1 — $3"; else echo "✗ $1 — $3"; echo "    remède : $4"; OK=1; fi
@@ -40,22 +41,37 @@ else
     "uv run dataprep_server --config <config-de-campagne>  (à lancer par l'utilisateur)"
 fi
 
-# Embeddings (spark1:8003)
-EMB=$(curl -s --max-time 4 http://spark1:8003/v1/models 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
-if [ -n "${EMB:-}" ]; then
-  if [ -n "$CFG" ]; then
-    WANT_EMB=$(cfg_get chroma_embedding_model)
-    if [ -n "$WANT_EMB" ] && [ "$WANT_EMB" != "$EMB" ]; then
-      check "Embeddings (spark1:8003)" 1 "sert $EMB ≠ config ($WANT_EMB)" "aligner le serveur d'embeddings sur la config de campagne"
-    else
-      check "Embeddings (spark1:8003)" 0 "sert: $EMB (conforme config)" ""
-    fi
-  else
-    check "Embeddings (spark1:8003)" 0 "sert: $EMB" ""
-  fi
-else
-  check "Embeddings (spark1:8003)" 1 "injoignable" "démarrer llama.cpp embeddings sur le Spark (utilisateur)"
+# Embeddings — endpoint lu depuis la config si fournie (défaut historique : spark1:8003).
+# Une config à embeddings cloud (api.openai.com) n'exige AUCUN service local :
+# le vérifier en dur sur spark1:8003 produisait un faux blocage (validation #209).
+EMB_BASE="http://spark1:8003/v1"
+if [ -n "$CFG" ]; then
+  CFG_EMB_BASE=$(cfg_get chroma_embedding_api_base)
+  [ -n "$CFG_EMB_BASE" ] && EMB_BASE="$CFG_EMB_BASE"
 fi
+case "$EMB_BASE" in
+  *api.openai.com*)
+    check "Embeddings (cloud OpenAI)" 0 "via API OpenAI ($(cfg_get chroma_embedding_model)) — aucun service local requis" ""
+    ;;
+  *)
+    EMB_LABEL=$(printf '%s' "$EMB_BASE" | sed -E 's|https?://||; s|/v1/?$||')
+    EMB=$(curl -s --max-time 4 "${EMB_BASE%/}/models" 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
+    if [ -n "${EMB:-}" ]; then
+      if [ -n "$CFG" ]; then
+        WANT_EMB=$(cfg_get chroma_embedding_model)
+        if [ -n "$WANT_EMB" ] && [ "$WANT_EMB" != "$EMB" ]; then
+          check "Embeddings ($EMB_LABEL)" 1 "sert $EMB ≠ config ($WANT_EMB)" "aligner le serveur d'embeddings sur la config de campagne"
+        else
+          check "Embeddings ($EMB_LABEL)" 0 "sert: $EMB (conforme config)" ""
+        fi
+      else
+        check "Embeddings ($EMB_LABEL)" 0 "sert: $EMB" ""
+      fi
+    else
+      check "Embeddings ($EMB_LABEL)" 1 "injoignable" "démarrer le serveur d'embeddings ($EMB_LABEL) — utilisateur"
+    fi
+    ;;
+esac
 
 # vLLM (spark1:8000) — requis seulement pour les modèles Spark
 VLLM=$(curl -s --max-time 4 http://spark1:8000/v1/models 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
