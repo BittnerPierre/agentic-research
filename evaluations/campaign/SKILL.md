@@ -25,6 +25,7 @@ doctrines qui suivent y sont documentées avec leurs exemples.
 ## Vue d'ensemble d'une campagne pour UN modèle
 
 ```
+0. Modèles        evaluations/campaign/scripts/list_models.py [--services] [--spark]
 1. Pré-vol        evaluations/campaign/scripts/check_services.sh [--spark]
 2. Config         configs/tests/config-<modele>-chroma-decomposed.yaml
 3. Batterie       evaluations/campaign/scripts/run_battery.sh <config> <tag> <finance|concept|both> [N]
@@ -33,9 +34,11 @@ doctrines qui suivent y sont documentées avec leurs exemples.
 6. Tableau        evaluations/campaign/scripts/compile_table.py --models "Label=tag" ... [--flags]
 ```
 
-> L'outillage vit dans `evaluations/campaign/` (il fait partie du projet et se
-> distribue avec — sans lui le benchmark ne s'exécute pas) ; ce SKILL.md n'est
-> que le déclencheur/mode d'emploi pour Claude Code.
+> Ce dossier (`evaluations/campaign/`) est le package du skill au format
+> Agent Skills : ce SKILL.md en est le point d'entrée, les `scripts/` et le
+> catalogue vivent à côté. Une campagne se mène en autonomie avec ce
+> protocole et cet outillage — sans coder ni modifier le projet ; seules les
+> décisions listées (gos de services, exceptions) reviennent à l'utilisateur.
 
 Après toute MODIFICATION de l'évaluateur : `evaluations/campaign/scripts/regrade.py` (qui exécute
 d'abord la suite de tests ET le contrôle falsifié, puis re-note les packs).
@@ -63,7 +66,30 @@ Règles :
 
 ## 2. Configs
 
-Une config par modèle dans `configs/tests/` (copier la plus proche) :
+Commencer par lister les modèles déjà supportés — ne pas les deviner :
+
+```bash
+uv run python evaluations/campaign/scripts/list_models.py            # + --services pour enchaîner le pré-vol
+```
+
+Chaque config existante y apparaît avec son endpoint, ses embeddings et ses
+avertissements. **Piège à éviter avant de payer un run** : un candidat qui
+partage la famille d'un juge sémantique épinglé (`answer_key.yaml` de
+l'exercice) est REFUSÉ au conceptuel par le garde anti-auto-notation —
+ex. gpt-5.4 nu est le juge, pas un candidat ; sa variante mini passe.
+`list_models.py` et `new_model_config.py` signalent ce cas.
+
+Pour un NOUVEAU modèle, générer la config plutôt que copier à la main :
+
+```bash
+uv run python evaluations/campaign/scripts/new_model_config.py \
+  --slug <slug> --model "openai/org/Modele" [--base-url http://spark1:8000/v1]
+```
+
+(`--base-url` omis = cloud OpenAI ; le fichier généré rappelle en tête
+d'aligner temperature/top_p/reasoning_effort sur la model card.)
+
+Réglages par modèle dans `configs/tests/` :
 - Spark : `base_url: http://spark1:8000/v1`, `api_key: dummy` (Chat
   Completions par défaut), température selon modèle (Qwen 0.2, Mistral 0.1),
   `reasoning_effort` par profil si hybride (pattern Mistral : high sur
@@ -91,7 +117,7 @@ evaluations/campaign/scripts/run_battery.sh \
 ## 4. Seconde lecture (OBLIGATOIRE avant publication)
 
 AUCUN score n'est accepté sans lire ce qui l'a causé — y compris les A et
-les échecs sémantiques (revue Codex #3). `compile_table.py --flags` liste
+les échecs sémantiques (revue externe de juillet 2026, finding #3). `compile_table.py --flags` liste
 pour CHAQUE run son verdict root-cause, ses accusations numériques et ses
 exigences échouées ; la lettre E signale une évaluation NON ABOUTIE (run
 mort, validation impossible) — et elle seule : un échec de provenance du
@@ -168,6 +194,8 @@ le plus fort les angles morts de l'évaluateur), pas le modèle.
 
 ## Fichiers
 
+- `evaluations/campaign/scripts/list_models.py` — modèles supportés (+ avertissement famille-juge, `--services`)
+- `evaluations/campaign/scripts/new_model_config.py` — génère la config d'un nouveau modèle
 - `evaluations/campaign/scripts/check_services.sh` — pré-vol
 - `evaluations/campaign/scripts/run_battery.sh` — batterie N runs + correction
 - `evaluations/campaign/scripts/regrade.py` — garde-fous (tests + contrôle falsifié) + re-notation
