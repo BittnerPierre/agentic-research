@@ -19,7 +19,8 @@ while [ $# -gt 0 ]; do
   shift
 done
 OK=0
-cfg_get() { grep -E "^[[:space:]]*$1:" "$CFG" 2>/dev/null | head -1 | sed 's/.*: *//; s/"//g'; }
+# Coupe à la PREMIÈRE occurrence « clé: » (un sed glouton amputait les URLs à leur dernier deux-points).
+cfg_get() { grep -E "^[[:space:]]*$1:" "$CFG" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g'; }
 
 check() { # label, ok(0/1), détail, remède
   if [ "$2" = "0" ]; then echo "✓ $1 — $3"; else echo "✗ $1 — $3"; echo "    remède : $4"; OK=1; fi
@@ -32,37 +33,78 @@ else
   check "ChromaDB (localhost:8000)" 1 "injoignable" "démarrer le conteneur/service Chroma"
 fi
 
-# DataPrep MCP (localhost:8001) — noter la config avec laquelle il tourne si possible
+# DataPrep MCP (localhost:8001) — conformité de config en BEST EFFORT :
+# quand le processus est local, sa ligne de commande révèle son --config ; on
+# compare alors ses embeddings à ceux de la campagne (incident revue #210 :
+# dataprep sur une config d'embeddings ≠ campagne → index inutilisable, 0 chunk).
+# Si le processus n'est pas lisible (dataprep distant, --config absent), on
+# LOGGUE l'anomalie sans bloquer — la vraie solution est une API de métadonnées
+# côté dataprep (issue dédiée), en attendant la vérification revient à l'humain.
+cfg_get_in() { grep -E "^[[:space:]]*$2:" "$1" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g'; }
 if lsof -nP -iTCP:8001 -sTCP:LISTEN >/dev/null 2>&1; then
-  check "DataPrep MCP (localhost:8001)" 0 "up (vérifier que sa config d'embeddings correspond à la campagne)" ""
+  DP_PID=$(lsof -nP -tiTCP:8001 -sTCP:LISTEN 2>/dev/null | head -1)
+  DP_CFG=$(ps -o command= -p "${DP_PID:-0}" 2>/dev/null | sed -n 's/.*--config[= ]\([^ ]*\).*/\1/p')
+  if [ -n "$CFG" ] && [ -n "$DP_CFG" ] && [ -f "$DP_CFG" ]; then
+    DP_EMB="$(cfg_get_in "$DP_CFG" chroma_embedding_api_base)|$(cfg_get_in "$DP_CFG" chroma_embedding_model)"
+    WANT="$(cfg_get chroma_embedding_api_base)|$(cfg_get chroma_embedding_model)"
+    if [ "$DP_EMB" = "$WANT" ]; then
+      check "DataPrep MCP (localhost:8001)" 0 "up, embeddings conformes à la campagne (config: $DP_CFG)" ""
+    else
+      check "DataPrep MCP (localhost:8001)" 1 "up mais embeddings ≠ campagne ($DP_EMB vs $WANT)" \
+        "relancer dataprep avec la config de campagne (utilisateur) : uv run dataprep_server --config $CFG"
+    fi
+  elif [ -n "$CFG" ]; then
+    check "DataPrep MCP (localhost:8001)" 0 "up — ANOMALIE : conformité d'embeddings NON VÉRIFIABLE (processus distant ou --config illisible) ; vérifier manuellement que dataprep porte la config de campagne" ""
+  else
+    check "DataPrep MCP (localhost:8001)" 0 "up (passer --config pour vérifier la conformité d'embeddings)" ""
+  fi
 else
   check "DataPrep MCP (localhost:8001)" 1 "aucun listener" \
     "uv run dataprep_server --config <config-de-campagne>  (à lancer par l'utilisateur)"
 fi
 
-# Embeddings (spark1:8003)
-EMB=$(curl -s --max-time 4 http://spark1:8003/v1/models 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
-if [ -n "${EMB:-}" ]; then
-  if [ -n "$CFG" ]; then
-    WANT_EMB=$(cfg_get chroma_embedding_model)
-    if [ -n "$WANT_EMB" ] && [ "$WANT_EMB" != "$EMB" ]; then
-      check "Embeddings (spark1:8003)" 1 "sert $EMB ≠ config ($WANT_EMB)" "aligner le serveur d'embeddings sur la config de campagne"
-    else
-      check "Embeddings (spark1:8003)" 0 "sert: $EMB (conforme config)" ""
-    fi
-  else
-    check "Embeddings (spark1:8003)" 0 "sert: $EMB" ""
-  fi
-else
-  check "Embeddings (spark1:8003)" 1 "injoignable" "démarrer llama.cpp embeddings sur le Spark (utilisateur)"
+# Embeddings — endpoint lu depuis la config si fournie (défaut historique : spark1:8003).
+# Une config à embeddings cloud (api.openai.com) n'exige AUCUN service local :
+# le vérifier en dur sur spark1:8003 produisait un faux blocage (validation #209).
+EMB_BASE="http://spark1:8003/v1"
+if [ -n "$CFG" ]; then
+  CFG_EMB_BASE=$(cfg_get chroma_embedding_api_base)
+  [ -n "$CFG_EMB_BASE" ] && EMB_BASE="$CFG_EMB_BASE"
 fi
+case "$EMB_BASE" in
+  *api.openai.com*)
+    check "Embeddings (cloud OpenAI)" 0 "via API OpenAI ($(cfg_get chroma_embedding_model)) — aucun service local requis" ""
+    ;;
+  *)
+    EMB_LABEL=$(printf '%s' "$EMB_BASE" | sed -E 's|https?://||; s|/v1/?$||')
+    EMB=$(curl -s --max-time 4 "${EMB_BASE%/}/models" 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
+    if [ -n "${EMB:-}" ]; then
+      if [ -n "$CFG" ]; then
+        WANT_EMB=$(cfg_get chroma_embedding_model)
+        if [ -n "$WANT_EMB" ] && [ "$WANT_EMB" != "$EMB" ]; then
+          check "Embeddings ($EMB_LABEL)" 1 "sert $EMB ≠ config ($WANT_EMB)" "aligner le serveur d'embeddings sur la config de campagne"
+        else
+          check "Embeddings ($EMB_LABEL)" 0 "sert: $EMB (conforme config)" ""
+        fi
+      else
+        check "Embeddings ($EMB_LABEL)" 0 "sert: $EMB" ""
+      fi
+    else
+      check "Embeddings ($EMB_LABEL)" 1 "injoignable" "démarrer le serveur d'embeddings ($EMB_LABEL) — utilisateur"
+    fi
+    ;;
+esac
 
 # vLLM (spark1:8000) — requis seulement pour les modèles Spark
 VLLM=$(curl -s --max-time 4 http://spark1:8000/v1/models 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
 if [ -n "${VLLM:-}" ]; then
   if [ -n "$CFG" ]; then
-    WANT_MODEL=$(grep -E '^[[:space:]]*name: "openai/' "$CFG" 2>/dev/null | head -1 | sed 's/.*: *//; s/"//g; s|^openai/||')
-    if [ -n "$WANT_MODEL" ] && [ "$WANT_MODEL" != "$VLLM" ]; then
+    WANT_MODEL=$(grep -E '^[[:space:]]*name: "openai/' "$CFG" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g; s|^openai/||')
+    if [ -z "$WANT_MODEL" ]; then
+      # La config ne déclare aucun modèle servi par vLLM : ne PAS afficher
+      # « conforme » (revue subagent #210 : le label masquerait un vrai défaut).
+      echo "· vLLM (spark1:8000) — sert: $VLLM (non requis par cette config : campagne cloud)"
+    elif [ "$WANT_MODEL" != "$VLLM" ]; then
       check "vLLM (spark1:8000)" 1 "sert $VLLM ≠ config ($WANT_MODEL)" "swap vLLM sur le modèle de la config (utilisateur)"
     else
       check "vLLM (spark1:8000)" 0 "sert: $VLLM (conforme config)" ""
