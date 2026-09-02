@@ -89,7 +89,7 @@ def main() -> int:
 
     judges = judge_families()
     rows = []
-    skipped = 0
+    skipped: list[str] = []
     for cfg_file in sorted(CONFIGS.glob("config-*.yaml")):
         try:
             data = yaml.safe_load(cfg_file.read_text()) or {}
@@ -98,7 +98,7 @@ def main() -> int:
         if not isinstance(data.get("models"), dict) or not data.get("models"):
             continue  # pas une config de modèles du tout
         if not is_campaign_config(data):
-            skipped += 1
+            skipped.append(cfg_file.name)
             continue
         models_cfg = data["models"]
         specs = [s for s in models_cfg.values() if isinstance(s, dict)]
@@ -130,8 +130,8 @@ def main() -> int:
             print(f"    ⚠ {warning}")
     if skipped:
         print(
-            f"\n({skipped} configs de configs/tests/ ignorées : hors contrat campagne — "
-            "deep_manager + writer decomposed + chroma requis)"
+            f"\n({len(skipped)} configs ignorées, hors contrat campagne — deep_manager + "
+            f"writer decomposed + chroma requis : {', '.join(skipped)})"
         )
     print(
         "\nNouveau modèle : uv run python evaluations/campaign/scripts/new_model_config.py --help"
