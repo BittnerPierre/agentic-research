@@ -22,7 +22,7 @@
     {
       "id": 4,
       "prompt": "je viens de déployer NouveauModele-X sur le spark, lance-moi une campagne complète dessus",
-      "expected_output": "Déroule le protocole en autonomie sans coder ni modifier le projet : pré-vol check_services.sh --spark (vérifie que vLLM sert bien NouveauModele-X, ne démarre aucun service — propose les commandes et attend le go), config créée dans configs/tests/ par copie de la plus proche, batterie run_battery.sh N=5 both en arrière-plan, puis seconde lecture obligatoire avant toute publication de scores.",
+      "expected_output": "Déroule le protocole en autonomie sans coder ni modifier le projet : list_models.py (le modèle n'est pas supporté), proposition de config via new_model_config.py et ATTENTE DU GO avant de la générer, pré-vol check_services.sh --spark --config (vérifie que vLLM sert bien NouveauModele-X, ne démarre aucun service — propose les commandes et attend), batterie run_battery.sh N=5 both en arrière-plan (contrôle du corpus gelé automatique), puis seconde lecture obligatoire (references/doctrines.md) avant toute publication de scores.",
       "files": []
     }
   ]

@@ -34,38 +34,35 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from list_models import judge_families, model_family  # noqa: E402
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--slug", required=True, help="slug du fichier/tag (ex: qwen4)")
-    parser.add_argument("--model", required=True, help="nom du modèle servi (ex: openai/org/Model)")
-    parser.add_argument(
-        "--base-url", default=None, help="endpoint OpenAI-compatible ; omis = cloud"
-    )
-    parser.add_argument("--from", dest="template", default=None, help="config gabarit à copier")
-    args = parser.parse_args()
+def create_config(
+    slug: str,
+    model: str,
+    base_url: str | None = None,
+    template: Path | None = None,
+    configs_dir: Path | None = None,
+) -> Path:
+    """Écrit la config du nouveau modèle et retourne son chemin.
 
-    target = CONFIGS / f"config-{args.slug}-chroma-decomposed.yaml"
+    Lève FileExistsError si la cible existe (jamais d'écrasement) et
+    FileNotFoundError si le gabarit manque.
+    """
+    configs_dir = configs_dir or CONFIGS
+    target = configs_dir / f"config-{slug}-chroma-decomposed.yaml"
     if target.exists():
-        print(f"refus : {target} existe déjà (supprimer d'abord, ou choisir un autre --slug)")
-        return 1
-
-    template = (
-        Path(args.template)
-        if args.template
-        else (SPARK_TEMPLATE if args.base_url else CLOUD_TEMPLATE)
-    )
+        raise FileExistsError(f"{target} existe déjà (choisir un autre --slug)")
+    if template is None:
+        template = SPARK_TEMPLATE if base_url else CLOUD_TEMPLATE
     if not template.is_file():
-        print(f"gabarit introuvable : {template}")
-        return 1
+        raise FileNotFoundError(f"gabarit introuvable : {template}")
 
     data = yaml.safe_load(template.read_text())
-    data["config_name"] = f"{args.slug}-decomposed"
+    data["config_name"] = f"{slug}-decomposed"
     for role, spec in list((data.get("models") or {}).items()):
         if not isinstance(spec, dict):
             data["models"][role] = spec = {"name": spec}
-        spec["name"] = args.model
-        if args.base_url:
-            spec["base_url"] = args.base_url
+        spec["name"] = model
+        if base_url:
+            spec["base_url"] = base_url
             spec.setdefault("api_key", "dummy")
         else:
             spec.pop("base_url", None)
@@ -77,7 +74,30 @@ def main() -> int:
         f"# sur la model card du modèle (le gabarit porte les réglages d'un AUTRE modèle).\n"
     )
     target.write_text(header + yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
-    print(f"créé : {target.relative_to(ROOT)} (gabarit : {template.name})")
+    return target
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--slug", required=True, help="slug du fichier/tag (ex: qwen4)")
+    parser.add_argument("--model", required=True, help="nom du modèle servi (ex: openai/org/Model)")
+    parser.add_argument(
+        "--base-url", default=None, help="endpoint OpenAI-compatible ; omis = cloud"
+    )
+    parser.add_argument("--from", dest="template", default=None, help="config gabarit à copier")
+    args = parser.parse_args()
+
+    try:
+        target = create_config(
+            args.slug,
+            args.model,
+            base_url=args.base_url,
+            template=Path(args.template) if args.template else None,
+        )
+    except (FileExistsError, FileNotFoundError) as exc:
+        print(f"refus : {exc}")
+        return 1
+    print(f"créé : {target.relative_to(ROOT)}")
 
     for family, exo in judge_families().items():
         if model_family(args.model) == family:

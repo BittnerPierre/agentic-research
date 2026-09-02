@@ -33,9 +33,31 @@ else
   check "ChromaDB (localhost:8000)" 1 "injoignable" "démarrer le conteneur/service Chroma"
 fi
 
-# DataPrep MCP (localhost:8001) — noter la config avec laquelle il tourne si possible
+# DataPrep MCP (localhost:8001) — conformité de config en BEST EFFORT :
+# quand le processus est local, sa ligne de commande révèle son --config ; on
+# compare alors ses embeddings à ceux de la campagne (incident revue #210 :
+# dataprep sur une config d'embeddings ≠ campagne → index inutilisable, 0 chunk).
+# Si le processus n'est pas lisible (dataprep distant, --config absent), on
+# LOGGUE l'anomalie sans bloquer — la vraie solution est une API de métadonnées
+# côté dataprep (issue dédiée), en attendant la vérification revient à l'humain.
+cfg_get_in() { grep -E "^[[:space:]]*$2:" "$1" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g'; }
 if lsof -nP -iTCP:8001 -sTCP:LISTEN >/dev/null 2>&1; then
-  check "DataPrep MCP (localhost:8001)" 0 "up (vérifier que sa config d'embeddings correspond à la campagne)" ""
+  DP_PID=$(lsof -nP -tiTCP:8001 -sTCP:LISTEN 2>/dev/null | head -1)
+  DP_CFG=$(ps -o command= -p "${DP_PID:-0}" 2>/dev/null | sed -n 's/.*--config[= ]\([^ ]*\).*/\1/p')
+  if [ -n "$CFG" ] && [ -n "$DP_CFG" ] && [ -f "$DP_CFG" ]; then
+    DP_EMB="$(cfg_get_in "$DP_CFG" chroma_embedding_api_base)|$(cfg_get_in "$DP_CFG" chroma_embedding_model)"
+    WANT="$(cfg_get chroma_embedding_api_base)|$(cfg_get chroma_embedding_model)"
+    if [ "$DP_EMB" = "$WANT" ]; then
+      check "DataPrep MCP (localhost:8001)" 0 "up, embeddings conformes à la campagne (config: $DP_CFG)" ""
+    else
+      check "DataPrep MCP (localhost:8001)" 1 "up mais embeddings ≠ campagne ($DP_EMB vs $WANT)" \
+        "relancer dataprep avec la config de campagne (utilisateur) : uv run dataprep_server --config $CFG"
+    fi
+  elif [ -n "$CFG" ]; then
+    check "DataPrep MCP (localhost:8001)" 0 "up — ANOMALIE : conformité d'embeddings NON VÉRIFIABLE (processus distant ou --config illisible) ; vérifier manuellement que dataprep porte la config de campagne" ""
+  else
+    check "DataPrep MCP (localhost:8001)" 0 "up (passer --config pour vérifier la conformité d'embeddings)" ""
+  fi
 else
   check "DataPrep MCP (localhost:8001)" 1 "aucun listener" \
     "uv run dataprep_server --config <config-de-campagne>  (à lancer par l'utilisateur)"

@@ -63,10 +63,27 @@ run_series() {
   done
 }
 
+# Contrôle du corpus gelé AVANT tout appel modèle (revue Codex #210, finding 3 :
+# un drift de hash découvert après coup a coûté un run conceptuel complet).
+verify_corpus() {
+  uv run python evaluations/campaign/scripts/verify_corpus.py "evaluations/exercises/$1" \
+    | tee -a "$SUMMARY"
+  if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+    echo "[battery] ABANDON avant appel modèle : corpus gelé non conforme ($1)" | tee -a "$SUMMARY"
+    exit 1
+  fi
+}
+
 case "$WHICH" in
-  finance) run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity" ;;
-  concept) run_series "concept" "evaluations/exercises/ai-engineering-syllabus/syllabus.md" "ai-engineering-syllabus" ;;
+  finance)
+    verify_corpus "ai-capex-intensity"
+    run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity" ;;
+  concept)
+    verify_corpus "ai-engineering-syllabus"
+    run_series "concept" "evaluations/exercises/ai-engineering-syllabus/syllabus.md" "ai-engineering-syllabus" ;;
   both)
+    verify_corpus "ai-engineering-syllabus"
+    verify_corpus "ai-capex-intensity"
     run_series "concept" "evaluations/exercises/ai-engineering-syllabus/syllabus.md" "ai-engineering-syllabus"
     run_series "capex" "evaluations/exercises/ai-capex-intensity/syllabus.md" "ai-capex-intensity"
     ;;
