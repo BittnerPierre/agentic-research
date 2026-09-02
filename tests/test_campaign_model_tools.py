@@ -28,6 +28,41 @@ def _load(name: str):
 list_models = _load("list_models")
 new_model_config = _load("new_model_config")
 verify_corpus = _load("verify_corpus")
+compile_table = _load("compile_table")
+
+
+class TestTagPatterns:
+    """Résolution tag -> motifs de runs (revue Codex #210 : un tag contenant
+    le mot concept ne retrouvait plus ses runs camp-…-concept-concept-N)."""
+
+    def _matches(self, prefix: str, kind: str, name: str) -> bool:
+        import re
+
+        return any(
+            re.fullmatch(re.escape(pat) + r"-?\d+", name)
+            for pat in compile_table.tag_patterns(prefix, kind)
+        )
+
+    def test_standard_tag_is_suffixed(self):
+        assert self._matches("camp-mistral", "capex", "camp-mistral-capex-3")
+        assert not self._matches("camp-mistral", "capex", "camp-mistral-concept-3")
+
+    def test_historic_tag_containing_kind_matches_as_is(self):
+        assert self._matches("bench-concept-54m", "concept", "bench-concept-54m-1")
+
+    def test_tag_containing_kind_word_still_matches_suffixed_form(self):
+        assert self._matches(
+            "camp-qwen36-codex-smoke-concept",
+            "concept",
+            "camp-qwen36-codex-smoke-concept-concept-1",
+        )
+
+    def test_tag_of_other_exercise_is_skipped(self):
+        assert compile_table.tag_patterns("bench-concept-54m", "capex") == []
+
+    def test_prefix_must_anchor_exactly(self):
+        # camp-gpt54 ne doit pas aspirer camp-gpt54-skill209 (isolation).
+        assert not self._matches("camp-gpt54", "capex", "camp-gpt54-skill209-capex-1")
 
 
 class TestModelFamily:
