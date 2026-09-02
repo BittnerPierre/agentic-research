@@ -106,8 +106,11 @@ evaluations/campaign/scripts/run_battery.sh configs/tests/config-<modele>.yaml c
   décision utilisateur (re-téléchargement ou re-gel), jamais en campagne.
 - N est libre (1 = smoke, 5 = campagne officielle ; médiane/min/max exigent
   N≥3). Lancer en arrière-plan (runs Spark : 5-12 min chacun).
-- Résolution des dossiers de run par `stats.json → output_dir` (autoritaire) —
-  ne JAMAIS se fier au « dernier dossier créé ».
+- Retrouver le pack d'un run : la batterie imprime son chemin dans
+  `benchmarks/summaries/<tag>_results.txt` (ligne `=== <run> (<pack>)`) —
+  c'est LA source. En cas de doute, l'autorité est le `stats.json` DU pack
+  (son `output_dir` se termine par le nom du run) — ne JAMAIS se fier au
+  « dernier dossier créé » de `benchmarks/runs/`.
 - Cloud + Spark en parallèle : OK (endpoints différents) ; deux batteries
   Spark, non (un seul vLLM).
 

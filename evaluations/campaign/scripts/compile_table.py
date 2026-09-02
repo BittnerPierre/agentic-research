@@ -185,7 +185,13 @@ def main() -> None:
             # Arbitrage Pierre (2026-07-17) : pas de lettres en conceptuel
             # tant qu'elles ne sont pas dérivées du juge (les lettres actuelles
             # ne comptent que les fautes numériques -> vides de sens là-bas).
-            let_s = " ".join(letters) if kind == "capex" else "(lettres: n/a)"
+            # EXCEPTION : E ne dérive pas du juge (évaluation non aboutie) et
+            # doit rester visible dans la ligne (revue subagent #210).
+            if kind == "capex":
+                let_s = " ".join(letters)
+            else:
+                e_count = letters.count("E")
+                let_s = f"({e_count}xE ; autres: n/a)" if e_count else "(lettres: n/a)"
             median = statistics.median(covs) if covs else None
             tie = (
                 "≈"

@@ -99,8 +99,12 @@ esac
 VLLM=$(curl -s --max-time 4 http://spark1:8000/v1/models 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
 if [ -n "${VLLM:-}" ]; then
   if [ -n "$CFG" ]; then
-    WANT_MODEL=$(grep -E '^[[:space:]]*name: "openai/' "$CFG" 2>/dev/null | head -1 | sed 's/.*: *//; s/"//g; s|^openai/||')
-    if [ -n "$WANT_MODEL" ] && [ "$WANT_MODEL" != "$VLLM" ]; then
+    WANT_MODEL=$(grep -E '^[[:space:]]*name: "openai/' "$CFG" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g; s|^openai/||')
+    if [ -z "$WANT_MODEL" ]; then
+      # La config ne déclare aucun modèle servi par vLLM : ne PAS afficher
+      # « conforme » (revue subagent #210 : le label masquerait un vrai défaut).
+      echo "· vLLM (spark1:8000) — sert: $VLLM (non requis par cette config : campagne cloud)"
+    elif [ "$WANT_MODEL" != "$VLLM" ]; then
       check "vLLM (spark1:8000)" 1 "sert $VLLM ≠ config ($WANT_MODEL)" "swap vLLM sur le modèle de la config (utilisateur)"
     else
       check "vLLM (spark1:8000)" 0 "sert: $VLLM (conforme config)" ""
