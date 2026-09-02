@@ -364,6 +364,26 @@ def extract_model_name(model_string: Any) -> str:
     return model_string
 
 
+def _resolve_endpoint_api_key(api_key: str | None, api_key_env: str | None) -> str | None:
+    """Une clé explicite prime ; sinon api_key_env est lue dans l'environnement.
+
+    Une variable nommée mais absente/vide est une erreur de configuration : la
+    clé partirait vide chez le fournisseur (401 opaque) — on échoue clairement
+    ici à la place (issue #219 : les clés cloud ne vivent que dans .env).
+    """
+    if api_key:
+        return api_key
+    if not api_key_env:
+        return None
+    value = os.getenv(api_key_env)
+    if not value:
+        raise ValueError(
+            f"api_key_env '{api_key_env}' est déclarée dans la config mais absente de "
+            "l'environnement (la définir dans .env, ne jamais mettre la clé dans le YAML)"
+        )
+    return value
+
+
 def _extract_endpoint_fields(
     model_spec: Any,
 ) -> tuple[str | None, str | None, str | None, str | None]:
@@ -371,14 +391,17 @@ def _extract_endpoint_fields(
         return (
             str(model_spec["name"]),
             model_spec.get("base_url"),
-            model_spec.get("api_key"),
+            _resolve_endpoint_api_key(model_spec.get("api_key"), model_spec.get("api_key_env")),
             model_spec.get("api"),
         )
     if hasattr(model_spec, "name"):
         return (
             str(getattr(model_spec, "name")),
             getattr(model_spec, "base_url", None),
-            getattr(model_spec, "api_key", None),
+            _resolve_endpoint_api_key(
+                getattr(model_spec, "api_key", None),
+                getattr(model_spec, "api_key_env", None),
+            ),
             getattr(model_spec, "api", None),
         )
     return None, None, None, None

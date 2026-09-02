@@ -125,6 +125,10 @@ class ModelEndpointConfig(BaseModel):
     name: str
     base_url: str | None = None
     api_key: str | None = None
+    # Nom d'une variable d'environnement portant la clé (issue #219) : pour les
+    # fournisseurs cloud (OpenRouter…), la clé vit dans .env, jamais dans le YAML.
+    # api_key explicite prime ; la résolution se fait à la création du client.
+    api_key_env: str | None = None
     api: Literal["chat_completions", "responses"] | None = None
     reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] | None = None
     verbosity: Literal["low", "medium", "high"] | None = None
