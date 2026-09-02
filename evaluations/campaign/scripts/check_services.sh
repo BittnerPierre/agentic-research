@@ -99,7 +99,16 @@ esac
 VLLM=$(curl -s --max-time 4 http://spark1:8000/v1/models 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null)
 if [ -n "${VLLM:-}" ]; then
   if [ -n "$CFG" ]; then
-    WANT_MODEL=$(grep -E '^[[:space:]]*name: "openai/' "$CFG" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g; s|^openai/||')
+    # La config « utilise vLLM » ssi un endpoint pointe sur spark1:8000 — le
+    # préfixe openai/ du nom ne suffit pas (une config OpenRouter porte name:
+    # openai/… avec un base_url externe : comparer son modèle à vLLM serait un
+    # faux mismatch). Guillemets OPTIONNELS partout : new_model_config.py émet
+    # du YAML sans guillemets — les exiger neutralisait silencieusement la
+    # garde (smoke qwen38, #223).
+    WANT_MODEL=""
+    if grep -qE '^[[:space:]]*base_url: "?http://spark1:8000' "$CFG" 2>/dev/null; then
+      WANT_MODEL=$(grep -E '^[[:space:]]*name: "?openai/' "$CFG" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//; s/"//g; s|^openai/||')
+    fi
     if [ -z "$WANT_MODEL" ]; then
       # La config ne déclare aucun modèle servi par vLLM : ne PAS afficher
       # « conforme » (revue subagent #210 : le label masquerait un vrai défaut).

@@ -1,0 +1,63 @@
+# Config de campagne générée par new_model_config.py depuis config-qwen36-chroma-decomposed.yaml.
+# Échantillonnage aligné sur la model card RadixArk/Qwen3.8-27B-NVFP4 (#223) :
+# temperature 1.0, top_p 0.95 (top_k 20 recommandé mais non exposé par le
+# harnais — le serveur applique celui du modèle). Modèle hybride (parser
+# qwen3) ; reasoning_effort none = protocole instruct partout, comparable au
+# smoke Qwen3.6 du 02/09.
+config_name: qwen38-decomposed
+vector_store:
+  name: agentic-research-dgx
+  description: Vector store for Qwen3.8 smoke campaign
+  expires_after_days: 30
+vector_search:
+  provider: chroma
+  index_name: agentic-research-dgx
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: localhost
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: openai
+  chroma_embedding_api_base: http://spark1:8003/v1
+  chroma_embedding_model: Qwen3-Embedding-4B-Q8_0.gguf
+  chroma_embedding_api_key_env: CHROMA_OPENAI_API_KEY
+  top_k: 12
+  score_threshold: null
+data:
+  knowledge_db_path: data/knowledge_db.json
+  local_storage_dir: data/
+debug:
+  enabled: false
+  output_dir: debug_output
+  save_reports: true
+  show_content_preview: true
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+mcp:
+  server_host: localhost
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+models:
+  search_model: &id001
+    name: openai/RadixArk/Qwen3.8-27B-NVFP4
+    base_url: http://spark1:8000/v1
+    api_key: dummy
+    reasoning_effort: none
+    temperature: 1.0
+    top_p: 0.95
+  writer_model: *id001
+  chapter_writer_model: *id001
+  planning_model: *id001
+  knowledge_preparation_model: *id001
+  research_model: *id001
+  outline_model: *id001
+manager:
+  default_manager: deep_manager
+agents:
+  max_search_plan: 5-7
+  output_dir: output/
+  writer_output_format: markdown
+  writer_strategy: decomposed
+  chapter_max_revisions: 1

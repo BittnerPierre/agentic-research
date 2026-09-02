@@ -49,7 +49,7 @@ do_run() {
   local gout="benchmarks/summaries/${name}.grade.out"
   if uv run python -m evaluations.deterministic_grade "$run" \
     --exercise "evaluations/exercises/$exercise" $extra > "$gout" 2>&1; then
-    grep -v Pydantic "$gout" | tail -12 >> "$SUMMARY"
+    grep -iv pydantic "$gout" | tail -12 >> "$SUMMARY"  # -i : __pydantic_serializer__ passait (#223)
     # Lisibilité console (revue subagent #210) : un evaluation_failed n'est pas
     # un zéro, et une note peut cacher un pack non qualifié — le dire ICI, sans
     # obliger le lecteur à ouvrir det_grade.json.
