@@ -117,16 +117,30 @@ Exit code 0 = clean, 1 = reproduced.
 | V4-Flash preview x standard image | vllm-node, default backends, SAME deepseek_v4 parsers, MTP-2 | clean (full July campaign) |
 | Qwen3.6 x standard image | vllm-node, flashinfer/marlin, qwen3 parsers | clean (replays 10/11 PASS, no degradation after 60+ large calls) |
 | 0731 x cloud provider | unknown precision/stack | clean (7/7, twice) |
-| **0731 x standard image, no speculative** | **THE DECISIVE MISSING CELL** | clean => b12x build convicted; dirty => the 0731 NVFP4 artifact convicted |
+| V4-Flash preview x standard image, replays | vllm-node, deepseek_v4 parsers | clean (**11/11 PASS on the exact replays**, 4-30 s) |
+| **0731 x standard image, no speculative** | vllm-node, deepseek_v4 parsers, spec removed | **clean — 11/11 PASS (5-37 s), degradation series flat (1.7 s x3)** |
 
-Everything dirty went through the b12x build; everything avoiding it is clean.
-The deepseek_v4 parsers per se are exonerated (clean all July on the standard
-image with the preview checkpoint). Remaining suspects inside the b12x build:
-b12x MoE/linear backends, B12X_MLA_SPARSE attention, V2 model runner,
-FLASHINFER_SAMPLER, or that build's version of the deepseek_v4 tool/template
-path. The single FAIL of the Qwen control (#19, 265 chars) is mild commentary
-on a genuinely confusing foreign history, not the systematic self-correction
-spiral.
+## Verdict (2026-09-03)
+
+The SAME 0731 NVFP4 weights that violate the contract 11/11 on the
+`vllm-node-b12x` build produce 11/11 bare filenames on the standard
+`vllm-node` image (same host, same GPUs, speculative removed). Latency stays
+flat where the b12x build degraded to 480-810 s and timeouts.
+
+**Convicted: the experimental b12x build** (one or more of: b12x MoE/linear
+backends, B12X_MLA_SPARSE attention, V2 model runner, FLASHINFER_SAMPLER,
+instanttensor+DSpark loader path, or that build's deepseek_v4 tool/template
+code). **Exonerated: the model, the 0731 NVFP4 weight artifact, the
+deepseek_v4 parsers as shipped in the standard image, concurrency/batching,
+sampling parameters, and speculative decoding as a feature** (dirty with AND
+without DSpark on the b12x build).
+
+Note: the Qwen3.6 control ran on the standard image (its recipe changes the
+image along with the model); its single FAIL (#19, 265 chars) is mild
+commentary on a genuinely confusing foreign history, not the systematic
+self-correction spiral. Flag-level bisection inside the b12x build (e.g.
+disable prefix caching, V2 runner, MLA_SPARSE one at a time) is left to the
+build maintainers — each cell costs ~2 minutes with this repro.
 
 Environment (fill in when reporting): vLLM version/image, serving recipe and
 flags, GPU/driver, quantization of the served weights.
