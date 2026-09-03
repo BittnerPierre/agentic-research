@@ -1,35 +1,18 @@
 #!/usr/bin/env python3
-"""Minimal reproduction — DeepSeek-V4-Flash-0731 on vLLM ignores a strict
-"reply with the filename only" instruction in agentic tool-loop conversations.
+"""Send 47 recorded chat-completions requests (a tool-using agent's real
+traffic) to a vLLM server and check the 11 final-answer turns: the system
+prompt requires the reply to be exactly the written filename.
 
-Standalone: Python stdlib only, plain /v1/chat/completions calls, no agent SDK,
-no API keys. Payloads are verbatim request bodies recorded from a real
-multi-agent research run (temp paths genericized). The tool-loop conversations
-instruct the model to end its turn by replying with EXACTLY the written
-filename and nothing else. Observed on a DGX Spark serving stack: the final
-assistant message instead contains 100-2700 chars of self-commentary
-("Wait — I keep adding commentary...", filename corrections, task recaps),
-while the SAME requests replayed in isolation come back clean — and per-call
-latency degrades from tens of seconds to 480-810 s as the sequence progresses.
+    python3 repro.py --base-url http://HOST:8000/v1 --only 11          # one request, one verdict
+    python3 repro.py --base-url http://HOST:8000/v1 --mode solo        # all 11 final-answer turns, one at a time
+    python3 repro.py --base-url http://HOST:8000/v1 --mode degradation --only 11 --repeat 5
+    python3 repro.py --base-url http://HOST:8000/v1 --mode concurrent  # all 47 with the recorded timing
+    python3 repro.py --base-url http://HOST:8000/v1 --model OTHER --mode solo
 
-Usage:
-    python3 repro.py --base-url http://HOST:8000/v1 --only 11          # MINIMAL: one request, one verdict
-    python3 repro.py --base-url http://HOST:8000/v1 --mode solo        # each final turn alone
-    python3 repro.py --base-url http://HOST:8000/v1 --mode sequence    # recorded order, one at a time
-    python3 repro.py --base-url http://HOST:8000/v1 --mode concurrent  # recorded order + recorded overlap (like the agent harness)
-
-Observed on the affected DGX Spark stack (2026-09-02): even --mode solo FAILS
-11/11 — a single isolated request with a long tool-loop context is enough to
-trigger the chatty final answer (plus one 300+ s timeout). Short single-turn
-prompts with the same instruction are clean on the same server, and the same
-requests through a cloud provider serving the same checkpoint are clean:
-the trigger is (this serving stack) x (long tool-loop context), no
-concurrency or request sequence required. Latency degradation to 480-810 s
-per call was additionally observed as the recorded agent run progressed.
-
-PASS/FAIL criterion per file_search final turn: the assistant content must
-match ^[A-Za-z0-9_.\\-]+\\.txt$ (the instruction embedded in the recorded
-system prompt). Everything else (notes, corrections, recaps) is a violation.
+PASS = reply matches ^[A-Za-z0-9_.-]+\\.txt$ ; FAIL = anything else ; exit 1 if
+any FAIL/ERROR or any call over 300 s. Short probe requests run before and
+after so you can see the server answers normally while long requests fail.
+Stdlib only, no API key. See README.md.
 """
 
 import argparse
@@ -81,7 +64,7 @@ def verdict(entry: dict, resp: dict | None, err: str) -> tuple[str, str]:
     msg = resp["choices"][0]["message"]
     content = (msg.get("content") or "").strip()
     if not is_contract_turn(entry):
-        return "-", f"{len(content)} chars (not a contract turn)"
+        return "-", f"{len(content)} chars (not a final-answer turn)"
     if BARE_FILENAME.fullmatch(content):
         return "PASS", content
     return "FAIL", f"{len(content)} chars: {content[:160]!r}"
@@ -103,7 +86,7 @@ def canary(base_url: str, model: str, timeout: float = 60) -> None:
     when the long tool-loop replays fail — proving the server is not simply
     broken, but discriminates by request shape."""
     probes = [
-        ("canary/ping", [{"role": "user", "content": "Reply with exactly: pong"}], None),
+        ("probe/ping", [{"role": "user", "content": "Reply with exactly: pong"}], None),
         (
             "canary/contract",
             [
@@ -198,7 +181,7 @@ def main() -> int:
             args.mode = "solo"
     print(
         f"model: {model} | {len(entries)} recorded requests | "
-        f"{sum(1 for e in entries if is_contract_turn(e))} contract turns | mode={args.mode}\n"
+        f"{sum(1 for e in entries if is_contract_turn(e))} final-answer turns | mode={args.mode}\n"
     )
 
     if not args.no_canary:
@@ -214,7 +197,7 @@ def main() -> int:
         target = (
             entries[0] if args.only else next(e for e in bundle["requests"] if is_contract_turn(e))
         )
-        print(f"degradation probe: request #{target['n']} x{args.repeat}")
+        print(f"same request repeated: # #{target['n']} x{args.repeat}")
         for i in range(args.repeat):
             run_one(args.base_url, target, args.timeout, results)
             if not args.no_canary:
@@ -258,7 +241,7 @@ def main() -> int:
     fails = [n for n, v, _ in contract if v != "PASS"]
     slow = [n for n, _, dt in results if dt > 300]
     print(f"\n=== SUMMARY ({args.mode}) ===")
-    print(f"contract turns : {len(contract)} | violations/errors: {len(fails)} {fails}")
+    print(f"final-answer turns : {len(contract)} | violations/errors: {len(fails)} {fails}")
     print(f"calls over 300s: {len(slow)} {slow}")
     print("REPRODUCED" if fails or slow else "clean")
     return 1 if fails or slow else 0
