@@ -82,13 +82,13 @@ def run_one(base_url: str, entry: dict, timeout: float, results: list):
 
 
 def canary(base_url: str, model: str, timeout: float = 60) -> None:
-    """Functional control: SHORT requests must stay fast and compliant even
-    when the long tool-loop replays fail — proving the server is not simply
+    """Short probe requests: they must stay fast and correct even
+    when the long recorded requests fail, showing the server is not simply
     broken, but discriminates by request shape."""
     probes = [
         ("probe/ping", [{"role": "user", "content": "Reply with exactly: pong"}], None),
         (
-            "canary/contract",
+            "probe/filename",
             [
                 {
                     "role": "user",
