@@ -44,9 +44,10 @@ Standard image: `#11 5.8s PASS apple_microsoft_..._disclosures.txt`; series `1.7
 
 ## Notes
 
-- Symptom 2 looks like #358 (draft acceptance collapsing under sustained load, same model/recipe/image era, "stale
-  draft ring buffer under request condensing") — but here it also happens with DSpark disabled, so the draft
-  buffer alone does not explain it.
+- Not #358: there the draft acceptance collapses under sustained load and the server ends up producing empty
+  outputs / going down. Here the server stays up and keeps answering short requests correctly and fast; only the
+  long tool-call requests come back wrong and slow — and that also happens with DSpark disabled. Same
+  model/recipe/image era, different failure.
 - #349 reports the 2026-08-15 b12x image crashing at CUDA-graph profiling for this model; the rollback image may
   behave differently — not tested here.
 - Cheap bisection with the kit (2 min per run): prefix caching off; `VLLM_USE_V2_MODEL_RUNNER=0`; attention backend
