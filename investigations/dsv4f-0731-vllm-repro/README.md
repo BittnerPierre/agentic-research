@@ -76,10 +76,10 @@ Exit code 0 = clean, 1 = reproduced.
 ## Discriminating variants (Test A)
 
 - **Cross-model control**: `--model OTHER/CHECKPOINT` replays the same
-  conversations against another checkpoint served by the SAME stack (swap the
-  served model first). A compliant sibling (e.g. a Qwen3.x that runs the same
-  agentic workflow cleanly) shows the failure is the stack x checkpoint
-  pairing, not the stack alone.
+  conversations against another served checkpoint. CAUTION: serving recipes
+  often change the vLLM image and backends along with the model — a clean
+  sibling then exonerates neither the model nor the build individually.
+  State which image/backends each cell used (see Evidence matrix).
 - **Template bypass**: `--mode template --chat-template FILE` sends the
   checkpoint's official Jinja chat template with each request, bypassing the
   template the serving recipe applies. Requires the server flag
@@ -107,6 +107,26 @@ Exit code 0 = clean, 1 = reproduced.
 | `--mode degradation --only 47 --repeat 2` | 9.1 s -> timeout 240 s (recorded 4.3 s), canaries clean throughout |
 | Same checkpoint via cloud provider, same workflow | clean, twice (finance 7/7, concept 7/7) |
 | Serialized decoding (`--max-num-seqs 1`) | still reproduces → not a concurrency/batching issue |
+
+## Evidence matrix (2026-09-03)
+
+| Cell | Image / backends | Verdict |
+|---|---|---|
+| 0731 x b12x build, DSpark on | vllm-node-b12x, b12x MoE/linear, B12X_MLA_SPARSE, V2 runner | DIRTY (chattiness + degradation) |
+| 0731 x b12x build, DSpark OFF | same b12x build, speculative removed only | DIRTY (7/7 chatty, 2026-08) |
+| V4-Flash preview x standard image | vllm-node, default backends, SAME deepseek_v4 parsers, MTP-2 | clean (full July campaign) |
+| Qwen3.6 x standard image | vllm-node, flashinfer/marlin, qwen3 parsers | clean (replays 10/11 PASS, no degradation after 60+ large calls) |
+| 0731 x cloud provider | unknown precision/stack | clean (7/7, twice) |
+| **0731 x standard image, no speculative** | **THE DECISIVE MISSING CELL** | clean => b12x build convicted; dirty => the 0731 NVFP4 artifact convicted |
+
+Everything dirty went through the b12x build; everything avoiding it is clean.
+The deepseek_v4 parsers per se are exonerated (clean all July on the standard
+image with the preview checkpoint). Remaining suspects inside the b12x build:
+b12x MoE/linear backends, B12X_MLA_SPARSE attention, V2 model runner,
+FLASHINFER_SAMPLER, or that build's version of the deepseek_v4 tool/template
+path. The single FAIL of the Qwen control (#19, 265 chars) is mild commentary
+on a genuinely confusing foreign history, not the systematic self-correction
+spiral.
 
 Environment (fill in when reporting): vLLM version/image, serving recipe and
 flags, GPU/driver, quantization of the served weights.

@@ -106,7 +106,7 @@ def canary(base_url: str, model: str, timeout: float = 60) -> None:
             "filename and nothing else. Do not include any other text."}], "canary_probe.txt"),
     ]
     for name, msgs, expect in probes:
-        body = {"model": model, "messages": msgs, "max_tokens": 100,
+        body = {"model": model, "messages": msgs, "max_tokens": 512,  # les hybrides (Qwen3.x) consomment du thinking avant le content
                 "temperature": 1.0, "top_p": 0.95}
         dt, resp, err = call(base_url, body, timeout)
         if resp is None:
