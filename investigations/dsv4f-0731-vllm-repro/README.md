@@ -80,4 +80,4 @@ are synthetic financial notes generated for a benchmark (freely shareable).
 So: not the weights, not the prompts, not speculative decoding by itself, not
 concurrency. Something in the b12x build path for this model.
 
-See `BUG_REPORT.md` for the issue text.
+Issue texts: `ISSUE-A-instruction-following.md` (wrong replies) and `ISSUE-B-latency-degradation.md` (slowdown with uptime).
