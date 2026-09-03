@@ -122,7 +122,7 @@ Exit code 0 = clean, 1 = reproduced.
 
 ## Verdict (2026-09-03)
 
-The SAME 0731 NVFP4 weights that violate the contract 11/11 on the
+The SAME 0731 weights (as shipped by deepseek-ai; NVFP4 refers to the b12x kernel format, not necessarily the checkpoint) that violate the contract 11/11 on the
 `vllm-node-b12x` build produce 11/11 bare filenames on the standard
 `vllm-node` image (same host, same GPUs, speculative removed). Latency stays
 flat where the b12x build degraded to 480-810 s and timeouts.
@@ -130,7 +130,7 @@ flat where the b12x build degraded to 480-810 s and timeouts.
 **Convicted: the experimental b12x build** (one or more of: b12x MoE/linear
 backends, B12X_MLA_SPARSE attention, V2 model runner, FLASHINFER_SAMPLER,
 instanttensor+DSpark loader path, or that build's deepseek_v4 tool/template
-code). **Exonerated: the model, the 0731 NVFP4 weight artifact, the
+code). **Exonerated: the model, the 0731 weight artifact as served, the
 deepseek_v4 parsers as shipped in the standard image, concurrency/batching,
 sampling parameters, and speculative decoding as a feature** (dirty with AND
 without DSpark on the b12x build).
