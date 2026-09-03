@@ -91,7 +91,10 @@ def run_one(base_url: str, entry: dict, timeout: float, results: list):
     dt, resp, err = call(base_url, entry["body"], timeout)
     v, detail = verdict(entry, resp, err)
     slow = "  [PATHOLOGICAL LATENCY]" if dt > 300 else ""
-    print(f"#{entry['n']:02d} {dt:7.1f}s (recorded {entry['recorded_duration_s']:7.1f}s) {v:5} {detail}{slow}", flush=True)
+    print(
+        f"#{entry['n']:02d} {dt:7.1f}s (recorded {entry['recorded_duration_s']:7.1f}s) {v:5} {detail}{slow}",
+        flush=True,
+    )
     results.append((entry["n"], v, dt))
 
 
@@ -101,13 +104,26 @@ def canary(base_url: str, model: str, timeout: float = 60) -> None:
     broken, but discriminates by request shape."""
     probes = [
         ("canary/ping", [{"role": "user", "content": "Reply with exactly: pong"}], None),
-        ("canary/contract", [{"role": "user", "content":
-            "You saved a file named canary_probe.txt. Reply with exactly the "
-            "filename and nothing else. Do not include any other text."}], "canary_probe.txt"),
+        (
+            "canary/contract",
+            [
+                {
+                    "role": "user",
+                    "content": "You saved a file named canary_probe.txt. Reply with exactly the "
+                    "filename and nothing else. Do not include any other text.",
+                }
+            ],
+            "canary_probe.txt",
+        ),
     ]
     for name, msgs, expect in probes:
-        body = {"model": model, "messages": msgs, "max_tokens": 512,  # les hybrides (Qwen3.x) consomment du thinking avant le content
-                "temperature": 1.0, "top_p": 0.95}
+        body = {
+            "model": model,
+            "messages": msgs,
+            "max_tokens": 512,  # les hybrides (Qwen3.x) consomment du thinking avant le content
+            "temperature": 1.0,
+            "top_p": 0.95,
+        }
         dt, resp, err = call(base_url, body, timeout)
         if resp is None:
             print(f"{name}: ERROR {err}")
@@ -118,24 +134,52 @@ def canary(base_url: str, model: str, timeout: float = 60) -> None:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--base-url", required=True, help="OpenAI-compatible endpoint, e.g. http://host:8000/v1")
-    p.add_argument("--mode", choices=("solo", "sequence", "concurrent", "degradation", "template"),
-                   default="concurrent")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument(
+        "--base-url", required=True, help="OpenAI-compatible endpoint, e.g. http://host:8000/v1"
+    )
+    p.add_argument(
+        "--mode",
+        choices=("solo", "sequence", "concurrent", "degradation", "template"),
+        default="concurrent",
+    )
     p.add_argument("--payloads", default=str(Path(__file__).parent / "payloads.json.gz"))
     p.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
-    p.add_argument("--time-scale", type=float, default=1.0,
-                   help="concurrent mode: multiply recorded start offsets (0 = fire all at once)")
-    p.add_argument("--only", type=int, default=None, metavar="N",
-                   help="send only recorded request N (minimal repro; e.g. 11)")
-    p.add_argument("--model", default=None, metavar="NAME",
-                   help="override the model field of every request (cross-model control, "
-                        "e.g. another checkpoint served by the same stack)")
-    p.add_argument("--repeat", type=int, default=5,
-                   help="degradation mode: how many times to resend the same request")
-    p.add_argument("--chat-template", default=None, metavar="FILE",
-                   help="template mode: Jinja file (the checkpoint's official chat template) "
-                        "sent per-request; the server must run with --trust-request-chat-template")
+    p.add_argument(
+        "--time-scale",
+        type=float,
+        default=1.0,
+        help="concurrent mode: multiply recorded start offsets (0 = fire all at once)",
+    )
+    p.add_argument(
+        "--only",
+        type=int,
+        default=None,
+        metavar="N",
+        help="send only recorded request N (minimal repro; e.g. 11)",
+    )
+    p.add_argument(
+        "--model",
+        default=None,
+        metavar="NAME",
+        help="override the model field of every request (cross-model control, "
+        "e.g. another checkpoint served by the same stack)",
+    )
+    p.add_argument(
+        "--repeat",
+        type=int,
+        default=5,
+        help="degradation mode: how many times to resend the same request",
+    )
+    p.add_argument(
+        "--chat-template",
+        default=None,
+        metavar="FILE",
+        help="template mode: Jinja file (the checkpoint's official chat template) "
+        "sent per-request; the server must run with --trust-request-chat-template",
+    )
     p.add_argument("--no-canary", action="store_true", help="skip the short functional probes")
     args = p.parse_args()
 
@@ -152,8 +196,10 @@ def main() -> int:
             return 2
         if args.mode not in ("degradation", "template"):
             args.mode = "solo"
-    print(f"model: {model} | {len(entries)} recorded requests | "
-          f"{sum(1 for e in entries if is_contract_turn(e))} contract turns | mode={args.mode}\n")
+    print(
+        f"model: {model} | {len(entries)} recorded requests | "
+        f"{sum(1 for e in entries if is_contract_turn(e))} contract turns | mode={args.mode}\n"
+    )
 
     if not args.no_canary:
         canary(args.base_url, model)
@@ -165,7 +211,9 @@ def main() -> int:
         # Test B: the SAME request over and over — on the affected stack its
         # latency grows across repetitions (observed 3 s -> 20 s -> timeout)
         # while the interleaved canaries stay fast.
-        target = entries[0] if args.only else next(e for e in bundle["requests"] if is_contract_turn(e))
+        target = (
+            entries[0] if args.only else next(e for e in bundle["requests"] if is_contract_turn(e))
+        )
         print(f"degradation probe: request #{target['n']} x{args.repeat}")
         for i in range(args.repeat):
             run_one(args.base_url, target, args.timeout, results)
@@ -176,7 +224,9 @@ def main() -> int:
     elif args.mode == "template":
         # Test A variant: bypass the server's own template rendering.
         if not args.chat_template:
-            print("template mode requires --chat-template FILE (the checkpoint's official Jinja template)")
+            print(
+                "template mode requires --chat-template FILE (the checkpoint's official Jinja template)"
+            )
             return 2
         template = Path(args.chat_template).read_text()
         for e in entries:
