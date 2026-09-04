@@ -1,0 +1,240 @@
+{
+  "messages": [
+    {
+      "content": "# AGENT PREPARATEUR DE RECHERCHE PROFONDE\n\nVous êtes un Research Agent Expert qui utilise une approche ReACT (Reasoning, Acting, and Reflecting on Thinking) pour préparer et cadrer des recherches **exhaustives et approfondies**.\n\n## OBJECTIF PRINCIPAL\n\nAlimenter la base de connaissances et structurer un plan de recherche couvrant l'intégralité de la demande utilisateur.\n\nVous utilisez les outils à votre disposition pour:\n\n1. Identifier le contenu déjà disponible dans la base de connaissances générales internes\n2. Mettre à jour si besoin la base de connaissances générales internes avec les sources externes (i.e. internet) requises\n3. Mettre à disposition les éléments intelligement sélectionnés dans un 'vector store' qui permettra aux autres agents d'accéder efficacement aux connaissances spécifiques grâce à des rercherches sémantiques.\n\n## PHILOSOPHIE DE RECHERCHE\n\n- **EXHAUSTIVITÉ** : Couvrir tous les angles, concepts, et dimensions du sujet\n- **PROFONDEUR** : Aller au-delà des généralités pour explorer les détails techniques, pratiques et conceptuels\n- **RICHESSE** : Extraire le maximum d'informations pertinentes de chaque source\n- **CONTEXTUALISATION** : Situer chaque concept dans son écosystème théorique et pratique\n\n## DIRECTIVES\n\nVous ne pouvez pas passer à l’étape suivante tant que la fonction associée n’a pas été appelée et validée.\n\n## PROCESSUS DE PREPARATION ET DE PLANIFICATION\n\n### ÉTAPE 1 : PREPARATION DE LA BASE DE CONNAISSANCES\n\n**Objectif** : Récupérer toutes les sources pertinentes\n\n**Actions** :\n\n- Consultez les entrées déjà disponibles avec `get_knowledge_entries_tool`\n- Identifiez les sources et références mentionnées dans la demande utilisateur.\n- Récupérez les sources manquantes avec `download_and_store_url_tool`\n- Examinez attentivement la demande utilisateur\n- Identifiez TOUS les sujets, sous-sujets et concepts mentionnés dans la demande\n- Créez une **cartographie des concepts** pour chacun des domaines à explorer\n- Si AUCUNE source n'est mentionnée, sélectionnez les entrées dans la base de connaissance couvrant les aspects identifiés de la demande\n- Si des sources sont spécifiées dans la demande, vous ne devez n'utilisez que celles-ci pour l'analyse et aucune autre (filtre exclusif)\n- Attachez les fichiers séléctionnées à la base vectorielle avec `upload_files_to_vectorstore_tool`, en passant les URLs exactes ou les noms de fichiers retournés par `download_and_store_url_tool` (jamais un nom reconstruit depuis l'URL)\n\n**Règles strictes sur les URLs (obligatoires)** :\n\n- Vous ne devez JAMAIS inventer de nouvelles URLs.\n- Vous ne devez appeler `download_and_store_url_tool` QUE pour des URLs explicitement présentes dans la demande utilisateur (copie exacte).\n- Si la demande utilisateur ne contient aucune URL explicite, vous ne devez pas appeler `download_and_store_url_tool`.\n- Si une URL échoue au téléchargement, continuez avec les connaissances disponibles et n'ajoutez pas d'autres URLs non demandées.\n\n**Réflexion** : \"Ai-je rassemblé suffisamment de sources pour couvrir tous les aspects ?\"\n\n### ÉTAPE 2 : ANALYSE INITIALE ET DÉCOMPOSITION\n\n**Objectif** : Comprendre la portée complète de la recherche et Exposer publiquement l’agenda et la cartographie des concepts\n\n**Actions** :\n\n- Enrichissez votre cartographie des concepts avec les éléménts retenus de la base de connaissance (résumé et mots-clés) pour élargir votre persective des sujets à aborder.\n- Déterminez le niveau de détail requis et indiquer les directions que vous souhaitez prendre pour chacun des sous-thèmes et concepts pour réaliser une recherche APPROFONDIE. Assurez-vous de couvrir tous concepts et pratiques en vous appuyant notamment des mots-clés venant des connaissances qui vous guideront dans le chemins à parcourir.\n- Assurez l'alignement de la cartographie des concepts avec la demande utilisateur. Eliminez les notions non demandées qui ne sont pas pertinantes pour éviter des hors-sujets et des fausses routes.\n- Après avoir créé une cartographie des concepts complètes, VOUS DEVEZ OBLIGATOIREMENT APPELER la fonction `display_agenda`.\n- Cet appel est obligatoire pour valider votre plan de recherche.\n- L’agenda doit inclure :\n  - Tous les concepts identifiés\n  - Les ressources associées de la base des connaissances internes\n  - Les mots-clés pour chaque concept\n  - Une justification claire pour chaque élément\n- Tant que `display_agenda` n’est pas exécuté, NE PAS passer à l’étape de planification.\n\n**Réflexion** : \"Quels sont tous les aspects que je dois couvrir pour que le document de recherche soit complet ?\"\n\n## RÉFLEXIONS CONTINUES\n\nÀ chaque étape, demandez-vous :\n\n- \"Ai-je exploré tous les angles possibles ?\"\n- \"Quelles informations manquent encore ?\"\n- \"Cette recherche est-elle suffisamment approfondie ?\"\n- \"Un expert du domaine serait-il satisfait de ce niveau de détail ?\"\n\n## PRINCIPE DIRECTEUR\n\nVotre mission est de produire un AGENDA complet et détaillé ainsi qu'une BASE DE CONNAISSANCE sépcifique à la recherche qui puisse servir pour n'importe quel usage ultérieur : formation, article, présentation ou documentation technique. La qualité se mesure par la profondeur et l'exhaustivité, la pertinence, la véracité et non pas par la concision ou le style.\n\n\nRÈGLE RUNTIME (OBLIGATOIRE):\n- Avant tout appel à upload_files_to_vectorstore_tool, appelez fetch_vector_store_name.\n- Utilisez EXACTEMENT la valeur retournée par fetch_vector_store_name comme vectorstore_name.\n- N'inventez jamais un nom de vector store.\n- Le nom attendu pour ce run est: repro-capture-1\n",
+      "role": "system"
+    },
+    {
+      "role": "user",
+      "content": "<research_request>\n# Junior Analyst Data Pack - FY2025 AI Capex Intensity\n\n## Role and objective\n\nPrepare a concise, factual data pack for a senior analyst. This is a data collection\nand first-level analysis task, not an investment opinion. Cover Amazon, Alphabet,\nMeta, Microsoft, NVIDIA, and Apple using only the five provided sources.\n\n## Required facts\n\nFor every company, report all seven FY2025 metrics below. FY2025 is the latest fiscal\nyear with a complete set in this frozen corpus for all six companies.\n\n1. Revenue\n2. Operating income\n3. Operating margin\n4. Operating cash flow\n5. Capital expenditures (capex)\n6. Free cash flow (FCF)\n7. Capex/operating-cash-flow ratio\n\nUse the values supplied in the sources. FCF equals operating cash flow minus capex;\ncapex intensity equals capex divided by operating cash flow. Do not introduce other\ncompanies, estimates, or empirical figures.\n\n## Required analysis\n\n- State that fiscal-year ends differ: December for Amazon, Alphabet, and Meta; June\n  for Microsoft; late January for NVIDIA; and late September for Apple.\n- For each company, describe the direction and magnitude of its capex trend from the\n  earliest available capex year to FY2025. Use the endpoints in the corpus.\n- In a separate guidance section, report the frozen initial FY2025 guidance, release\n  date, and basis for Amazon, Alphabet, and Meta. Report Microsoft, NVIDIA, and Apple\n  guidance as unavailable in this source pack.\n- Keep guidance separate from FY2025 actuals. Do not calculate a Meta guidance variance\n  because guidance includes finance-lease principal while the XBRL cash-capex actual\n  does not use the same basis.\n- State whether any required actual metric is missing. Do not infer a missing value.\n\n## Report contract\n\nWrite a Markdown brief with these sections: Overview and Definitions; FY2025\nProfitability; FY2025 Capex and Cash Generation; Capex Trends; Guidance vs Actuals;\nCross-Company Comparison; Data Gaps.\n\nPut every required FY2025 fact in a parseable table using these columns:\n\n| Company | Metric | Period | Value |\n| --- | --- | --- | --- |\n\nPeriod must be explicit. Cite the supplied source ID next to each table or factual\nparagraph. Use a neutral, descriptive tone. Keep the report between 500 and 1,800\nwords, excluding the automatically generated Sources section.\n\n## External References\n\nUse exclusively these provided files. Do not browse the web.\n\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\n\n</research_request>"
+    },
+    {
+      "role": "assistant",
+      "content": "I'll start by examining the knowledge base and downloading the provided sources.\n\nLet me start by fetching the knowledge entries and downloading all the provided source URLs.\n\n",
+      "tool_calls": [
+        {
+          "id": "chatcmpl-tool-b1af12085cb42c5e",
+          "type": "function",
+          "function": {
+            "name": "get_knowledge_entries_tool",
+            "arguments": "{}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-81520abcece8b287",
+          "type": "function",
+          "function": {
+            "name": "fetch_vector_store_name",
+            "arguments": "{}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-b15a71b74818fa4c",
+          "type": "function",
+          "function": {
+            "name": "download_and_store_url_tool",
+            "arguments": "{\"url\": \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\"}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-a0912072ec19036c",
+          "type": "function",
+          "function": {
+            "name": "download_and_store_url_tool",
+            "arguments": "{\"url\": \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\"}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-800f2b2a40f689a6",
+          "type": "function",
+          "function": {
+            "name": "download_and_store_url_tool",
+            "arguments": "{\"url\": \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv\"}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-8d58707d6a985523",
+          "type": "function",
+          "function": {
+            "name": "download_and_store_url_tool",
+            "arguments": "{\"url\": \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\"}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-a4f2dd55f67a4399",
+          "type": "function",
+          "function": {
+            "name": "download_and_store_url_tool",
+            "arguments": "{\"url\": \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\"}"
+          }
+        },
+        {
+          "id": "chatcmpl-tool-9f67b252ffc3296b",
+          "type": "function",
+          "function": {
+            "name": "upload_files_to_vectorstore_tool",
+            "arguments": "{\"inputs\": [\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\", \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\", \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv\", \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\", \"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\"], \"vectorstore_name\": \"repro-capture-1\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-b1af12085cb42c5e",
+      "content": "{\"type\":\"text\",\"text\":\"[{\\\"url\\\":\\\"https://huyenchip.com/2025/01/07/agents.html\\\",\\\"filename\\\":\\\"Agents_1.md\\\",\\\"title\\\":\\\"Agents\\\",\\\"keywords\\\":[\\\"Table\\\",\\\"ultimate\\\",\\\"classic\\\",\\\"Agents\\\",\\\"goal\\\",\\\"agents\\\",\\\"Intelligent\\\",\\\"considered\\\",\\\"many\\\",\\\"book\\\",\\\"Contents\\\"],\\\"summary\\\":\\\"Agents - Table of Contents __\\\\nIntelligent agents are considered by many to be the ultimate goal of AI. The classic book by Stuart Russell and Peter Norvig, _Artificial Intelligence: A Modern Approach_ (Prentic...\\\",\\\"openai_file_id\\\":\\\"file-1a1XmzYx23555Ze6ik97TR\\\",\\\"vector_doc_id\\\":\\\"967e61d4-de9b-4554-a51c-b286bf9fa8f4\\\"},{\\\"url\\\":\\\"https://www.anthropic.com/engineering/built-multi-agent-research-system\\\",\\\"filename\\\":\\\"How_we_built_our_multi_1.md\\\",\\\"title\\\":\\\"How we built our multi\\\",\\\"keywords\\\":[\\\"2025\\\",\\\"system\\\",\\\"multi-agent\\\",\\\"built\\\",\\\"Published\\\",\\\"How we built our multi\\\",\\\"[Engineering\\\",\\\"Anthropic](</engineering>)\\\",\\\"Research\\\",\\\"research\\\",\\\"feature\\\"],\\\"summary\\\":\\\"How we built our multi - [Engineering at Anthropic](</engineering>)\\\\n# How we built our multi-agent research system\\\\nPublished Jun 13, 2025\\\\nOur Research feature uses multiple Claude agents to explore complex topics more effecti...\\\",\\\"openai_file_id\\\":\\\"file-S2PKJcNHkgyAKTxqViPcAj\\\",\\\"vector_doc_id\\\":\\\"99217d87-5080-4d11-bb47-f8801a637abc\\\"},{\\\"url\\\":\\\"https://platform.openai.com/docs/guides/text?api-mode=chat\\\",\\\"filename\\\":\\\"Text_generation.md\\\",\\\"title\\\":\\\"Text generation\\\",\\\"keywords\\\":[\\\"With\\\",\\\"text\\\",\\\"prompt\\\",\\\"generate\\\",\\\"generation\\\",\\\"Copy\\\",\\\"Text generation\\\",\\\"page\\\",\\\"Learn\\\",\\\"model\\\",\\\"Text\\\"],\\\"summary\\\":\\\"Text generation - # Text generation\\\\nLearn how to prompt a model to generate text.\\\\nCopy page\\\\nWith the OpenAI API, you can use a [large language model](</docs/models>) to generate text from a prompt, as you might using [...\\\",\\\"openai_file_id\\\":\\\"file-Y9XKsNJg6cpdTGQ4W8X6sZ\\\",\\\"vector_doc_id\\\":\\\"afe96a51-da9c-4f7f-9a4a-b67e4b1cc9b5\\\"},{\\\"url\\\":\\\"https://medium.com/@callumjmac/advanced-retrieval-for-retrieval-augmented-generation-99042fa6b774\\\",\\\"filename\\\":\\\"Advanced_Retrieval_for_Retrieval-Augmented_Generat_1.md\\\",\\\"title\\\":\\\"Advanced Retrieval for Retrieval-Augmented Generation | by Callum Macpherson\\\",\\\"keywords\\\":[\\\"Advanced\\\",\\\"Retrieval\\\",\\\"[Callum\\\",\\\"Advanced Retrieval for Retrieval-Augmented Generation | by Callum Macpherson\\\",\\\"Retrieval-Augmented\\\",\\\"read\\\",\\\"2024\\\",\\\"[](</@callumjmac?source=post_page---byline--99042fa6b774--------------------------------------->)\\\",\\\"Generation\\\",\\\"[](</m/signin?actionUrl=https%3A%2F%2Fmedium.com%2F_%2Fvote%2Fp%2F99042fa6b774&operation=register&redirect=https%3A%2F%2Fmedium.com%2F%40callumjmac%2Fadvanced-retrieval-for-retrieval-augmented-generation-99042fa6b774&user=Callum+Macpherson&userId=3c448b31e8ba&source=---header_actions--99042fa6b774---------------------clap_footer------------------>)\\\",\\\"Macpherson](</@callumjmac?source=post_page---byline--99042fa6b774--------------------------------------->)\\\"],\\\"summary\\\":\\\"Advanced Retrieval for Retrieval-Augmented Generation | by Callum Macpherson - # Advanced Retrieval for Retrieval-Augmented Generation\\\\n[](</@callumjmac?source=post_page---byline--99042fa6b774--------------------------------------->)\\\\n[Callum Macpherson](</@callumjmac?source=post_...\\\",\\\"openai_file_id\\\":\\\"file-6V9cKY8aqN6B76MHwAyVfZ\\\",\\\"vector_doc_id\\\":\\\"d28458c1-fe61-4da1-b159-82ec7cd24739\\\"},{\\\"url\\\":\\\"https://medium.com/@farheenshaukat_19/building-systems-with-the-chatgpt-api-6b0bc6755799\\\",\\\"filename\\\":\\\"Building_Systems_with_the_ChatGPT_API___by_Farheen_1.md\\\",\\\"title\\\":\\\"Building Systems with the ChatGPT API | by Farheenshaukat\\\",\\\"keywords\\\":[\\\"Systems\\\",\\\"Building Systems with the ChatGPT API | by Farheenshaukat\\\",\\\"Building\\\",\\\"ChatGPT\\\",\\\"[](</m/signin?actionUrl=https%3A%2F%2Fmedium.com%2F_%2Fbookmark%2Fp%2F6b0bc6755799&operation=register&redirect=https%3A%2F%2Fmedium.com%2F%40farheenshaukat_19%2Fbuilding-systems-with-the-chatgpt-api-6b0bc6755799&source=---header_actions--6b0bc6755799---------------------bookmark_footer------------------>)\\\",\\\"[Farheenshaukat](</@farheenshaukat_19?source=post_page---byline--6b0bc6755799--------------------------------------->)\\\",\\\"read\\\",\\\"2024\\\",\\\"with\\\",\\\"[](</m/signin?actionUrl=https%3A%2F%2Fmedium.com%2F_%2Fvote%2Fp%2F6b0bc6755799&operation=register&redirect=https%3A%2F%2Fmedium.com%2F%40farheenshaukat_19%2Fbuilding-systems-with-the-chatgpt-api-6b0bc6755799&user=Farheenshaukat&userId=e160304d90a9&source=---header_actions--6b0bc6755799---------------------clap_footer------------------>)\\\",\\\"[](</@farheenshaukat_19?source=post_page---byline--6b0bc6755799--------------------------------------->)\\\"],\\\"summary\\\":\\\"Building Systems with the ChatGPT API | by Farheenshaukat - # Building Systems with the ChatGPT API\\\\n[](</@farheenshaukat_19?source=post_page---byline--6b0bc6755799--------------------------------------->)\\\\n[Farheenshaukat](</@farheenshaukat_19?source=post_page-...\\\",\\\"openai_file_id\\\":\\\"file-7ikh5gKKVnB434VkVFc3oh\\\",\\\"vector_doc_id\\\":\\\"c00805d3-c075-456d-b595-b6cd8a61ff58\\\"},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/lvmh2017.txt\\\",\\\"filename\\\":\\\"lvmh2017.txt\\\",\\\"title\\\":\\\"lvmh2017\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-6ybPpUy5vABxXwQfUdFt5T\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/lvmh2018.txt\\\",\\\"filename\\\":\\\"lvmh2018.txt\\\",\\\"title\\\":\\\"lvmh2018\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-6jah9oC6P26TJCKZh5hcqt\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Financial Reference Document.md\\\",\\\"filename\\\":\\\"Financial Reference Document.md\\\",\\\"title\\\":\\\"Financial Reference Document\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-EKLSXjT49Em1HyzBxAvBRm\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix.md\\\",\\\"filename\\\":\\\"Equity Research Appendix.md\\\",\\\"title\\\":\\\"Equity Research Appendix\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-NDZNvpfVw9r7BszbHrKNUY\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix - Batch 1.md\\\",\\\"filename\\\":\\\"Equity Research Appendix - Batch 1.md\\\",\\\"title\\\":\\\"Equity Research Appendix - Batch 1\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-CZcDrnoLiAmCA6n1kvhBsm\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix - Batch 2.md\\\",\\\"filename\\\":\\\"Equity Research Appendix - Batch 2.md\\\",\\\"title\\\":\\\"Equity Research Appendix - Batch 2\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-Y5cU6SjDBMaTtACmuxJH2Q\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix - Batch 3.md\\\",\\\"filename\\\":\\\"Equity Research Appendix - Batch 3.md\\\",\\\"title\\\":\\\"Equity Research Appendix - Batch 3\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-9e9CFuPWwrZKKymVFn2FDw\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix - Batch 4.md\\\",\\\"filename\\\":\\\"Equity Research Appendix - Batch 4.md\\\",\\\"title\\\":\\\"Equity Research Appendix - Batch 4\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-XtKYaPg3jX3XCftBPoGZZ5\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix - Batch 5.md\\\",\\\"filename\\\":\\\"Equity Research Appendix - Batch 5.md\\\",\\\"title\\\":\\\"Equity Research Appendix - Batch 5\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-3VAUPzaWeQDXDZvx2xptwq\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/test_files/Equity Research Appendix - Batch 6.md\\\",\\\"filename\\\":\\\"Equity Research Appendix - Batch 6.md\\\",\\\"title\\\":\\\"Equity Research Appendix - Batch 6\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":\\\"file-T6pug6nyjN154zBr28dgyf\\\",\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"file:///app/test_files/smoke_local_doc.md\\\",\\\"filename\\\":\\\"smoke_local_doc.md\\\",\\\"title\\\":\\\"smoke_local_doc\\\",\\\"keywords\\\":[],\\\"summary\\\":null,\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_smoke_local_doc.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/6765f4127b59f5c717b2ff7b4aa8154ed954bc12/capex_guidance_2025.md\\\",\\\"filename\\\":\\\"2025_Capex_Guidance__management_commentary___forwa.md\\\",\\\"title\\\":\\\"2025 Capex Guidance (management commentary — forward-looking)\\\",\\\"keywords\\\":[\\\"2025\\\",\\\"Capex\\\",\\\"guidance\\\",\\\"management commentary\\\",\\\"Amazon\\\",\\\"Alphabet\\\",\\\"Meta\\\",\\\"capital expenditure\\\",\\\"forward-looking estimates\\\",\\\"earnings calls\\\"],\\\"summary\\\":\\\"Le document présente les prévisions de dépenses d’investissement (Capex) pour 2025, telles que communiquées par la direction lors des appels aux investisseurs. Ces chiffres sont des estimations prospectives et ne doivent pas être confondus avec les données réelles publiées dans les rapports financiers officiels. Pour 2025, Amazon prévoit un Capex d’environ 100 milliards de dollars ou plus, Alphabet environ 75 milliards de dollars, et Meta entre 72 et 75 milliards de dollars. Aucune indication n’est donnée pour Microsoft, NVIDIA et Apple, ces informations étant considérées comme non disponibles plutôt que simplement non communiquées.\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_2025_Capex_Guidance__management_commentary___forwa.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\\\",\\\"filename\\\":\\\"Miscellaneous_Company_Disclosures.md\\\",\\\"title\\\":\\\"Miscellaneous Company Disclosures\\\",\\\"keywords\\\":[\\\"Apple\\\",\\\"Microsoft\\\",\\\"recherche et développement\\\",\\\"dépenses\\\",\\\"dividendes\\\",\\\"employés à l'étranger\\\",\\\"10-K filings\\\",\\\"exercice fiscal\\\",\\\"divulgations d'entreprise\\\",\\\"intensité des dépenses\\\"],\\\"summary\\\":\\\"Le document présente des données financières et opérationnelles diverses issues des rapports 10-K de plusieurs entreprises, sans lien avec l’intensité des dépenses en capital. Pour l’exercice fiscal 2025, Apple a engagé 34,5 milliards de dollars en dépenses de recherche et développement et a versé 15,4 milliards de dollars en dividendes. Microsoft a consacré 32,5 milliards de dollars à la recherche et développement sur la même période. Par ailleurs, en 2024, 44,7 % des employés à temps plein de Microsoft étaient basés en dehors des États-Unis. Ces informations complètent la base de connaissances sur les activités financières et la répartition géographique des effectifs de ces entreprises.\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_Miscellaneous_Company_Disclosures.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/67170ebcc17d941290bef6947b64f559d3586297/capex_reference_data.md\\\",\\\"filename\\\":\\\"Capital-Expenditure_Reference_Data__from_SEC_10-K_.md\\\",\\\"title\\\":\\\"Capital-Expenditure Reference Data (from SEC 10-K filings)\\\",\\\"keywords\\\":[\\\"Capex\\\",\\\"Free Cash Flow\\\",\\\"Operating Margin\\\",\\\"Fiscal Year\\\",\\\"SEC 10-K\\\",\\\"Amazon\\\",\\\"Alphabet\\\",\\\"Meta\\\",\\\"Microsoft\\\",\\\"NVIDIA\\\"],\\\"summary\\\":\\\"Ce document présente les données financières clés relatives aux dépenses d’investissement (Capex) de six grandes entreprises technologiques (Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple) issues de leurs rapports annuels SEC 10-K, avec des chiffres en milliards de dollars US et des exercices fiscaux variables. Les indicateurs principaux incluent le chiffre d’affaires, le résultat opérationnel, la marge opérationnelle, le flux de trésorerie opérationnel, les dépenses d’investissement (Capex), le flux de trésorerie libre (FCF) et l’intensité Capex (Capex/OCF).\\\\n\\\\nAmazon affiche une croissance continue du chiffre d’affaires et du résultat opérationnel, avec une intensité Capex élevée, souvent supérieure à 60%, atteignant 94% en FY2025, ce qui impacte son FCF. Alphabet et Meta montrent des marges opérationnelles solides (environ 30% pour Alphabet, 40% pour Meta) avec une intensité Capex modérée (27-60%), soutenant un flux de trésorerie libre important. Microsoft présente une marge opérationnelle stable autour de 40-45%, avec une intensité Capex croissante (25% à 47%) et un FCF élevé. NVIDIA connaît une forte croissance de revenus et marges (jusqu’à 62%), avec une faible intensité Capex (4-32%), générant un FCF important. Apple maintient des marges stables autour\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_Capital-Expenditure_Reference_Data__from_SEC_10-K_.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv\\\",\\\"filename\\\":\\\"key_metrics.csv.md\\\",\\\"title\\\":\\\"key_metrics.csv\\\",\\\"keywords\\\":[\\\"Amazon\\\",\\\"Revenue\\\",\\\"Operating income\\\",\\\"Operating margin\\\",\\\"Operating cash flow\\\",\\\"Capex\\\",\\\"Free Cash Flow\\\",\\\"Fiscal Year\\\",\\\"USD billions\\\",\\\"Capex/OCF ratio\\\"],\\\"summary\\\":\\\"Le document présente les principaux indicateurs financiers annuels (FY2020 à FY2025) d’Amazon et d’Alphabet, exprimés en milliards de dollars USD et en pourcentages. \\\\n\\\\nPour Amazon, le chiffre d’affaires progresse régulièrement, passant de 386,1 milliards USD en 2020 à 716,9 milliards USD en 2025. L’EBIT (résultat opérationnel) fluctue, avec une baisse notable en 2022 (12,2 milliards USD) avant une forte reprise en 2024-2025 (68,6 et 80,0 milliards USD). La marge opérationnelle suit une tendance similaire, culminant à 11,2 % en 2025. Le flux de trésorerie opérationnel augmente globalement, atteignant 139,5 milliards USD en 2025. Les investissements en capital (Capex) augmentent aussi, avec un pic à 131,8 milliards USD en 2025. Le flux de trésorerie libre (FCF) est négatif en 2021-2022, puis redevient positif en 2023-2025.\\\\n\\\\nPour Alphabet, le chiffre d’affaires croît de 182,5 milliards USD en 2020 à 402,8 milliards USD en 2025. Le résultat opérationnel augmente régulièrement, atteignant 129 milliards USD en 2025, avec une marge opérationnelle stable autour de 30-32 %. Le\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_key_metrics.csv.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/8a7374c91cfe666134d600738f32be349c41ee4c/analyst_prep_notes.md\\\",\\\"filename\\\":\\\"Analyst_Prep_Notes___Capex___Cash_Generation.md\\\",\\\"title\\\":\\\"Analyst Prep Notes — Capex & Cash Generation\\\",\\\"keywords\\\":[\\\"Capex\\\",\\\"cash flow\\\",\\\"operating margin\\\",\\\"free cash flow\\\",\\\"Amazon\\\",\\\"Alphabet\\\",\\\"Meta\\\",\\\"Microsoft\\\",\\\"NVIDIA\\\",\\\"Apple\\\"],\\\"summary\\\":\\\"Ce document présente un résumé factuel des données financières clés liées aux dépenses d’investissement (capex) et à la génération de trésorerie des principales entreprises technologiques pour leurs derniers exercices fiscaux (FY2024 ou FY2025). \\\\n\\\\nAmazon affiche un chiffre d’affaires de 638 milliards de dollars, un flux de trésorerie d’exploitation de 115,9 milliards et un capex élevé de 83 milliards, représentant 72 % du cash flow opérationnel. Alphabet génère 350 milliards de revenus, avec un capex de 52,5 milliards (42 % du cash flow). Meta rapporte 164,5 milliards de revenus, un capex de 37,3 milliards (41 % du cash flow). Microsoft déclare 245,1 milliards de revenus, un capex de 44,5 milliards (38 % du cash flow). NVIDIA, avec 130,5 milliards de revenus, a un capex faible de 3,2 milliards (5 % du cash flow). Apple affiche 416,2 milliards de revenus, un capex de 12,7 milliards (11 % du cash flow). \\\\n\\\\nSur la période 2020–2024/2025, toutes ces entreprises ont augmenté leurs dépenses en capital, Amazon et Alphabet montrant les plus fortes hausses en valeur absolue. Les marges opérationnelles varient de 10,8 % (Amazon) à 62,4 % (NVIDIA), reflétant des profils\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":null},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\\\",\\\"filename\\\":\\\"Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md\\\",\\\"title\\\":\\\"Capital-Expenditure Reference Data (from SEC 10-K filings)\\\",\\\"keywords\\\":[\\\"Capital expenditure\\\",\\\"SEC 10-K filings\\\",\\\"fiscal year\\\",\\\"operating margin\\\",\\\"free cash flow\\\",\\\"Capex intensity\\\",\\\"Amazon\\\",\\\"Alphabet\\\",\\\"Meta\\\",\\\"financial metrics\\\"],\\\"summary\\\":\\\"Ce document présente les données financières clés relatives aux dépenses d’investissement (Capex) de six grandes entreprises technologiques (Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple) issues de leurs rapports annuels SEC 10-K, exprimées en milliards de dollars US. Les chiffres sont comparés sur la base des exercices fiscaux propres à chaque entreprise.\\\\n\\\\nLes indicateurs principaux incluent le chiffre d’affaires, le résultat opérationnel, la marge opérationnelle, le flux de trésorerie opérationnel, les dépenses d’investissement (Capex), le flux de trésorerie libre (FCF) et l’intensité Capex (Capex/OCF).\\\\n\\\\nAmazon affiche une croissance continue du chiffre d’affaires et du résultat opérationnel avec une intensité Capex élevée, oscillant entre 61% et 136%, reflétant d’importants investissements. Alphabet et Meta maintiennent des marges opérationnelles élevées (environ 25-42%) avec une intensité Capex plus modérée (27-60%). Microsoft montre une forte rentabilité (marge autour de 37-46%) avec une intensité Capex croissante (25-47%). NVIDIA, en forte croissance, présente une marge opérationnelle en nette hausse (jusqu’à 62%) avec une faible intensité Capex (4-32%). Apple conserve une marge stable autour de 24-32% avec une faible intensité Capex (8-11%), générant un flux de trés\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\\\",\\\"filename\\\":\\\"Analyst_Prep_Notes_-_Capex___Cash_Generation.md\\\",\\\"title\\\":\\\"Analyst Prep Notes - Capex & Cash Generation\\\",\\\"keywords\\\":[\\\"Capex\\\",\\\"cash flow\\\",\\\"operating margin\\\",\\\"free cash flow\\\",\\\"Amazon\\\",\\\"Alphabet\\\",\\\"Meta\\\",\\\"Microsoft\\\",\\\"NVIDIA\\\",\\\"Apple\\\"],\\\"summary\\\":\\\"Ce document présente une synthèse factuelle des données financières clés relatives aux dépenses d’investissement (capex) et à la génération de trésorerie des principales entreprises technologiques pour leur exercice fiscal 2025. Amazon affiche un chiffre d’affaires de 716,9 milliards de dollars, un flux de trésorerie opérationnel de 139,5 milliards et un capex élevé à 131,8 milliards, représentant 94 % du cash flow opérationnel. Alphabet génère 402,8 milliards de revenus avec un capex de 91,4 milliards (56 % du cash flow). Meta rapporte 201 milliards de revenus, un capex de 69,7 milliards (60 % du cash flow). Microsoft déclare 281,7 milliards de revenus, un capex de 64,6 milliards (47 % du cash flow). NVIDIA, avec 130,5 milliards de revenus, a un capex modéré de 3,2 milliards (5 % du cash flow). Apple affiche 416,2 milliards de revenus et un capex de 12,7 milliards (11 % du cash flow). Sur la période 2020-2025, toutes ces entreprises ont significativement augmenté leurs investissements en capital, Amazon et Alphabet en tête. Les marges opérationnelles varient de 11,2 % (Amazon) à 62,4 % (NVIDIA), tandis que la génération de free cash flow reste robuste, particulièrement chez Apple et NVIDIA.\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md\\\"},{\\\"url\\\":\\\"https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\\\",\\\"filename\\\":\\\"Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md\\\",\\\"title\\\":\\\"Initial FY2025 Capex Guidance - Frozen as of February 7, 2025\\\",\\\"keywords\\\":[\\\"FY2025\\\",\\\"Capex\\\",\\\"Amazon\\\",\\\"Alphabet\\\",\\\"Meta\\\",\\\"capital expenditures\\\",\\\"finance leases\\\",\\\"guidance\\\",\\\"Q4 2024 results\\\",\\\"management estimate\\\"],\\\"summary\\\":\\\"Le document présente les premières prévisions de dépenses d’investissement (Capex) pour l’exercice fiscal 2025, figées au 7 février 2025, basées sur les résultats financiers de 2024 de plusieurs grandes entreprises technologiques. Amazon prévoit un Capex d’environ 100 milliards de dollars, selon une estimation de sa direction. Alphabet anticipe environ 75 milliards de dollars, avec une variabilité possible liée au calendrier des paiements en espèces. Meta communique une fourchette de 60 à 65 milliards de dollars, incluant les paiements principaux sur les contrats de location-financement. Toutefois, le Capex réel de Meta, excluant ces paiements de location, est inférieur, avec un total de 69,691 milliards de dollars en acquisitions d’immobilisations corporelles, auquel s’ajoutent 2,524 milliards de dollars de paiements de location, soit un total de 72,215 milliards de dollars. Aucune prévision initiale de Capex pour 2025 n’est fournie pour Microsoft, NVIDIA ou Apple dans ce document. Les données sont issues des communications officielles des entreprises lors de leurs appels de résultats du quatrième trimestre 2024. Ce document constitue un instantané historique des prévisions initiales et ne doit pas être confondu avec des données révisées ou les résultats réels de l’exercice 2025.\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md\\\"},{\\\"url\\\":\\\"https://medium.com/@farheenshaukat_19/building-systems-with-the-chatgpt-api-6b6755799\\\",\\\"filename\\\":\\\"Medium.md\\\",\\\"title\\\":\\\"Medium\\\",\\\"keywords\\\":[\\\"Medium\\\",\\\"ChatGPT API\\\",\\\"building systems\\\",\\\"404 error\\\",\\\"sitemap\\\",\\\"application\\\",\\\"inscription\\\",\\\"connexion\\\",\\\"contenu\\\",\\\"navigation\\\"],\\\"summary\\\":\\\"Le document présente une page d’erreur 404 du site Medium, indiquant que la page recherchée est introuvable. Il contient des liens vers diverses fonctionnalités du site, telles que l’inscription, la connexion, la recherche, l’écriture d’articles, ainsi que le téléchargement de l’application Medium. Le message d’erreur est formulé de manière légère, suggérant que Medium offre une grande variété de contenus, même si la page spécifique demandée n’existe pas. Un lien renvoie à la page d’accueil pour permettre à l’utilisateur de continuer sa navigation.\\\",\\\"openai_file_id\\\":null,\\\"vector_doc_id\\\":\\\"doc_Medium.md\\\"}]\",\"annotations\":null,\"meta\":null}"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-81520abcece8b287",
+      "content": "repro-capture-1"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-b15a71b74818fa4c",
+      "content": "{\"type\":\"text\",\"text\":\"Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md\",\"annotations\":null,\"meta\":null}"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-a0912072ec19036c",
+      "content": "{\"type\":\"text\",\"text\":\"Analyst_Prep_Notes_-_Capex___Cash_Generation.md\",\"annotations\":null,\"meta\":null}"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-800f2b2a40f689a6",
+      "content": "{\"type\":\"text\",\"text\":\"key_metrics.csv.md\",\"annotations\":null,\"meta\":null}"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-8d58707d6a985523",
+      "content": "{\"type\":\"text\",\"text\":\"Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md\",\"annotations\":null,\"meta\":null}"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-a4f2dd55f67a4399",
+      "content": "{\"type\":\"text\",\"text\":\"Miscellaneous_Company_Disclosures.md\",\"annotations\":null,\"meta\":null}"
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "chatcmpl-tool-9f67b252ffc3296b",
+      "content": "{\"type\":\"text\",\"text\":\"{\\\"vectorstore_id\\\":\\\"repro-capture-1\\\",\\\"files_uploaded\\\":[{\\\"filename\\\":\\\"Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md\\\",\\\"doc_id\\\":\\\"doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md\\\",\\\"status\\\":\\\"indexed\\\"},{\\\"filename\\\":\\\"Analyst_Prep_Notes_-_Capex___Cash_Generation.md\\\",\\\"doc_id\\\":\\\"doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md\\\",\\\"status\\\":\\\"indexed\\\"},{\\\"filename\\\":\\\"key_metrics.csv.md\\\",\\\"doc_id\\\":\\\"doc_key_metrics.csv.md\\\",\\\"status\\\":\\\"indexed\\\"},{\\\"filename\\\":\\\"Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md\\\",\\\"doc_id\\\":\\\"doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md\\\",\\\"status\\\":\\\"indexed\\\"},{\\\"filename\\\":\\\"Miscellaneous_Company_Disclosures.md\\\",\\\"doc_id\\\":\\\"doc_Miscellaneous_Company_Disclosures.md\\\",\\\"status\\\":\\\"indexed\\\"}],\\\"files_attached\\\":[],\\\"total_files_requested\\\":5,\\\"upload_count\\\":5,\\\"reuse_count\\\":0,\\\"attach_success_count\\\":0,\\\"attach_failure_count\\\":0}\",\"annotations\":null,\"meta\":null}"
+    }
+  ],
+  "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+  "reasoning_effort": "none",
+  "temperature": 1.0,
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "download_and_store_url_tool",
+        "description": "Télécharge et stocke une URL dans le système de gestion de connaissances local.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL à télécharger et stocker"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "type": "object"
+        },
+        "strict": false
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "upload_files_to_vectorstore_tool",
+        "description": "Indexation locale des fichiers dans le vector store.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "inputs": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "Liste d'URLs (qui seront résolues) ou noms de fichiers locaux"
+            },
+            "vectorstore_name": {
+              "type": "string",
+              "description": "Nom du vector store à créer"
+            }
+          },
+          "required": [
+            "inputs",
+            "vectorstore_name"
+          ],
+          "type": "object"
+        },
+        "strict": false
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_knowledge_entries_tool",
+        "description": "Liste toutes les entrées de la base de connaissances.\n\nReturns:\n    List[Dict]: Liste des entrées avec url, filename, title, keywords, openai_file_id",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "arguments": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "type": "object"
+        },
+        "strict": false
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "fetch_vector_store_name",
+        "description": "Fetch the name of the vector store.\nCall this function to get the vector store name to upload file.",
+        "parameters": {
+          "properties": {},
+          "title": "fetch_vector_store_name_args",
+          "type": "object",
+          "additionalProperties": false,
+          "required": []
+        },
+        "strict": true
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "display_agenda",
+        "description": "Display the agenda in the conversation.\nCall this function to display the agenda in the conversation.",
+        "parameters": {
+          "properties": {
+            "agenda": {
+              "title": "Agenda",
+              "type": "string"
+            }
+          },
+          "required": [
+            "agenda"
+          ],
+          "title": "display_agenda_args",
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    }
+  ],
+  "top_p": 0.95
+}

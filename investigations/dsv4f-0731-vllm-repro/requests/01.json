@@ -1,0 +1,130 @@
+{
+  "messages": [
+    {
+      "content": "# AGENT PREPARATEUR DE RECHERCHE PROFONDE\n\nVous êtes un Research Agent Expert qui utilise une approche ReACT (Reasoning, Acting, and Reflecting on Thinking) pour préparer et cadrer des recherches **exhaustives et approfondies**.\n\n## OBJECTIF PRINCIPAL\n\nAlimenter la base de connaissances et structurer un plan de recherche couvrant l'intégralité de la demande utilisateur.\n\nVous utilisez les outils à votre disposition pour:\n\n1. Identifier le contenu déjà disponible dans la base de connaissances générales internes\n2. Mettre à jour si besoin la base de connaissances générales internes avec les sources externes (i.e. internet) requises\n3. Mettre à disposition les éléments intelligement sélectionnés dans un 'vector store' qui permettra aux autres agents d'accéder efficacement aux connaissances spécifiques grâce à des rercherches sémantiques.\n\n## PHILOSOPHIE DE RECHERCHE\n\n- **EXHAUSTIVITÉ** : Couvrir tous les angles, concepts, et dimensions du sujet\n- **PROFONDEUR** : Aller au-delà des généralités pour explorer les détails techniques, pratiques et conceptuels\n- **RICHESSE** : Extraire le maximum d'informations pertinentes de chaque source\n- **CONTEXTUALISATION** : Situer chaque concept dans son écosystème théorique et pratique\n\n## DIRECTIVES\n\nVous ne pouvez pas passer à l’étape suivante tant que la fonction associée n’a pas été appelée et validée.\n\n## PROCESSUS DE PREPARATION ET DE PLANIFICATION\n\n### ÉTAPE 1 : PREPARATION DE LA BASE DE CONNAISSANCES\n\n**Objectif** : Récupérer toutes les sources pertinentes\n\n**Actions** :\n\n- Consultez les entrées déjà disponibles avec `get_knowledge_entries_tool`\n- Identifiez les sources et références mentionnées dans la demande utilisateur.\n- Récupérez les sources manquantes avec `download_and_store_url_tool`\n- Examinez attentivement la demande utilisateur\n- Identifiez TOUS les sujets, sous-sujets et concepts mentionnés dans la demande\n- Créez une **cartographie des concepts** pour chacun des domaines à explorer\n- Si AUCUNE source n'est mentionnée, sélectionnez les entrées dans la base de connaissance couvrant les aspects identifiés de la demande\n- Si des sources sont spécifiées dans la demande, vous ne devez n'utilisez que celles-ci pour l'analyse et aucune autre (filtre exclusif)\n- Attachez les fichiers séléctionnées à la base vectorielle avec `upload_files_to_vectorstore_tool`, en passant les URLs exactes ou les noms de fichiers retournés par `download_and_store_url_tool` (jamais un nom reconstruit depuis l'URL)\n\n**Règles strictes sur les URLs (obligatoires)** :\n\n- Vous ne devez JAMAIS inventer de nouvelles URLs.\n- Vous ne devez appeler `download_and_store_url_tool` QUE pour des URLs explicitement présentes dans la demande utilisateur (copie exacte).\n- Si la demande utilisateur ne contient aucune URL explicite, vous ne devez pas appeler `download_and_store_url_tool`.\n- Si une URL échoue au téléchargement, continuez avec les connaissances disponibles et n'ajoutez pas d'autres URLs non demandées.\n\n**Réflexion** : \"Ai-je rassemblé suffisamment de sources pour couvrir tous les aspects ?\"\n\n### ÉTAPE 2 : ANALYSE INITIALE ET DÉCOMPOSITION\n\n**Objectif** : Comprendre la portée complète de la recherche et Exposer publiquement l’agenda et la cartographie des concepts\n\n**Actions** :\n\n- Enrichissez votre cartographie des concepts avec les éléménts retenus de la base de connaissance (résumé et mots-clés) pour élargir votre persective des sujets à aborder.\n- Déterminez le niveau de détail requis et indiquer les directions que vous souhaitez prendre pour chacun des sous-thèmes et concepts pour réaliser une recherche APPROFONDIE. Assurez-vous de couvrir tous concepts et pratiques en vous appuyant notamment des mots-clés venant des connaissances qui vous guideront dans le chemins à parcourir.\n- Assurez l'alignement de la cartographie des concepts avec la demande utilisateur. Eliminez les notions non demandées qui ne sont pas pertinantes pour éviter des hors-sujets et des fausses routes.\n- Après avoir créé une cartographie des concepts complètes, VOUS DEVEZ OBLIGATOIREMENT APPELER la fonction `display_agenda`.\n- Cet appel est obligatoire pour valider votre plan de recherche.\n- L’agenda doit inclure :\n  - Tous les concepts identifiés\n  - Les ressources associées de la base des connaissances internes\n  - Les mots-clés pour chaque concept\n  - Une justification claire pour chaque élément\n- Tant que `display_agenda` n’est pas exécuté, NE PAS passer à l’étape de planification.\n\n**Réflexion** : \"Quels sont tous les aspects que je dois couvrir pour que le document de recherche soit complet ?\"\n\n## RÉFLEXIONS CONTINUES\n\nÀ chaque étape, demandez-vous :\n\n- \"Ai-je exploré tous les angles possibles ?\"\n- \"Quelles informations manquent encore ?\"\n- \"Cette recherche est-elle suffisamment approfondie ?\"\n- \"Un expert du domaine serait-il satisfait de ce niveau de détail ?\"\n\n## PRINCIPE DIRECTEUR\n\nVotre mission est de produire un AGENDA complet et détaillé ainsi qu'une BASE DE CONNAISSANCE sépcifique à la recherche qui puisse servir pour n'importe quel usage ultérieur : formation, article, présentation ou documentation technique. La qualité se mesure par la profondeur et l'exhaustivité, la pertinence, la véracité et non pas par la concision ou le style.\n\n\nRÈGLE RUNTIME (OBLIGATOIRE):\n- Avant tout appel à upload_files_to_vectorstore_tool, appelez fetch_vector_store_name.\n- Utilisez EXACTEMENT la valeur retournée par fetch_vector_store_name comme vectorstore_name.\n- N'inventez jamais un nom de vector store.\n- Le nom attendu pour ce run est: repro-capture-1\n",
+      "role": "system"
+    },
+    {
+      "role": "user",
+      "content": "<research_request>\n# Junior Analyst Data Pack - FY2025 AI Capex Intensity\n\n## Role and objective\n\nPrepare a concise, factual data pack for a senior analyst. This is a data collection\nand first-level analysis task, not an investment opinion. Cover Amazon, Alphabet,\nMeta, Microsoft, NVIDIA, and Apple using only the five provided sources.\n\n## Required facts\n\nFor every company, report all seven FY2025 metrics below. FY2025 is the latest fiscal\nyear with a complete set in this frozen corpus for all six companies.\n\n1. Revenue\n2. Operating income\n3. Operating margin\n4. Operating cash flow\n5. Capital expenditures (capex)\n6. Free cash flow (FCF)\n7. Capex/operating-cash-flow ratio\n\nUse the values supplied in the sources. FCF equals operating cash flow minus capex;\ncapex intensity equals capex divided by operating cash flow. Do not introduce other\ncompanies, estimates, or empirical figures.\n\n## Required analysis\n\n- State that fiscal-year ends differ: December for Amazon, Alphabet, and Meta; June\n  for Microsoft; late January for NVIDIA; and late September for Apple.\n- For each company, describe the direction and magnitude of its capex trend from the\n  earliest available capex year to FY2025. Use the endpoints in the corpus.\n- In a separate guidance section, report the frozen initial FY2025 guidance, release\n  date, and basis for Amazon, Alphabet, and Meta. Report Microsoft, NVIDIA, and Apple\n  guidance as unavailable in this source pack.\n- Keep guidance separate from FY2025 actuals. Do not calculate a Meta guidance variance\n  because guidance includes finance-lease principal while the XBRL cash-capex actual\n  does not use the same basis.\n- State whether any required actual metric is missing. Do not infer a missing value.\n\n## Report contract\n\nWrite a Markdown brief with these sections: Overview and Definitions; FY2025\nProfitability; FY2025 Capex and Cash Generation; Capex Trends; Guidance vs Actuals;\nCross-Company Comparison; Data Gaps.\n\nPut every required FY2025 fact in a parseable table using these columns:\n\n| Company | Metric | Period | Value |\n| --- | --- | --- | --- |\n\nPeriod must be explicit. Cite the supplied source ID next to each table or factual\nparagraph. Use a neutral, descriptive tone. Keep the report between 500 and 1,800\nwords, excluding the automatically generated Sources section.\n\n## External References\n\nUse exclusively these provided files. Do not browse the web.\n\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\n\n</research_request>"
+    }
+  ],
+  "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+  "reasoning_effort": "none",
+  "temperature": 1.0,
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "download_and_store_url_tool",
+        "description": "Télécharge et stocke une URL dans le système de gestion de connaissances local.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL à télécharger et stocker"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "type": "object"
+        },
+        "strict": false
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "upload_files_to_vectorstore_tool",
+        "description": "Indexation locale des fichiers dans le vector store.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "inputs": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "Liste d'URLs (qui seront résolues) ou noms de fichiers locaux"
+            },
+            "vectorstore_name": {
+              "type": "string",
+              "description": "Nom du vector store à créer"
+            }
+          },
+          "required": [
+            "inputs",
+            "vectorstore_name"
+          ],
+          "type": "object"
+        },
+        "strict": false
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_knowledge_entries_tool",
+        "description": "Liste toutes les entrées de la base de connaissances.\n\nReturns:\n    List[Dict]: Liste des entrées avec url, filename, title, keywords, openai_file_id",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "arguments": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "type": "object"
+        },
+        "strict": false
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "fetch_vector_store_name",
+        "description": "Fetch the name of the vector store.\nCall this function to get the vector store name to upload file.",
+        "parameters": {
+          "properties": {},
+          "title": "fetch_vector_store_name_args",
+          "type": "object",
+          "additionalProperties": false,
+          "required": []
+        },
+        "strict": true
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "display_agenda",
+        "description": "Display the agenda in the conversation.\nCall this function to display the agenda in the conversation.",
+        "parameters": {
+          "properties": {
+            "agenda": {
+              "title": "Agenda",
+              "type": "string"
+            }
+          },
+          "required": [
+            "agenda"
+          ],
+          "title": "display_agenda_args",
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    }
+  ],
+  "top_p": 0.95
+}

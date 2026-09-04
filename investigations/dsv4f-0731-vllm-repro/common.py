@@ -1,6 +1,5 @@
 """Shared helpers for the two reproduction scripts. Stdlib only."""
 
-import gzip
 import json
 import re
 import sys
@@ -18,12 +17,26 @@ def die(msg: str) -> None:
     sys.exit(EXIT_CANNOT_RUN)
 
 
-def load_requests(path: Path | None = None) -> tuple[str, list[dict]]:
-    """Return (model name, recorded requests). Each request: n, body, final_turn."""
-    path = path or Path(__file__).parent / "payloads.json.gz"
-    with gzip.open(path, "rt", encoding="utf-8") as f:
-        bundle = json.load(f)
-    return bundle["model"], bundle["requests"]
+def load_requests(directory: Path | None = None) -> tuple[str, list[dict]]:
+    """Return (model name, recorded requests) from requests/index.json + requests/NN.json.
+
+    Each request: n, offset_s, recorded_duration_s, final_turn, body (the exact
+    chat-completions body that was sent)."""
+    directory = directory or Path(__file__).parent / "requests"
+    index = json.loads((directory / "index.json").read_text(encoding="utf-8"))
+    requests = []
+    for i in index["requests"]:
+        body = json.loads((directory / i["file"]).read_text(encoding="utf-8"))
+        requests.append(
+            {
+                "n": i["n"],
+                "offset_s": i["offset_s"],
+                "recorded_duration_s": i["recorded_duration_s"],
+                "final_turn": i["final_answer_turn"],
+                "body": body,
+            }
+        )
+    return index["model"], requests
 
 
 def final_answer_requests(requests: list[dict]) -> list[dict]:

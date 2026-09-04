@@ -37,7 +37,7 @@ replayed), and this checkpoint through a cloud provider inside the full agent wo
 
 ## Reproduce
 
-Kit (stdlib Python, no keys, 47 recorded request bodies):
+Kit (stdlib Python, no keys; the 47 recorded request bodies are readable JSON files under `requests/`, the shared system prompt is `requests/SYSTEM_PROMPT.txt`):
 https://github.com/BittnerPierre/agentic-research/tree/config/207-deepseek-0731-minimal/investigations/dsv4f-0731-vllm-repro
 
 ```

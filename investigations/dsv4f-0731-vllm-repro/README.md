@@ -65,9 +65,13 @@ Output of `repro_b` on the affected build: `latency series: 9.1s -> 240.0s` (tim
 `latency series: 1.7s -> 1.7s -> 1.8s`.
 
 Python 3.10+, standard library only, no API key (`Authorization: Bearer dummy`).
-`payloads.json.gz` contains the request bodies verbatim; temp paths were
-replaced by `/tmp/agent-workdir`; the documents quoted in the tool results
-are synthetic financial notes generated for a benchmark (freely shareable).
+`requests/` holds the 47 request bodies as readable JSON, one file per request
+(`requests/11.json` is the default one), plus `requests/SYSTEM_PROMPT.txt` — the
+system message they share, where the "return only the name of the file ...
+Do not include any other text" rule lives — and `requests/index.json` /
+`requests/README.md` listing them. Temp paths were replaced by
+`/tmp/agent-workdir`; the documents quoted in the tool results are synthetic
+financial notes generated for a benchmark (freely shareable).
 
 ## What was tested
 
