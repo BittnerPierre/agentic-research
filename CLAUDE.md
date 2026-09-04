@@ -305,6 +305,8 @@ uv run ruff check --fix .
 - `docs/issue-number-brief-description` - For documentation updates
 - `refactor/issue-number-brief-description` - For code refactoring
 
+- Every PR adds its entry to `CHANGELOG.md` (Keep a Changelog: date, category, one line, PR/issue links).
+
 ### Commit Message Guidelines
 
 - First line: Brief summary (50 chars or less)
