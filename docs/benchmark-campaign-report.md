@@ -1219,3 +1219,42 @@ sinon les det_grade périmés minent les comparaisons futures.
 92 packs (aucun fichier touché) — 0 changement de score, fabrication, erreur
 ou couverture imputable aux modifications ; garde-fous verts (suite complète
 + contrôle falsifié 3/3).
+
+## 29. REX — DSV4F-0731 : le biais d'obéissance (le « Apple indisponible », 03-04/09)
+
+Contexte : campagnes locales 0731 (`camp-0731-std5c`, image standard ; `camp-0731-b12x-jj-smoke`, build b12x corrigée). Trois runs
+finance déclarent dans leur chapitre « Data Gaps » que les actuals FY2025 d'Apple sont indisponibles — tout en utilisant
+ces mêmes chiffres (416,2 / 133,1 / 32,0 %) dans leurs tableaux. Deux C et un « non qualifié » (`data_gap_adequacy`) ;
+le juge a eu raison, ce n'est pas un faux positif.
+
+Mécanisme, reconstitué sur pièces :
+- La note de recherche S1 (requête « séries capex FY2020-FY2025 ») dit, exactement : *« Apple's FY2025 figures are not
+  included in the retrieved FY2020–FY2025 tables »*. Elle est **juste** : le document de référence SEC ne contient aucune
+  ligne Apple FY2025 ; seul `key_metrics.csv` l'a (chunks :13/:14/:16, récupérés par la recherche S3, présents dans les
+  trois runs — chunking déterministe, 24/24 sha identiques entre runs).
+- Le sous-writer du chapitre Data Gaps reçoit **le corpus complet** (S1…S7, donc S3 et ses chiffres), avec « sources
+  prioritaires : S1, S2 » et la consigne explicite *« tu peux puiser dans n'importe quelle source du corpus, pas seulement
+  les prioritaires »*. Il a suivi S1 à la lettre et généralisé « pas dans mes tables récupérées » en « indisponible ».
+- Interrogé avec ses propres notes (mode chat, temp 0.3), le modèle l'explique lui-même : *« I treated S1's statement as a
+  meta-level instruction about the corpus's completeness, while treating S3's numbers as raw data points […] I let a
+  source's self-description override the actual data I had already used. »*
+
+Lecture (arbitrage Pierre) : **pas un bug d'agentic-research — un biais du checkpoint, qui obéit trop.** Cadré sur ses
+sources prioritaires, il ne prend pas la liberté qu'on lui accorde d'aller lire le reste ; il fait exactement ce qu'on lui
+dit. C'est le pendant de sa qualité principale — c'est aussi le premier modèle du banc à passer les pièges d'honnêteté
+(via OpenRouter) : littéral, honnête, et littéral jusqu'au défaut. Les autres modèles n'ont pas « mieux fait » : leurs
+notes n'ont jamais produit la réserve de S1, ils n'ont pas été testés sur ce piège.
+
+Ce que le workflow contraint réellement (pour mémoire, sans en faire un bug) : le plan de recherche est en un seul passage
+(aucune replanification après lecture des résultats — les seules boucles du manager sont des relances de format) ; les
+chapitres sont rédigés en parallèle et ne voient pas les brouillons des autres (mais voient toutes les notes).
+
+Pistes d'amélioration notées pour plus tard, par d'autres approches que « corriger le prompt » :
+- un **agent relecteur** de cohérence inter-chapitres (« un chapitre dit qu'il n'a pas l'info, un autre l'utilise → à
+  réviser ») ;
+- un **contrôle d'exhaustivité côté agent de recherche** (« ai-je bien tout trouvé ? y a-t-il des trous dans la
+  raquette ? ») avant de déclarer un manque ;
+- à terme, une **boucle de replanification** du manager sur les manques constatés.
+
+Pièces : `benchmarks/runs/20260904_111033_deepseek-v4-flash-0731-decomposed_decomposed` (sources.json S1/S3, report.md
+§ Data Gaps, semantic_judge.json `data_gap_adequacy`), `camp-0731-std5c-capex-2` et `-5` (les deux C).
