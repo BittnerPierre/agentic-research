@@ -60,6 +60,27 @@ def load_adjustments() -> tuple[dict[str, dict], set[str]]:
     return adjustments, exclusions
 
 
+def tag_patterns(prefix: str, kind: str) -> list[str]:
+    """Motifs de noms de run pour un préfixe de tag et un exercice donné.
+
+    Deux schémas coexistent : camp-<tag>-<kind>-N (courant, on suffixe) et
+    bench-<kind>-<tag>-N (historique, le tag contient déjà le type). Un tag qui
+    CONTIENT le mot sans conclure le nom (camp-x-concept) doit matcher les DEUX
+    formes — revue Codex #210 : camp-…-concept-concept-1 était introuvable
+    parce que l'heuristique « contient le type → tel quel » coupait la forme
+    suffixée. Un tag portant l'AUTRE exercice est ignoré pour ce tour.
+    """
+    other = "capex" if kind == "concept" else "concept"
+    patterns: list[str] = []
+    for pf in prefix.split("|"):
+        if other in pf:
+            continue
+        patterns.append(f"{pf}-{kind}")
+        if kind in pf:
+            patterns.append(pf)
+    return patterns
+
+
 def letter(det: dict, stats: dict) -> str:
     # E = évaluation NON ABOUTIE uniquement (revue Codex #1 + arbitrage Pierre
     # 17/07) : run mort ou validation impossible. Un échec de provenance DU
@@ -97,15 +118,7 @@ def main() -> None:
         rows = []
         for spec in args.models:
             label, prefix = spec.split("=", 1)
-            # alternatives acceptées ; un tag qui contient déjà le type
-            # d'exercice (schéma historique bench-capex-qwen-N) est utilisé
-            # tel quel, sinon on suffixe -<kind> (schéma camp-<tag>-<kind>-N)
-            prefixes = prefix.split("|")
-            patterns = [
-                pf if kind in pf else f"{pf}-{kind}"
-                for pf in prefixes
-                if kind in pf or not any(k in pf for k in ("capex", "concept"))
-            ]
+            patterns = tag_patterns(prefix, kind)
             names = sorted(
                 n
                 for n in runs
@@ -185,7 +198,13 @@ def main() -> None:
             # Arbitrage Pierre (2026-07-17) : pas de lettres en conceptuel
             # tant qu'elles ne sont pas dérivées du juge (les lettres actuelles
             # ne comptent que les fautes numériques -> vides de sens là-bas).
-            let_s = " ".join(letters) if kind == "capex" else "(lettres: n/a)"
+            # EXCEPTION : E ne dérive pas du juge (évaluation non aboutie) et
+            # doit rester visible dans la ligne (revue subagent #210).
+            if kind == "capex":
+                let_s = " ".join(letters)
+            else:
+                e_count = letters.count("E")
+                let_s = f"({e_count}xE ; autres: n/a)" if e_count else "(lettres: n/a)"
             median = statistics.median(covs) if covs else None
             tie = (
                 "≈"
