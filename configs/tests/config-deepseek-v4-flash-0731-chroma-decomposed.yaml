@@ -1,0 +1,74 @@
+# Campagne modèles medium — DeepSeek-V4-Flash-0731 (deepseek-ai/DeepSeek-V4-Flash-0731)
+# sur vLLM spark1. Setup minimal aligné sur les directives de la model card HF (#207) :
+# temperature 1.0, top_p 0.95, mode chat via reasoning_effort none. Aucun garde-fou
+# harnais (max_tokens/frequency_penalty/timeout : non supportés par le code — si les
+# boucles de génération du 26/08 réapparaissent, issue dédiée, pas de champ inerte ici).
+# Retrieval ChromaDB local + embeddings Qwen3-Embedding @ spark1:8003 (inchangés).
+config_name: "deepseek-v4-flash-0731-decomposed"
+
+vector_store:
+  name: "agentic-research-dgx"
+  description: "Vector store for DeepSeek-V4-Flash-0731 campaign"
+  expires_after_days: 30
+
+vector_search:
+  provider: "chroma"
+  index_name: "agentic-research-dgx"
+  chunk_size: 800
+  chunk_overlap: 120
+  chroma_host: "localhost"
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: "openai"
+  chroma_embedding_api_base: "http://spark1:8003/v1"
+  chroma_embedding_model: "Qwen3-Embedding-4B-Q8_0.gguf"
+  chroma_embedding_api_key_env: "CHROMA_OPENAI_API_KEY"
+  top_k: 12
+  score_threshold: null
+
+data:
+  knowledge_db_path: "data/knowledge_db.json"
+  local_storage_dir: "data/"
+
+debug:
+  enabled: false
+  output_dir: "debug_output"
+  save_reports: true
+  show_content_preview: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+mcp:
+  server_host: "localhost"
+  server_port: 8001
+  client_timeout_seconds: 60.0
+  http_timeout_seconds: 5.0
+
+models:
+  # DeepSeek-V4-Flash-0731 — instruct pur (reasoning none = mode chat),
+  # échantillonnage model card : temperature 1.0 / top_p 0.95, tous rôles.
+  search_model: &dsv4
+    name: "openai/deepseek-ai/DeepSeek-V4-Flash-0731"
+    base_url: "http://spark1:8000/v1"
+    api_key: "dummy"
+    reasoning_effort: "none"
+    temperature: 1.0
+    top_p: 0.95
+  planning_model: *dsv4
+  knowledge_preparation_model: *dsv4
+  research_model: *dsv4
+  outline_model: *dsv4
+  writer_model: *dsv4
+  chapter_writer_model: *dsv4
+
+manager:
+  default_manager: "deep_manager"
+
+agents:
+  max_search_plan: "5-7"
+  output_dir: "output/"
+  writer_output_format: "markdown"
+  writer_strategy: "decomposed"
+  chapter_max_revisions: 1
