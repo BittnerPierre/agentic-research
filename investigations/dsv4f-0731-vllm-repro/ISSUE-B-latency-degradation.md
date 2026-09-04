@@ -37,17 +37,17 @@ Kit (stdlib Python, no keys, 47 recorded request bodies):
 https://github.com/BittnerPierre/agentic-research/tree/config/207-deepseek-0731-minimal/investigations/dsv4f-0731-vllm-repro
 
 ```
-python3 repro.py --base-url http://HOST:8000/v1 --mode degradation --only 11 --repeat 5   # same request 5x, latency series
-python3 repro.py --base-url http://HOST:8000/v1 --mode concurrent                        # all 47 with the recorded timing
+python3 repro_b_latency_growth.py --base-url http://HOST:8000/v1                # same recorded request 5x, latency series
+python3 repro_b_latency_growth.py --base-url http://HOST:8000/v1 --replay-all   # all 47 requests with the recorded timing
 ```
-Affected build: `latency series: 9.1s -> 240.0s (timeout)` on the second repetition already.
-Standard image: `latency series: 1.7s -> 1.7s -> 1.8s`.
+Affected build: `latency series: 9.1s -> 240.0s` (timeout on the second repetition already) — REPRODUCED.
+Standard image: `latency series: 1.7s -> 1.7s -> 1.8s` — clean.
 
 ## Notes
 
 - Looks like engine state accumulating across requests (prefix cache / KV bookkeeping) rather than compute:
   short requests are unaffected and the same request gets slower without any change on the client side.
-- Cheap bisection with the kit (`--mode degradation`): prefix caching off first; then `VLLM_USE_V2_MODEL_RUNNER=0`;
+- Cheap bisection with the kit (rerun `repro_b_latency_growth.py`): prefix caching off first; then `VLLM_USE_V2_MODEL_RUNNER=0`;
   attention backend fallback instead of `B12X_MLA_SPARSE`.
 - Related, same image era: #358 (DSpark acceptance collapsing under sustained load, ending with empty outputs /
   the server going down) — different outcome here: the server stays up and correct on short requests, and the

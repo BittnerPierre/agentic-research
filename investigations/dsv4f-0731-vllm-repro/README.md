@@ -11,8 +11,13 @@ a system prompt, a user message, two tool definitions (`vector_search`,
 its note with `write_file`, and the system prompt says the reply must be
 **exactly the filename, nothing else** (e.g. `capex_trends.txt`).
 
-`repro.py` sends those requests to a vLLM server and checks one thing per
-final-answer turn: *is the reply just a filename?* It also times every call.
+Two scripts, one per symptom:
+- `repro_a_filename_only.py` sends one of those final-answer requests and checks: *is the reply just a filename?*
+- `repro_b_latency_growth.py` sends the same request several times and prints how long each one took.
+
+Both start by checking that the server is reachable and serves the model, then send two short
+probes ("reply pong", "reply with this filename") that must pass — if they fail, the server is
+simply down and the scripts stop with exit code 2 instead of claiming anything.
 
 ## What we see
 
@@ -37,28 +42,27 @@ takes 1.7 s each time.
 ## Run it
 
 ```
-python3 repro.py --base-url http://HOST:8000/v1 --only 11
+python3 repro_a_filename_only.py --list                                  # the 11 final-answer requests, numbered
+python3 repro_a_filename_only.py --base-url http://HOST:8000/v1          # send request #11, check the reply (~30 s)
+python3 repro_a_filename_only.py --base-url http://HOST:8000/v1 --all    # all 11, one at a time
+python3 repro_b_latency_growth.py --base-url http://HOST:8000/v1         # request #11 five times, latency series
+python3 repro_b_latency_growth.py --base-url http://HOST:8000/v1 --replay-all   # all 47 with the recorded timing
 ```
-One request, one verdict, ~30 s. Output on the affected build:
+`--request N` picks another recorded request (numbers from `--list`); `--model NAME` replays against another
+served model. Exit code: 0 clean, 1 reproduced, 2 could not run.
 
+Output of `repro_a` on the affected build:
 ```
-#11    20.5s  FAIL  2096 chars: 'apple_microsoft_..._disclosures.txt.txt\n\nActually, let me correct that...'
+  #11   20.5s  WRONG 2096 chars: 'apple_microsoft_..._disclosures.txt.txt\n\nActually, let me correct that...'
+REPRODUCED: 1/1 replies were not just the filename [11]
 ```
 On a healthy build:
 ```
-#11     5.8s  PASS  apple_microsoft_rd_expenses_dividends_workforce_disclosures_fy2025_misc_disclosures.txt
+  #11    5.8s  ok    apple_microsoft_rd_expenses_dividends_workforce_disclosures_fy2025_misc_disclosures.txt
+clean: 1/1 replies were exactly the filename
 ```
-
-More:
-```
-python3 repro.py --base-url http://HOST:8000/v1 --mode solo                    # all 11 final-answer turns, one at a time
-python3 repro.py --base-url http://HOST:8000/v1 --mode degradation --only 11 --repeat 5   # same request 5 times, prints the latency series
-python3 repro.py --base-url http://HOST:8000/v1 --mode concurrent              # all 47 with the original timing (how the agent sent them)
-python3 repro.py --base-url http://HOST:8000/v1 --model OTHER/MODEL --mode solo  # same requests against another served model
-```
-Exit code 0 = clean, 1 = reproduced. Before and after each run the script
-sends two short probes ("reply pong", "reply with this filename") so you can
-see the server is answering normally while the long requests fail.
+Output of `repro_b` on the affected build: `latency series: 9.1s -> 240.0s` (timeout) — on a healthy build:
+`latency series: 1.7s -> 1.7s -> 1.8s`.
 
 Python 3.10+, standard library only, no API key (`Authorization: Bearer dummy`).
 `payloads.json.gz` contains the request bodies verbatim; temp paths were

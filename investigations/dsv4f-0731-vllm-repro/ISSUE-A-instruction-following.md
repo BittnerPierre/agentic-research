@@ -39,19 +39,19 @@ Kit (stdlib Python, no keys, 47 recorded request bodies):
 https://github.com/BittnerPierre/agentic-research/tree/config/207-deepseek-0731-minimal/investigations/dsv4f-0731-vllm-repro
 
 ```
-python3 repro.py --base-url http://HOST:8000/v1 --only 11        # one request, one verdict, ~30 s
-python3 repro.py --base-url http://HOST:8000/v1 --mode solo      # all 11 final-answer requests
+python3 repro_a_filename_only.py --base-url http://HOST:8000/v1          # one recorded request, one verdict, ~30 s
+python3 repro_a_filename_only.py --base-url http://HOST:8000/v1 --all    # all 11 such requests
 ```
-Affected build: `#11 20.5s FAIL 2096 chars: '...txt.txt\n\nActually, let me correct that...'` (11/11 FAIL).
-Standard image: `#11 5.8s PASS apple_microsoft_..._disclosures.txt` (11/11 PASS).
+Affected build: `#11 20.5s WRONG 2096 chars: '...txt.txt\n\nActually, let me correct that...'` — REPRODUCED 11/11.
+Standard image: `#11 5.8s ok apple_microsoft_..._disclosures.txt` — clean 11/11.
 
 ## Notes
 
 - Ruled out: the weights (fine elsewhere), the `deepseek_v4` parsers as shipped in the standard image, speculative
   decoding by itself, concurrency, sampling, thinking mode.
-- Cheap bisection with the kit (one flag at a time, `--only 11`): `VLLM_USE_V2_MODEL_RUNNER=0`; attention backend
+- Cheap bisection with the kit (one flag at a time, rerun `repro_a_filename_only.py`): `VLLM_USE_V2_MODEL_RUNNER=0`; attention backend
   fallback instead of `B12X_MLA_SPARSE`; `VLLM_USE_FLASHINFER_SAMPLER=0`; b12x MoE/linear backends off.
-  `repro.py --mode template --chat-template FILE` (needs `--trust-request-chat-template`) replays with the
+  `repro_a_filename_only.py --chat-template FILE` (needs `--trust-request-chat-template`) replays with the
   checkpoint's own chat template to test the template-rendering path.
 - Related, same image era: #349 (CUDA-graph profiling crash on the 2026-08-15 image). Not #358 (that one ends with
   empty outputs / the server going down; here the server stays up and correct on short requests).
