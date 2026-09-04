@@ -39,9 +39,9 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 ## 2026-09-01
 
 ### Added
-- The benchmark becomes trustworthy: evidence-bound validator (chunk-level citation resolution, run-pack provenance,
-  judge/contradictor adjudication, mandatory second reading) and the July 2026 eight-model campaign with its report,
-  campaign tooling and post-exam adjustments registry. ([#204](https://github.com/BittnerPierre/agentic-research/pull/204), closes #201)
+- Evidence-bound benchmark validator — chunk-level citation resolution, run-pack provenance, judge/contradictor
+  adjudication, mandatory second reading — and the July 2026 eight-model campaign with its report, campaign tooling
+  and post-exam adjustments registry. ([#204](https://github.com/BittnerPierre/agentic-research/pull/204), closes #201)
 - Decomposed writer for mid-size open-weight models — programmatic source aggregation, outline, parallel chapters,
   assembly — behind the `writer_strategy` flag, with the benchmark spike harness (finance and conceptual exercises,
   deterministic grader). ([#197](https://github.com/BittnerPierre/agentic-research/pull/197), closes #196)
