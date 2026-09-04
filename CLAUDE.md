@@ -312,6 +312,7 @@ uv run ruff check --fix .
 - Detailed description (if needed)
 - Reference related issues with `Fixes #123` or `Relates to #123`
 - Always include `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>` for AI-assisted commits
+- Every PR adds its entry to `CHANGELOG.md` (Keep a Changelog: date, category, one line, PR/issue links)
 
 ### Exception
 
