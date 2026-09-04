@@ -7,7 +7,9 @@ Companion issue: latency degradation with uptime on the same build (separate tic
 - 2x DGX Spark (GB10 / SM121), tensor-parallel 2
 - Affected: image `vllm-node-b12x` (built with `--exp-b12x`), recipe `recipes/deepseek-v4-flash-0731.yaml`
   (b12x MoE/linear backends, `B12X_MLA_SPARSE`, `VLLM_USE_V2_MODEL_RUNNER=1`, `VLLM_USE_FLASHINFER_SAMPLER=1`,
-  `--load-format instanttensor`, DSpark spec-decode 5 tokens probabilistic). Image tag/digest: ___ , vLLM version: ___
+  `--load-format instanttensor`, DSpark spec-decode 5 tokens probabilistic). Built from the 2026-08-15 recipe: `EXP_B12X_VLLM_REF=dev/infernal-invocation`, b12x master. Image digest: ___
+  Not yet tested: the 2026-09-03 recipe (`dev/jovian-judgement`, `--attention-backend B12X` instead of
+  `B12X_MLA_SPARSE`) — see Notes.
 - Working: image `vllm-node` (standard), recipe `recipes/deepseek-v4-flash.yaml` with the model changed to
   `deepseek-ai/DeepSeek-V4-Flash-0731` and `--speculative-config` removed. Image tag/digest: ___ , vLLM version: ___
 - Model: `deepseek-ai/DeepSeek-V4-Flash-0731`, `--tokenizer-mode deepseek_v4`, `--tool-call-parser deepseek_v4`,
@@ -46,6 +48,13 @@ Affected build: `#11 20.5s WRONG 2096 chars: '...txt.txt\n\nActually, let me cor
 Standard image: `#11 5.8s ok apple_microsoft_..._disclosures.txt` — clean 11/11.
 
 ## Notes
+
+- The 2026-09-03 recipe update switches to `dev/jovian-judgement`, whose same-day commits rework exactly this path:
+  `83cb22a0` (B12X sparse MLA per-token cache lengths were recomputed as a fresh tensor each build, so FULL CUDA-graph
+  replays read stale lengths), `341f198b` (DSpark decode/prefill split mismatch in the sparse MLA builder),
+  `b60c5e39` (DSpark decode metadata sizing), `d662a1b0` (new B12X sparse MLA/DSA backends). Those commits report
+  warmup crashes; the behavior here is silent (wrong output, slowdown) on the older ref. Rerunning the kit on an image
+  built from the new recipe is the direct test — 2 minutes.
 
 - Ruled out: the weights (fine elsewhere), the `deepseek_v4` parsers as shipped in the standard image, speculative
   decoding by itself, concurrency, sampling, thinking mode.

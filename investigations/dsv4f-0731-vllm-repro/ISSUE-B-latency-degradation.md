@@ -8,7 +8,9 @@ Companion issue: the same build also ignores "reply with the filename only" in t
 - Affected: image `vllm-node-b12x` (built with `--exp-b12x`), recipe `recipes/deepseek-v4-flash-0731.yaml`
   (b12x MoE/linear backends, `B12X_MLA_SPARSE`, `VLLM_USE_V2_MODEL_RUNNER=1`, `VLLM_USE_FLASHINFER_SAMPLER=1`,
   `--load-format instanttensor`, prefix caching on, DSpark spec-decode 5 tokens probabilistic).
-  Image tag/digest: ___ , vLLM version: ___
+  Built from the 2026-08-15 recipe: `EXP_B12X_VLLM_REF=dev/infernal-invocation`, b12x master. Image digest: ___
+  Not yet tested: the 2026-09-03 recipe (`dev/jovian-judgement`, `--attention-backend B12X` instead of
+  `B12X_MLA_SPARSE`) — see Notes.
 - Working: image `vllm-node` (standard), same recipe shape with `--speculative-config` removed. Image tag/digest: ___ , vLLM version: ___
 - Model: `deepseek-ai/DeepSeek-V4-Flash-0731`, `--kv-cache-dtype fp8`, `max-num-seqs 8`
 
@@ -44,6 +46,13 @@ Affected build: `latency series: 9.1s -> 240.0s` (timeout on the second repetiti
 Standard image: `latency series: 1.7s -> 1.7s -> 1.8s` — clean.
 
 ## Notes
+
+- The 2026-09-03 recipe update switches to `dev/jovian-judgement`, whose same-day commits rework exactly this path:
+  `83cb22a0` (B12X sparse MLA per-token cache lengths were recomputed as a fresh tensor each build, so FULL CUDA-graph
+  replays read stale lengths), `341f198b` (DSpark decode/prefill split mismatch in the sparse MLA builder),
+  `b60c5e39` (DSpark decode metadata sizing), `d662a1b0` (new B12X sparse MLA/DSA backends). Those commits report
+  warmup crashes; the behavior here is silent (wrong output, slowdown) on the older ref. Rerunning the kit on an image
+  built from the new recipe is the direct test — 2 minutes.
 
 - Looks like engine state accumulating across requests (prefix cache / KV bookkeeping) rather than compute:
   short requests are unaffected and the same request gets slower without any change on the client side.
