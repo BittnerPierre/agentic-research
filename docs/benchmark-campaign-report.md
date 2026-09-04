@@ -1220,7 +1220,7 @@ sinon les det_grade périmés minent les comparaisons futures.
 ou couverture imputable aux modifications ; garde-fous verts (suite complète
 + contrôle falsifié 3/3).
 
-## 29. REX — DSV4F-0731 : le biais d'obéissance (le « Apple indisponible », 03-04/09)
+## 28. REX — DSV4F-0731 : le biais d'obéissance (le « Apple indisponible », 03-04/09)
 
 Contexte : campagnes locales 0731 (`camp-0731-std5c`, image standard ; `camp-0731-b12x-jj-smoke`, build b12x corrigée). Trois runs
 finance déclarent dans leur chapitre « Data Gaps » que les actuals FY2025 d'Apple sont indisponibles — tout en utilisant
