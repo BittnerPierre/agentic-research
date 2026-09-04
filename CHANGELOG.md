@@ -1,9 +1,13 @@
 # Changelog
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-One entry per merged pull request, newest first. Earlier history (before June 2026): see `git log`.
+One entry per merged pull request, newest first. Earlier published history is kept below the dated entries.
 
 ## [Unreleased]
+
+### Docs
+- `CHANGELOG.md` restarted in Keep a Changelog format with one entry per merged PR since #197; rule added to
+  CLAUDE.md and AGENTS.md that every PR adds its entry. ([#229](https://github.com/BittnerPierre/agentic-research/pull/229), closes #228)
 
 ## 2026-09-04
 
@@ -18,7 +22,9 @@ One entry per merged pull request, newest first. Earlier history (before June 20
 
 ### Added
 - Qwen3.8-27B-NVFP4 campaign config (model-card sampling), smoke-tested on the Spark: conceptual coverage 81.2 % (best
-  on the bench so far), finance A / 100 %. ([#224](https://github.com/BittnerPierre/agentic-research/pull/224), issue #223)
+  on the bench so far), finance A / 100 %. Also fixes the campaign pre-flight (vLLM conformity guard silently disabled
+  for generated configs, now keyed on `base_url spark1:8000`) and filters pydantic noise from battery summaries.
+  ([#224](https://github.com/BittnerPierre/agentic-research/pull/224), issue #223)
 - `api_key_env` on model endpoints: cloud provider keys are read from the environment (`.env`), never written in a
   YAML; explicit `api_key` still wins; a declared-but-missing variable fails clearly. OpenRouter diagnostic config for
   DSV4F-0731. ([#220](https://github.com/BittnerPierre/agentic-research/pull/220), issue #219)
@@ -26,15 +32,9 @@ One entry per merged pull request, newest first. Earlier history (before June 20
   scripts, references, evals), discovered by symlinks from `.claude/skills/` and `.agents/skills/` (Claude Code and
   Codex); campaigns run without modifying the code base. New tools: `list_models.py`, `new_model_config.py`,
   `verify_corpus.py`; frozen-corpus check before any battery; dataprep/embeddings/vLLM conformity in the pre-flight;
-  22 tests. ([#210](https://github.com/BittnerPierre/agentic-research/pull/210), issue #209)
-
-### Fixed
-- Campaign pre-flight: vLLM conformity guard silently disabled for generated configs (quotes required by the grep) and
-  keyed on `base_url spark1:8000` instead of the model-name prefix; pydantic noise filtered from battery summaries.
-  ([#224](https://github.com/BittnerPierre/agentic-research/pull/224))
-- `compile_table.py`: tags containing the word `concept`/`capex` now match both naming schemes; conceptual rows show
-  the E letter; batteries flag `evaluation_failed` and non-qualified packs in the console.
-  ([#210](https://github.com/BittnerPierre/agentic-research/pull/210))
+  22 tests. Also fixes `compile_table.py` tag matching (tags containing `concept`/`capex`), shows the E letter on
+  conceptual rows, and makes batteries flag `evaluation_failed` and non-qualified packs in the console.
+  ([#210](https://github.com/BittnerPierre/agentic-research/pull/210), issue #209)
 
 ## 2026-09-01
 
@@ -55,3 +55,29 @@ One entry per merged pull request, newest first. Earlier history (before June 20
 
 ### Fixed
 - File search reliability and citation handling. ([#200](https://github.com/BittnerPierre/agentic-research/pull/200), closes #198)
+
+## [0.1.0] - 2026-02-24
+
+First stable public release of Agentic Research: multi-agent workflow, ingestion + retrieval,
+Docker deployment (local + DGX), benchmarks, and CI.
+
+### Added
+- Complete Docker deployment for local and DGX Spark (LLM + embeddings + DataPrep + ChromaDB).
+- ChromaDB vector backend integrated via the DataPrep `vector_search` flow.
+- Benchmarking framework: CLI runner, comparator, quality/compliance scores, and reports.
+- Multi-model support for DGX (GLM, Qwen, GPT-OSS, Ministral, Mistral-Small/Magistral).
+- GitHub Actions CI/CD (lint/format/tests on Python 3.12).
+- Tracing and evaluation tools (trajectory specs, workflow evaluator, baseline/regression).
+- Improved logging and diagnostics for debugging and traceability.
+
+### Changed
+- Retrieval flow unified through DataPrep (no parallel legacy paths).
+- Retrieval quality improvements: query rewrite modes, file filtering, safer heuristics.
+- Model configuration centralized for Docker/DGX with helper scripts.
+- Documentation reorganized under `docs/`, with plans archived.
+
+### Fixed
+- Pipeline stability: MCP timeouts, parallel uploads, safer retrieval paths.
+- ChromaDB integration: embedding config alignment, cache persistence, volume fixes.
+- Benchmark reliability: better metrics, DGX remote fixes, robust scripts.
+- Test stability: lint/format/test alignment and CI fixes.
