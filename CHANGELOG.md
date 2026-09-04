@@ -1,60 +1,102 @@
 # Changelog
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-One entry per merged pull request, newest first. Earlier published history is kept below the dated entries.
+Entries are written feature-first (what changed for a user of the project), one per merged pull request, newest
+first; entries reconstructed after the fact may group closely related PRs. Earlier published history is kept below.
 
 ## [Unreleased]
 
 ### Docs
-- `CHANGELOG.md` restarted in Keep a Changelog format with one entry per merged PR since #197; rule added to
-  CLAUDE.md and AGENTS.md that every PR adds its entry. ([#229](https://github.com/BittnerPierre/agentic-research/pull/229), closes #228)
+- Changelog history reconstructed between 0.1.0 and 2026-07-10 and entries reworded feature-first. ([#231](https://github.com/BittnerPierre/agentic-research/pull/231), closes #230)
 
 ## 2026-09-04
 
 ### Added
-- DeepSeek-V4-Flash-0731 campaign config aligned on the model card (temperature 1.0, top_p 0.95, chat mode) and the
-  investigation of its serving bug on the `vllm-node-b12x` build: minimal reproduction kit (now in its own repo,
-  https://github.com/BittnerPierre/dsv4f-0731-vllm-b12x-repro), diagnostic (build `dev/infernal-invocation` at fault,
-  fixed by the 2026-09-03 recipe on `dev/jovian-judgement`), and REX §28 of the campaign report on the checkpoint's
-  obedience bias. ([#208](https://github.com/BittnerPierre/agentic-research/pull/208), closes #207)
+- DeepSeek-V4-Flash-0731 runs on the DGX Spark cluster: model-card campaign config, and the investigation that isolated
+  its serving bug to the `vllm-node-b12x` build (`dev/infernal-invocation`) — confirmed fixed by the 2026-09-03 recipe
+  (`dev/jovian-judgement`). Minimal reproduction kit published separately
+  (https://github.com/BittnerPierre/dsv4f-0731-vllm-b12x-repro); REX on the checkpoint's obedience bias in the campaign
+  report (§28). ([#208](https://github.com/BittnerPierre/agentic-research/pull/208), closes #207)
+
+### Docs
+- `CHANGELOG.md` restarted in Keep a Changelog format with one entry per merged PR since #197; rule added to CLAUDE.md
+  and AGENTS.md that every PR adds its entry. ([#229](https://github.com/BittnerPierre/agentic-research/pull/229), closes #228)
 
 ## 2026-09-02
 
 ### Added
-- Qwen3.8-27B-NVFP4 campaign config (model-card sampling), smoke-tested on the Spark: conceptual coverage 81.2 % (best
-  on the bench so far), finance A / 100 %. Also fixes the campaign pre-flight (vLLM conformity guard silently disabled
-  for generated configs, now keyed on `base_url spark1:8000`) and filters pydantic noise from battery summaries.
-  ([#224](https://github.com/BittnerPierre/agentic-research/pull/224), issue #223)
-- `api_key_env` on model endpoints: cloud provider keys are read from the environment (`.env`), never written in a
-  YAML; explicit `api_key` still wins; a declared-but-missing variable fails clearly. OpenRouter diagnostic config for
-  DSV4F-0731. ([#220](https://github.com/BittnerPierre/agentic-research/pull/220), issue #219)
-- `benchmark-campaign` skill repackaged as a standard Agent Skills package under `evaluations/campaign/` (SKILL.md,
-  scripts, references, evals), discovered by symlinks from `.claude/skills/` and `.agents/skills/` (Claude Code and
-  Codex); campaigns run without modifying the code base. New tools: `list_models.py`, `new_model_config.py`,
-  `verify_corpus.py`; frozen-corpus check before any battery; dataprep/embeddings/vLLM conformity in the pre-flight;
-  22 tests. Also fixes `compile_table.py` tag matching (tags containing `concept`/`capex`), shows the E letter on
-  conceptual rows, and makes batteries flag `evaluation_failed` and non-qualified packs in the console.
-  ([#210](https://github.com/BittnerPierre/agentic-research/pull/210), issue #209)
+- Qwen3.8-27B-NVFP4 joins the bench, smoke-tested on the Spark: best conceptual coverage so far (81.2 %), finance A / 100 %.
+  Along the way the campaign pre-flight's vLLM conformity check is fixed (it was silently disabled for generated configs)
+  and battery summaries lose their pydantic noise. ([#224](https://github.com/BittnerPierre/agentic-research/pull/224), issue #223)
+- OpenRouter — and any OpenAI-compatible cloud provider — usable as a model backend: provider keys are read from the
+  environment (`.env`), never written in a config. DeepSeek-V4-Flash-0731 verified end-to-end through OpenRouter
+  (finance A / 100 %, conceptual 87.5 %). ([#220](https://github.com/BittnerPierre/agentic-research/pull/220), issue #219)
+- Benchmark campaigns can be run end-to-end by any agent (Claude Code, Codex) without touching the code base: the
+  `benchmark-campaign` skill becomes a standard Agent Skills package (`evaluations/campaign/`, discovered from
+  `.claude/skills/` and `.agents/skills/`), with model listing, config generation, frozen-corpus check before any
+  battery, service conformity in the pre-flight, clearer battery output, and 22 tests. ([#210](https://github.com/BittnerPierre/agentic-research/pull/210), issue #209)
 
 ## 2026-09-01
 
 ### Added
-- Evidence-bound validator hardened (`filename:index` chunk resolution, run-pack provenance, judge/contradictor
-  adjudication, second-reading doctrine) and the July 2026 eight-model campaign: report, campaign tooling
-  (`check_services`, `run_battery`, `regrade`, `compile_table`), per-model configs, `adjustments.yaml`.
-  ([#204](https://github.com/BittnerPierre/agentic-research/pull/204), closes #201)
-- Decomposed writer behind the `writer_strategy` flag (programmatic source aggregation, outline, parallel chapters,
-  assembly) plus the benchmark spike harness (exercises `ai-capex-intensity` and `ai-engineering-syllabus`, deterministic
-  grader, spike comparison). ([#197](https://github.com/BittnerPierre/agentic-research/pull/197), closes #196)
+- Evidence-bound benchmark validator — chunk-level citation resolution, run-pack provenance, judge/contradictor
+  adjudication, mandatory second reading — and the July 2026 eight-model campaign with its report, campaign tooling
+  and post-exam adjustments registry. ([#204](https://github.com/BittnerPierre/agentic-research/pull/204), closes #201)
+- Decomposed writer for mid-size open-weight models — programmatic source aggregation, outline, parallel chapters,
+  assembly — behind the `writer_strategy` flag, with the benchmark spike harness (finance and conceptual exercises,
+  deterministic grader). ([#197](https://github.com/BittnerPierre/agentic-research/pull/197), closes #196)
 
 ### Changed
-- Ingestion no longer filters out corpus artifacts that carried the subject matter (`vector_backends.py`).
-  ([#204](https://github.com/BittnerPierre/agentic-research/pull/204))
+- Ingestion no longer drops corpus documents whose content matched artifact filters. ([#204](https://github.com/BittnerPierre/agentic-research/pull/204))
 
 ## 2026-07-10
 
 ### Fixed
-- File search reliability and citation handling. ([#200](https://github.com/BittnerPierre/agentic-research/pull/200), closes #198)
+- File search agent more reliable on mid-size models: result handling and chunk citations hardened. ([#200](https://github.com/BittnerPierre/agentic-research/pull/200), closes #198)
+
+## 2026-05-12
+
+### Added
+- vLLM on DGX Spark as a first-class benchmark setup (workstream WS1, round 2): start/stop/bench scripts resolve the
+  active compose overlay instead of assuming the llama.cpp duo, vLLM "mono" setups for Qwen3.6-27B-NVFP4 and
+  Mistral-Small-4-119B-NVFP4 (custom arm64/sm_121 image), and full-payload tracing of model spans to diagnose tool-call
+  behavior on vLLM. ([#193](https://github.com/BittnerPierre/agentic-research/pull/193), closes #181, #182, #186)
+
+## 2026-04-30
+
+### Added
+- Per-agent reasoning effort and verbosity: each agent role runs its model with its own reasoning setting — hybrid
+  models can reason on planning and answer directly on search and drafting. ([#176](https://github.com/BittnerPierre/agentic-research/pull/176), closes #170)
+- DGX benchmark harness runs any compose overlay per setup (llama.cpp duo or vLLM mono) with healthcheck-based
+  restarts. ([#177](https://github.com/BittnerPierre/agentic-research/pull/177), closes #169)
+
+## 2026-04-26
+
+### Added
+- Local OpenAI-compatible inference endpoints (vLLM, llama.cpp) served directly, without LiteLLM in between, with a
+  per-endpoint choice between the Chat Completions and Responses APIs. ([#160](https://github.com/BittnerPierre/agentic-research/pull/160) closes #158, [#165](https://github.com/BittnerPierre/agentic-research/pull/165) closes #164)
+
+## 2026-04-21
+
+### Fixed
+- Small-model robustness: a file search agent answering with a plain string is accepted, and `vector_search` tolerates
+  string filenames. ([#161](https://github.com/BittnerPierre/agentic-research/pull/161), [#162](https://github.com/BittnerPierre/agentic-research/pull/162))
+
+## 2026-04-17
+
+### Added
+- No report without sources: when searches produce no usable result the run is marked incomplete instead of writing an
+  ungrounded report. ([#156](https://github.com/BittnerPierre/agentic-research/pull/156), closes #145)
+- Product vision, roadmap analysis and Sprint 1 backlog documented. ([#153](https://github.com/BittnerPierre/agentic-research/pull/153), [#155](https://github.com/BittnerPierre/agentic-research/pull/155))
+
+### Changed
+- Build tooling migrated from Poetry to uv. ([#154](https://github.com/BittnerPierre/agentic-research/pull/154), closes #128)
+
+## 2026-04-09
+
+### Added
+- Containerized llama.cpp instruct benchmark (llama-bench) on DGX Spark, producing markdown/CSV comparison tables.
+  ([#143](https://github.com/BittnerPierre/agentic-research/pull/143))
 
 ## [0.1.0] - 2026-02-24
 
