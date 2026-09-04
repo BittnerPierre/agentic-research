@@ -1,5 +1,7 @@
 # DeepSeek-V4-Flash-0731 on the b12x vLLM build: the model stops following "answer with the filename only" — reproduction kit
 
+> Canonical, standalone copy of this kit (MIT): https://github.com/BittnerPierre/dsv4f-0731-vllm-b12x-repro — this directory is the working copy inside the research project.
+
 ## What this is
 
 47 real HTTP requests to `/v1/chat/completions`, recorded from an agent that
