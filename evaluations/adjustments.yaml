@@ -83,6 +83,46 @@ adjustments:
     arbitre: "Pierre"
     date: "2026-07-16"
 
+  - run: "20260907_094041_deepseek-v4-flash-0731-decomposed_decomposed"
+    campagne: "camp-0731-jj5p2-capex-5"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 90.0
+    motif: >-
+      3 « fabrications » excusées après relecture : les agrégats des six
+      sociétés FY2025 (« 731,8 Md$ d'OCF combiné », « 373,4 Md$ en capex »,
+      « FCF agrégé de 358,4 Md$ ») sont exacts à la décimale. Même cas que
+      camp-mm27-capex-5 et camp-0731-std5c-capex-1 : l'évaluateur n'a
+      volontairement pas de dérivation « somme de sociétés » (surface de
+      blanchiment), la ligne dure est maintenue et l'exception notée ici.
+    verification: >-
+      Sommes recalculées depuis key_metrics.csv (FY2025, six sociétés) :
+      OCF 139.5+123.9+... = 731.8 ; capex 131.8+91.4+69.7+64.6+3.2+12.7 =
+      373.4 ; FCF = 358.4 = OCF − capex. Couverture 42/42, 0 chiffre faux.
+      Note ajustée par analogie avec le jumeau propre camp-0731-jj5p2-capex-4
+      (42/42, 0 faux chiffre, même profil) noté 90.0.
+    arbitre: "Pierre"
+    date: "2026-09-07"
+
+  - run: "20260907_093131_deepseek-v4-flash-0731-decomposed_decomposed"
+    campagne: "camp-0731-jj5p2-capex-3"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 90.0
+    motif: >-
+      1 « fabrication » excusée après relecture : « growing ~3–5x from
+      FY2020 » pour Amazon, Alphabet, Meta, Microsoft — une fourchette de
+      multiplicateurs, vraie (3,3× / 4,1× / 4,6× / 4,2×). Famille
+      « fourchettes / seuils hedgés » du catalogue, variante non couverte
+      (multiplicateur approximatif « ~N–Mx ») ; à traiter hors campagne.
+    verification: >-
+      Capex FY2020 → FY2025 depuis key_metrics.csv : Amazon 40.1→131.8,
+      Alphabet 22.3→91.4, Meta 15.2→69.7, Microsoft 15.4→64.6. Couverture
+      42/42, 0 chiffre faux. Note ajustée par analogie avec le jumeau propre
+      camp-0731-jj5p2-capex-4 noté 90.0.
+    arbitre: "Pierre"
+    date: "2026-09-07"
+
 exclusions:
   - campagne: "camp-dsv4-capex-3"
     motif: >-
