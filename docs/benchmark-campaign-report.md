@@ -1258,3 +1258,50 @@ Pistes d'amélioration notées pour plus tard, par d'autres approches que « cor
 
 Pièces : `benchmarks/runs/20260904_111033_deepseek-v4-flash-0731-decomposed_decomposed` (sources.json S1/S3, report.md
 § Data Gaps, semantic_judge.json `data_gap_adequacy`), `camp-0731-std5c-capex-2` et `-5` (les deux C).
+
+## 29. DSV4F-0731 sur la build b12x corrigée : deux campagnes N=5 (07/09)
+
+Contexte : DeepSeek-V4-Flash-0731 servi par la recette du 03/09 (image `vllm-node-b12x`,
+`dev/jovian-judgement`, décodage spéculatif DSpark, TP=2 sur deux Sparks), même config de
+campagne que §28 (model card : température 1.0, top_p 0.95, reasoning none), embeddings
+Qwen3-Embedding@spark1, pipeline et évaluateur figés. Les deux séries ont tourné le 07/09 au
+matin sur une seule instance vLLM, sans incident, chaque requête enregistrée par un proxy
+(matériel de rejeu dans le kit public `dsv4f-0731-vllm-b12x-repro`, `requests-campaign/`).
+Le défaut moteur observé les 05-06/09 sur d'autres instances de la même recette (gel en
+décodage spéculatif) est documenté dans ce même kit ; il n'a pas touché ces deux séries.
+
+### FINANCE
+
+| Série | Confiance | Couverture méd. (min–max) | Durée | Tokens |
+|---|---|---|---|---|
+| camp-0731-jj5p | A A A A A | 100 % (90–100) | 243 s | 722 k |
+| camp-0731-jj5p2 | A A A* A A* | 100 % (93–100) | 254 s | 643 k |
+
+Dix packs, zéro chiffre faux. Les deux `*` sont des exceptions post-examen (§12, entrées du
+07/09) : des agrégats exacts des six sociétés FY2025 (OCF 731,8 / capex 373,4 / FCF 358,4)
+et une fourchette de multiplicateurs vraie (« ~3–5x » pour 3,3× à 4,6×), que l'évaluateur
+compte comme fabrications par construction (pas de dérivation « somme de sociétés »,
+variante « ~N–Mx » hors catalogue). Non-qualifications résiduelles : exigences non numériques
+omises (dates de guidance, base Meta) et, dans deux packs, des métriques Apple retrouvées mais
+omises — la famille du biais d'obéissance (§28).
+
+### CONCEPTUEL
+
+| Série | Couverture méd. (min–max) | Durée | Tokens |
+|---|---|---|---|
+| camp-0731-jj5p | 75.0 % (56–88) | 219 s | 425 k |
+| camp-0731-jj5p2 | 68.8 % (62–88) | 235 s | 522 k |
+
+Zéro fabrication, zéro distracteur. Piège d'honnêteté zero/few-shot mordu dans 7 packs sur 10
+(définitions données de mémoire) ; les échecs sémantiques restants portent sur ReAct, RAG,
+function calling et la discipline de sources, comme sur l'image standard (§28).
+
+### Place au tableau
+
+Finance : 0731 rejoint le groupe de tête A×5 à 100 % de couverture (gpt-5.6-sol, DeepSeek-V4-Flash
+preview §25), à 243–254 s par run contre 427 s pour la preview sur l'ancienne recette.
+Conceptuel : 75.0 / 68.8 %, au niveau de la preview après transcodeur (§26, 75.0) et de
+gpt-5.4-mini (68.8), derrière gpt-5.6-sol (87.5). Comparé à la même config sur l'image
+standard sans spéculatif (§28 : finance C A A C plus un A*, conceptuel 68.8, ~534 s/run),
+la build corrigée avec DSpark donne des lettres plus propres et des runs deux fois plus courts ;
+les deux séries sont la référence locale 0731 à ce jour.

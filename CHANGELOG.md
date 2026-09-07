@@ -6,6 +6,14 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ## [Unreleased]
 
+## 2026-09-07
+
+### Added
+- DeepSeek-V4-Flash-0731 official local results on the fixed `vllm-node-b12x` recipe (2026-09-03, DSpark speculative
+  decoding): two N=5 campaigns, finance A A A A A and A A A* A A* at 100 % coverage, conceptual 75.0 / 68.8 %, 219-254 s
+  per run; two post-review exceptions recorded in `evaluations/adjustments.yaml` (exact six-company aggregates, true
+  multiplier range) and campaign report §29. ([#PR](https://github.com/BittnerPierre/agentic-research/pull/PR), closes #232)
+
 ### Docs
 - Changelog history reconstructed between 0.1.0 and 2026-07-10 and entries reworded feature-first. ([#231](https://github.com/BittnerPierre/agentic-research/pull/231), closes #230)
 
