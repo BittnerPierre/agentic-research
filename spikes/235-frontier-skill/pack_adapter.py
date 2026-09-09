@@ -102,31 +102,62 @@ def split_body(report: str) -> str:
     return report[: matches[-1].start()].rstrip() if matches else report.rstrip()
 
 
-def relocate(text: str, raw: str) -> str | None:
-    """Retrouve un passage à espaces normalisés et renvoie le span brut exact."""
-    norm_chars: list[str] = []
+LINK_RE = re.compile(r"\[([^\]]*)\]\((?:<[^>]*>|[^)\s]*)(?:\s+\"[^\"]*\")?\)")
+
+
+def _normalized_view(raw: str, strip_links: bool) -> tuple[str, list[int]]:
+    """Vue normalisée du texte source + table de correspondance vers les indices bruts.
+
+    Normalisation : espaces réduits à un seul ; optionnellement, liens Markdown
+    « [texte](url) » réduits à « texte » (un extracteur qui copie une page rendue
+    perd le lien ; on retrouve alors le passage brut exact, liens compris).
+    """
+    keep = [True] * len(raw)
+    replaced: dict[int, str] = {}
+    if strip_links:
+        for m in LINK_RE.finditer(raw):
+            for i in range(m.start(), m.end()):
+                keep[i] = False
+            # le texte de l'ancre reste visible, positionné sur son emplacement brut
+            for offset, ch in enumerate(m.group(1)):
+                keep[m.start(1) + offset] = True
+    chars: list[str] = []
     index_map: list[int] = []
     prev_space = False
     for i, ch in enumerate(raw):
+        if not keep[i]:
+            continue
         if ch.isspace():
             if prev_space:
                 continue
-            norm_chars.append(" ")
+            chars.append(" ")
             prev_space = True
         else:
-            norm_chars.append(ch)
+            chars.append(ch)
             prev_space = False
         index_map.append(i)
-    norm_raw = "".join(norm_chars)
+    return "".join(chars), index_map
+
+
+def relocate(text: str, raw: str) -> str | None:
+    """Retrouve un passage à espaces normalisés (puis liens Markdown retirés) et renvoie le span brut exact."""
     norm_text = re.sub(r"\s+", " ", text).strip()
     if not norm_text:
         return None
-    pos = norm_raw.find(norm_text)
-    if pos < 0:
-        return None
-    start = index_map[pos]
-    end = index_map[pos + len(norm_text) - 1] + 1
-    return raw[start:end]
+    for strip_links in (False, True):
+        view, index_map = _normalized_view(raw, strip_links)
+        pos = view.find(norm_text)
+        if pos < 0 and strip_links:
+            # l'extrait lui-même peut avoir gardé des liens partiels : normaliser aussi l'extrait
+            alt = re.sub(r"\s+", " ", LINK_RE.sub(lambda m: m.group(1), text)).strip()
+            pos = view.find(alt) if alt else -1
+            if pos >= 0:
+                norm_text = alt
+        if pos >= 0:
+            start = index_map[pos]
+            end = index_map[pos + len(norm_text) - 1] + 1
+            return raw[start:end]
+    return None
 
 
 def build_arm_a(
@@ -180,7 +211,9 @@ def build_arm_a(
                     }
                 )
                 continue
-            log.append(f"{eid}: relocalisé (espaces) dans {filename}")
+            log.append(
+                f"{eid}: relocalisé (espaces/liens Markdown) dans {filename} → span brut exact"
+            )
             final_text = span
         counters[filename] = counters.get(filename, 0) + 1
         chunk_id = f"{filename}:{counters[filename]}"

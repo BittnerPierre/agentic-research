@@ -135,7 +135,9 @@ forme au même titre qu'une section manquante.
 ```
 
 Règles : `texte` est une copie exacte d'un passage contigu de la source (pas
-de « … », pas de correction, pas de fusion de deux passages) ; un extrait par
+de « … », pas de correction, pas de fusion de deux passages, **pas de
+nettoyage** : liens Markdown, crochets de notes, puces et balises restent tels
+qu'ils sont dans le fichier — c'est la copie brute qui prouve la provenance) ; un extrait par
 idée ; les identifiants `E1, E2, …` sont uniques et stables jusqu'à la
 livraison ; les extraits non retenus restent dans le fichier avec
 `"retenu": false` plutôt que d'être supprimés.
