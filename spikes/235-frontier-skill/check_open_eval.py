@@ -153,6 +153,55 @@ def main() -> None:
         raw, cleaned, nraw = cache[f.name]
         (verbatim_ok if (t in raw or t in cleaned or norm(t) in nraw) else verbatim_ko).append(eid)
     out["verbatim"] = {"ok": len(verbatim_ok), "ko": verbatim_ko, "unknown_file": verbatim_unknown}
+
+    # Chiffres : chaque nombre d'une phrase citée doit figurer dans l'un des extraits cités par la phrase
+    # (comparaison sur les chiffres normalisés : « 3.16 » ≈ « 3,16 », « 1 200 » ≈ « 1200 »).
+    def digits(txt: str) -> set[str]:
+        found = set()
+        for m in re.finditer(r"\d(?:[\s\u00a0]?\d|[.,·]\d)*", txt):
+            tok = re.sub(r"[\s\u00a0]", "", m.group(0)).replace(",", ".").replace("·", ".")
+            if len(tok.strip(".")) >= 2 or tok.isdigit():
+                found.add(tok.strip("."))
+        return found
+
+    unsupported = []
+    checked = 0
+    for pp in re.split(r"\n\s*\n", body):
+        if pp.lstrip().startswith("#"):
+            continue
+        sentences = re.split(r"(?<=[.;!?])\s+(?=[A-ZÀ-Ü«(])", pp)
+        for sent in sentences:
+            eids = list(
+                dict.fromkeys(
+                    f"E{re.sub(r'\D', '', part)}"
+                    for mm in CITE_RE.finditer(sent)
+                    for part in re.split(r"[,;]", mm.group(1))
+                )
+            )
+            if not eids:
+                continue
+            sent_wo = CITE_RE.sub("", sent)
+            nums = {n for n in digits(sent_wo) if not re.fullmatch(r"\d", n)}
+            if not nums:
+                continue
+            hay = " ".join(str(extracts.get(e, {}).get("texte") or "") for e in eids)
+            hay_digits = digits(hay)
+            missing = sorted(
+                n
+                for n in nums
+                if n not in hay_digits
+                and n.rstrip("0").rstrip(".") not in {h.rstrip("0").rstrip(".") for h in hay_digits}
+            )
+            checked += len(nums)
+            if missing:
+                unsupported.append(
+                    {"missing": missing, "cites": eids, "sentence": sent_wo.strip()[:160]}
+                )
+    out["numbers"] = {
+        "checked": checked,
+        "unsupported_in_cited_extracts": len(unsupported),
+        "examples": unsupported[:12],
+    }
     print(json.dumps(out, ensure_ascii=False, indent=2))
 
 
