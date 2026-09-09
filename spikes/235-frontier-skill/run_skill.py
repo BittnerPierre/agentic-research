@@ -37,7 +37,11 @@ ARCHIVE_ROOT = REPO / "output" / "spike235"
 
 
 def deny_rules(workdir: Path, runs_root: Path) -> list[str]:
-    rules = ["Bash", "WebFetch", "WebSearch", "NotebookEdit"]
+    rules = [
+        "WebFetch",
+        "WebSearch",
+        "NotebookEdit",
+    ]  # Bash : seul « wc » est dans l'allowlist, le reste est refusé par défaut en -p
     targets = [str(REPO)]
     for sibling in runs_root.iterdir() if runs_root.is_dir() else []:
         if sibling.is_dir() and sibling.resolve() != workdir.resolve():
@@ -129,7 +133,7 @@ def main() -> None:
     p.add_argument("--config", default=str(DEFAULT_CONFIG), help="bras B : config dataprep")
     p.add_argument("--dataprep-host", default="localhost")
     p.add_argument("--model", default="claude-fable-5-1")
-    p.add_argument("--max-budget-usd", type=float, default=30.0)
+    p.add_argument("--max-budget-usd", type=float, default=60.0)
     p.add_argument("--max-turns", type=int, default=400)
     p.add_argument("--process-notes", help="retex de processus d'un run précédent (optionnel)")
     p.add_argument("--runs-root", default=os.environ.get("DR_RUNS_ROOT", ""))
@@ -148,7 +152,18 @@ def main() -> None:
     if not args.dry_run:
         prepare_workdir(args, workdir)
 
-    allowed = ["Read", "Write", "Edit", "Glob", "Grep", "Agent", "Skill", "TodoWrite", "Task"]
+    allowed = [
+        "Read",
+        "Write",
+        "Edit",
+        "Glob",
+        "Grep",
+        "Agent",
+        "Skill",
+        "TodoWrite",
+        "Task",
+        "Bash(wc *)",
+    ]
     if args.arm == "B":
         allowed += ["mcp__dataprep", "mcp__dataprep_search"]
     settings = {"permissions": {"deny": deny_rules(workdir, runs_root)}}

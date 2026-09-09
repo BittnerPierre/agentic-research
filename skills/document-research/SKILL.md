@@ -48,7 +48,8 @@ connaissance personnelle, aucune recherche web autonome.
 ```
 01-cadrage/cadrage.md            question, périmètre, critères, attentes, plan de recherche
 02-collecte/bibliographie.md     bibliographie de travail : chaque document, son statut, sa couverture
-03-extraits/extraits.jsonl       extraits VERBATIM avec provenance (contrat ci-dessous)
+03-extraits/parts/*.jsonl        extraits VERBATIM avec provenance, un fichier par extracteur (contrat ci-dessous)
+03-extraits/extraits.jsonl       index facultatif des extraits (jamais une recopie des textes)
 03-extraits/corpus-retenu.md     documents retenus / écartés, et pourquoi
 04-analyse/fiches.md             notes de lecture référencées, dédoublonnées, sans transformation
 04-analyse/synthese.md           confrontation des sources, convergences, contradictions, lacunes
@@ -116,7 +117,14 @@ Détail, critères de sortie et gabarits : `references/processus.md`.
    terminé par une section `## Sources` qui liste chaque extrait cité
    (`[E<n>]`, document, localisation) et la bibliographie. Écris `retex.md`.
 
-## Contrat d'extrait (`03-extraits/extraits.jsonl`, une ligne JSON par extrait)
+**Longueur : ne l'estime jamais, mesure-la.** Avant la livraison, compte les
+mots du corps (hors section `## Sources`) avec `wc -w` (seul usage du shell
+prévu par ce skill ; si le shell est indisponible, écris le corps dans un
+fichier séparé et compte-le par un sous-agent). Hors fourchette du brief :
+coupe ou complète, puis recompte. Une longueur hors contrat est une faute de
+forme au même titre qu'une section manquante.
+
+## Contrat d'extrait (`03-extraits/extraits.jsonl` ou `03-extraits/parts/*.jsonl`, une ligne JSON par extrait)
 
 ```json
 {"id": "E7", "fichier": "<nom exact du fichier dans le fonds ou renvoyé par vector_search>",
@@ -173,9 +181,27 @@ laissant les livrables produits en l'état :
 Utilise l'outil Agent pour les tâches qui saturent le contexte ou gagnent à
 être indépendantes : extraction par document ou par question (étape 3),
 relecture (étape 7). Donne à chaque sous-agent : sa mission, le contrat
-d'extrait ou la grille de vérification, les chemins exacts, et l'interdiction
-d'utiliser sa mémoire ou le web. Tu restes seul responsable de la
-consolidation et des livrables.
+d'extrait ou la grille de vérification, les chemins exacts, la liste des
+questions confiées aux AUTRES sous-agents (pour qu'il n'extraie pas hors de
+son périmètre), et l'interdiction d'utiliser sa mémoire ou le web.
+
+Règles d'économie (les sous-agents sont le premier poste de dépense) :
+
+- **Plafonne chaque sous-agent** : nombre de requêtes ou de lectures, nombre
+  d'extraits (ordre de grandeur : 5 à 15 extraits par question secondaire ;
+  un extrait par idée, pas un par occurrence). Au-delà, il sélectionne.
+- **Pas de recopie** : chaque sous-agent écrit ses extraits dans son propre
+  fichier `03-extraits/parts/<nom>.jsonl` avec une plage d'identifiants
+  disjointe (E1–E60, E61–E120, …). L'ensemble des fichiers `parts/*.jsonl`
+  fait foi ; `extraits.jsonl` n'est qu'un index facultatif (une ligne par
+  extrait : id, fichier, question, `retenu`), jamais une recopie des textes.
+- **Réserve un quart du budget** (tours, temps ou coût) aux étapes 6-8 dès le
+  cadrage ; si l'extraction menace de le consommer, tu arrêtes l'extraction et
+  tu livres avec les lacunes déclarées.
+- Un relecteur indépendant (étape 7) vaut plus qu'un troisième extracteur : en
+  cas d'arbitrage budgétaire, garde le relecteur.
+
+Tu restes seul responsable de la consolidation et des livrables.
 
 ## Budget et main courante
 

@@ -97,18 +97,10 @@ def main() -> None:
             [norm(c).lower() for c in row.strip("|").split("|")] == want for row in tables
         )
 
-    extracts = {}
-    for line in (
-        (w / "03-extraits" / "extraits.jsonl").read_text(encoding="utf-8").splitlines()
-        if (w / "03-extraits" / "extraits.jsonl").is_file()
-        else []
-    ):
-        try:
-            r = json.loads(line)
-            if r.get("id"):
-                extracts[str(r["id"]).upper()] = r
-        except json.JSONDecodeError:
-            continue
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from pack_adapter import load_extracts  # même chargement que l'adaptateur
+
+    extracts = load_extracts(w)
     cited = []
     for mm in CITE_RE.finditer(body):
         cited += [f"E{re.sub(r'\D', '', part)}" for part in re.split(r"[,;]", mm.group(1))]

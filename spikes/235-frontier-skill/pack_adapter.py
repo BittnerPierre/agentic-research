@@ -36,6 +36,10 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
 from evaluations.chunk_snapshot import ChunkSnapshot  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from usage_from_events import aggregate as aggregate_events  # noqa: E402
+
 from src.dataprep.vector_backends import clean_for_rag  # noqa: E402
 
 CITE_RE = re.compile(r"\[(E\d+(?:\s*[,;]\s*E?\d+)*)\]")
@@ -47,20 +51,35 @@ def sha256_text(text: str) -> str:
 
 
 def load_extracts(workdir: Path) -> dict[str, dict]:
-    path = workdir / "03-extraits" / "extraits.jsonl"
+    """Extraits = parts/*.jsonl (texte qui fait foi) + extraits.jsonl (index ; texte si absent des parts)."""
+    root = workdir / "03-extraits"
+    files = sorted((root / "parts").glob("*.jsonl")) + (
+        [root / "extraits.jsonl"] if (root / "extraits.jsonl").is_file() else []
+    )
     out: dict[str, dict] = {}
-    if not path.is_file():
-        return out
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            rec = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(rec, dict) and rec.get("id"):
-            out[str(rec["id"]).upper()] = rec
+    for path in files:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not (isinstance(rec, dict) and rec.get("id")):
+                continue
+            eid = str(rec["id"]).upper()
+            prev = out.get(eid)
+            if prev is None:
+                out[eid] = rec
+            else:
+                # l'index (extraits.jsonl) peut porter `retenu` ; les parts portent le texte complet
+                merged = dict(prev)
+                for key, value in rec.items():
+                    if key == "texte" and len(str(value or "")) < len(str(prev.get("texte") or "")):
+                        continue
+                    merged[key] = value
+                out[eid] = merged
     return out
 
 
@@ -411,6 +430,19 @@ def main() -> None:
         )
 
     usage_total, extra = claude_usage(meta)
+    events_usage = aggregate_events(workdir) if (workdir / "events.jsonl").is_file() else {}
+    sub_tokens = int(events_usage.get("subagents_total_tokens_reported") or 0)
+    usage_main = dict(usage_total)
+    usage_total = dict(usage_main)
+    # Les sous-agents ne sont pas dans l'usage final du CLI (seul le coût les inclut) :
+    # on ajoute leurs tokens déclarés (task_progress) pour un total comparable au workflow.
+    usage_total["subagent_tokens"] = sub_tokens
+    usage_total["total_tokens"] = usage_main["total_tokens"] + sub_tokens
+    extra["subagents_total_tokens_reported"] = sub_tokens
+    extra["rate_limit_events"] = events_usage.get("rate_limit_events")
+    extra["events_usage"] = {
+        k: v for k, v in events_usage.items() if k in ("main_agent", "subagents", "all_agents")
+    }
     wall = float(meta.get("wall_seconds") or 0.0)
     sha, dirty = git_info()
     provenance = {
@@ -478,7 +510,7 @@ def main() -> None:
             )
         },
         "timings": {"total": wall, "wall_seconds": wall},
-        "usage_by_phase": {"total": usage_total},
+        "usage_by_phase": {"main_agent": usage_main, "total": usage_total},
         "agent_calls": {
             "subagents_spawned": ((extra.get("subagent_stats") or {}).get("spawned")),
             "turns": extra.get("num_turns"),
