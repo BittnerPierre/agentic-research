@@ -7,7 +7,11 @@ recherche vectorielle est un outil des agents du workflow, pas du MCP. Pour
 que le skill « document-research » puisse interroger la base de connaissances
 en mode dataprep, ce serveur expose `vector_search` sur la même fonction
 (`src.dataprep.mcp_functions.vector_search`), avec la même configuration que
-le serveur dataprep (même Chroma, mêmes embeddings).
+le serveur dataprep (même Chroma, mêmes embeddings). Il passe par
+`src.agents.vector_search_tool.vector_search_impl`, c'est-à-dire EXACTEMENT le
+pipeline de retrieval des agents du workflow (normalisation de la requête,
+filtre des morceaux courts, dédoublonnage, plafond par document, enregistrement
+des morceaux bruts) : le bras B mesure la même recherche que le workflow.
 
 Chaque extrait renvoyé est journalisé tel quel (texte exact du morceau indexé,
 sha256) dans un registre JSONL (`DR_CHUNK_REGISTRY`) — l'équivalent du
@@ -21,6 +25,7 @@ Lancement (cwd = racine du dépôt) :
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import json
 import logging
@@ -29,8 +34,10 @@ from pathlib import Path
 
 from fastmcp import FastMCP
 
+from agents import RunContextWrapper
+from src.agents.schemas import ResearchInfo
+from src.agents.vector_search_tool import vector_search_impl
 from src.config import get_config
-from src.dataprep.mcp_functions import vector_search as _vector_search
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("dataprep_search")
@@ -84,23 +91,23 @@ def vector_search(
     """
     config = get_config(_CONFIG_PATH)
     config.vector_search.index_name = vectorstore_name
-    top_k = max(1, min(int(top_k), 30))
-    result = _vector_search(
-        query=query,
-        config=config,
-        top_k=top_k,
-        score_threshold=None,
-        filenames=[f.strip() for f in filenames if f and f.strip()] if filenames else None,
-        vectorstore_id=vectorstore_name,
-    )
+    config.agents.file_search_top_k = max(1, min(int(top_k), 30))
+    info = ResearchInfo(temp_dir="", output_dir="", vector_store_name=vectorstore_name)
+    wrapper = RunContextWrapper(context=info)
+    clean_filenames = [f.strip() for f in filenames if f and f.strip()] if filenames else None
+    result = asyncio.run(vector_search_impl(wrapper, query, None, clean_filenames))
+    # Les morceaux bruts enregistrés par le pipeline (texte exact du backend) font foi :
+    # on les renvoie tels quels pour que l'extrait recopié reste verbatim.
+    recorded = {k: v for k, v in (info.retrieved_chunks or {}).items()}
     hits: list[dict] = []
-    for hit in result.results:
-        meta = dict(hit.metadata or {})
-        text = hit.document or ""
+    for item in result.get("results", []):
+        meta = dict(item.get("metadata") or {})
         document_id = meta.get("document_id")
         chunk_index = meta.get("chunk_index")
         resolved = bool(document_id) and chunk_index is not None
         chunk_id = f"{document_id}:{chunk_index}" if resolved else None
+        record = recorded.get(chunk_id or "") if chunk_id else None
+        text = record["text"] if record else (item.get("document") or "")
         hits.append(
             {
                 "chunk_id": chunk_id,
@@ -108,7 +115,7 @@ def vector_search(
                 "chunk_index": chunk_index,
                 "filename": meta.get("filename"),
                 "source": meta.get("source"),
-                "score": round(float(hit.score), 4),
+                "score": round(float(item.get("score") or 0.0), 4),
                 "text": text,
                 "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                 "resolved": resolved,
