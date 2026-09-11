@@ -39,7 +39,7 @@ def main() -> None:
     p.add_argument("--max-budget-usd", type=float, default=5.0)
     p.add_argument("--effort", default=None)
     p.add_argument("--subagent-model", default=None)
-    p.add_argument("--max-turns", type=int, default=40)
+    p.add_argument("--max-turns", type=int, default=150)
     p.add_argument(
         "--config", default=str(REPO / "configs/tests/config-qwen36-chroma-decomposed.yaml")
     )

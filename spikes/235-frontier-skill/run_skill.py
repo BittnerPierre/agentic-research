@@ -155,7 +155,10 @@ def main() -> None:
         "--max-budget-usd", type=float, default=5.0, help="plafond DUR (campagne 5 $, essai 1 $)"
     )
     p.add_argument(
-        "--max-turns", type=int, default=40, help="tours du responsable (le skill vise ≤ 12)"
+        "--max-turns",
+        type=int,
+        default=150,
+        help="garde-fou de boucle ; la vraie limite est le plafond monétaire",
     )
     p.add_argument(
         "--effort", default=None, help="niveau d'effort du harnais (low|medium|high|xhigh|max)"
@@ -198,6 +201,8 @@ def main() -> None:
         "Bash(wc *)",
         "Bash(cp 0*)",
         "Bash(python3 .claude/skills/document-research/scripts/*)",
+        # certains sous-agents (Sonnet) appellent les scripts par chemin absolu
+        f"Bash(python3 {workdir}/.claude/skills/document-research/scripts/*)",
     ]
     if args.arm == "B":
         allowed += ["mcp__dataprep", "mcp__dataprep_search"]
