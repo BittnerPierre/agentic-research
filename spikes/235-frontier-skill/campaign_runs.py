@@ -36,7 +36,10 @@ def main() -> None:
     p.add_argument("--parallel", type=int, default=5)
     p.add_argument("--start", type=int, default=1, help="premier indice de run")
     p.add_argument("--model", default="claude-fable-5-1")
-    p.add_argument("--max-budget-usd", type=float, default=60.0)
+    p.add_argument("--max-budget-usd", type=float, default=5.0)
+    p.add_argument("--effort", default=None)
+    p.add_argument("--subagent-model", default=None)
+    p.add_argument("--max-turns", type=int, default=40)
     p.add_argument(
         "--config", default=str(REPO / "configs/tests/config-qwen36-chroma-decomposed.yaml")
     )

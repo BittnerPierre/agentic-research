@@ -11,14 +11,14 @@ dossier `fonds/` et son `catalogue.md`.
 |---|---|---|---|
 | 1. Cadrage | `01-cadrage/cadrage.md` | Ce que le travail cherche à établir, comprendre, démontrer ou raconter. Thèmes, questions, types de sources, méthode, périmètre. Attentes du destinataire. | Questions secondaires numérotées ; attentes de forme toutes renseignées ; politique de corpus écrite ; plan de recherche (quelle question, quelles sources, quelle méthode). |
 | 2. Recherche et collecte | `02-collecte/bibliographie.md` | Identification et collecte des documents susceptibles d'alimenter le travail. Bibliographie de travail et corpus initial. | Chaque document du fonds a une notice (identifiant, titre, nature, couverture attendue par question). Les documents manquants ou inaccessibles sont listés. Décision : couverture suffisante ou arbitrage. |
-| 3. Sélection et extraction | `03-extraits/parts/*.jsonl` (un fichier par extracteur, plages d'identifiants disjointes ; `extraits.jsonl` = index facultatif), `03-extraits/corpus-retenu.md` | Sélection des sources réellement pertinentes ; extraction des passages, citations, données, faits, en conservant provenance et localisation. | Chaque question secondaire a au moins un extrait ou une mention explicite « aucun extrait trouvé ». Chaque extrait est verbatim et localisé. |
-| 4. Analyse, annotation, synthèse | `04-analyse/fiches.md`, `04-analyse/synthese.md` | Analyse et confrontation des sources. Le dossier de recherche réunit corpus, bibliographie, extraits, notes et synthèse. | Notes référencées `[E<n>]`, dédoublonnées, sans transformation. Synthèse par question : convergences, divergences, lacunes. |
+| 3. Sélection et extraction | `03-extraits/parts/Q<n>.jsonl` (un fichier par extracteur, plages d'identifiants disjointes), `03-extraits/corpus-retenu.md` | Sélection des sources réellement pertinentes ; extraction des passages, citations, données, faits, en conservant provenance et localisation. | Chaque question secondaire a au moins un extrait ou une mention explicite « aucun extrait trouvé ». Chaque extrait est verbatim et localisé. |
+| 4. Analyse, annotation, synthèse | `04-analyse/synthese.md` (les fiches = les `parts/*.jsonl`) | Analyse et confrontation des sources. Le dossier de recherche réunit corpus, bibliographie, extraits, notes et synthèse. | Notes référencées `[E<n>]`, dédoublonnées, sans transformation. Synthèse par question : convergences, divergences, lacunes. |
 | 5. Conception | `05-conception/plan.md` | Organisation argumentative, démonstrative ou narrative du document final. | Plan conforme aux sections imposées ; extraits affectés par section ; lacunes à déclarer positionnées. |
 | 6. Rédaction | `06-redaction/manuscrit.md` | Première matérialisation complète du document. | Texte complet, chaque affirmation factuelle citée, longueur dans la cible. |
-| 7. Révision et relecture | `07-revision/verification.md`, `07-revision/revision-1.md` | Révision du fond et de la structure, vérification des faits et des sources, style, correction, conformité aux attentes. | Grille de vérification remplie (voir ci-dessous) ; toutes les anomalies corrigées ou déclarées ; au plus un aller-retour vers 2-3. |
+| 7. Révision et relecture | `07-revision/verification.md` (corrections appliquées par éditions ciblées du manuscrit) | Révision du fond et de la structure, vérification des faits et des sources, style, correction, conformité aux attentes. | Grille de vérification remplie (voir ci-dessous) ; toutes les anomalies corrigées ou déclarées ; au plus un aller-retour vers 2-3. |
 | 8. Livraison | `08-livraison/rapport.md`, `retex.md` | Version validée et mise en forme, remise au commanditaire. | Rapport final avec section `## Sources` ; journal et retex écrits. |
 
-## Gabarit — `01-cadrage/cadrage.md`
+## Gabarit — `01-cadrage/cadrage.md` (≤ 40 lignes)
 
 ```markdown
 # Cadrage
@@ -33,10 +33,10 @@ Q1 … / Q2 … (numérotées ; chaque section du livrable final s'y rattache)
 ## Politique de corpus
 Fermé strict | acquisition des références nommées par le brief : …
 ## Références initiales (du brief)
-## Plan de recherche
-Q → documents pressentis → méthode (lecture intégrale, recherche ciblée, extraction tabulaire…)
+## Plan de délégation
+| Sous-agent | Questions | Sources pressenties | Plafond extraits | Plafond lectures/requêtes | Ids |
 ## Budget
-Tours / temps / allers-retours autorisés : …
+Tours du responsable (≤ 12), sous-agents (≤ 8), allers-retours 7→3 (1), plafond monétaire s'il est fixé, réserve rédaction-relecture (1/3) : …
 ```
 
 ## Gabarit — `02-collecte/bibliographie.md`
@@ -49,18 +49,6 @@ Tours / temps / allers-retours autorisés : …
 ## Manques constatés
 ## Décision de couverture
 Suffisante pour livrer (avec lacunes déclarées : …) | Arbitrage requis (motif)
-```
-
-## Gabarit — `04-analyse/fiches.md`
-
-```markdown
-# Fiches de lecture
-## Q1 — <question>
-- <note au plus près du texte, une idée> [E3]
-- <note> [E7][E12]  (deux extraits concordants)
-## Q2 — …
-## Sans réponse dans le fonds
-- Q4 : aucun extrait ne traite de … (recherches faites : …)
 ```
 
 ## Gabarit — `04-analyse/synthese.md`

@@ -7,7 +7,7 @@ Une note qui se transmet d'étape en étape et se lit après coup. Une entrée p
 
 ```markdown
 # Journal
-- [étape 1] Cadrage écrit. Brief muet sur la langue → défaut : langue du brief (anglais).
+- [étape 1 · 10:02:15 · tour 1] Cadrage écrit. Brief muet sur la langue → défaut : langue du brief (anglais). 5 extracteurs prévus.
 - [étape 2] D3 (guidance) ne couvre que trois sociétés ; les trois autres seront déclarées « non disponible ».
 - [étape 3] 34 extraits, sous-agents : 1 par document. Doublon E11/E19 fusionné → E19 retiré (retenu:false).
 - [étape 4] Contradiction D2/D4 sur le capex Apple : les deux valeurs conservées, à rapporter telles quelles.
@@ -16,7 +16,7 @@ Une note qui se transmet d'étape en étape et se lit après coup. Une entrée p
 - [étape 8] Livré. 1 640 mots hors Sources.
 ```
 
-Ce qu'on y note : décisions par défaut, documents absents ou inaccessibles,
+Ce qu'on y note : l'heure et le numéro de tour (pour mesurer où naissent coût et durée), décisions par défaut, documents absents ou inaccessibles,
 renvois (« voir l'info dans D2 et non D1 »), numéro de révision, allers-retours
 consommés, tours/temps estimés par étape.
 

@@ -24,6 +24,69 @@ PRICE = {
 }
 
 
+STEP_MARKERS = [
+    ("01_cadrage", "01-cadrage/"),
+    ("02_collecte", "02-collecte/"),
+    ("03_extraits", "03-extraits/"),
+    ("04_analyse", "04-analyse/"),
+    ("05_conception", "05-conception/"),
+    ("06_redaction", "06-redaction/"),
+    ("07_revision", "07-revision/"),
+    ("08_livraison", "08-livraison/"),
+]
+
+
+def step_timeline(workdir: Path) -> dict:
+    """Horodatage (relatif au premier événement) de la première écriture de chaque livrable,
+    des lancements de sous-agents et de la fin — mesure où naissent durée et tours."""
+    t0 = None
+    first_write: dict[str, float] = {}
+    turns_at: dict[str, int] = {}
+    subagent_launches: list[float] = []
+    turn = 0
+    end = None
+    for line in (workdir / "events.jsonl").read_text(encoding="utf-8").splitlines():
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        ts = e.get("timestamp")
+        if isinstance(ts, str):
+            from datetime import datetime
+
+            try:
+                ts = datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+            except ValueError:
+                ts = None
+        if ts is None:
+            continue
+        t0 = ts if t0 is None else t0
+        rel = ts - t0
+        end = rel
+        if e.get("type") == "assistant" and not e.get("parent_tool_use_id"):
+            turn += 1
+            for c in (e.get("message") or {}).get("content") or []:
+                if c.get("type") != "tool_use":
+                    continue
+                name = c.get("name")
+                inp = c.get("input") or {}
+                if name in {"Write", "Edit"}:
+                    path = str(inp.get("file_path") or "")
+                    for step, marker in STEP_MARKERS:
+                        if marker in path and step not in first_write:
+                            first_write[step] = round(rel, 1)
+                            turns_at[step] = turn
+                if name in {"Agent", "Task"}:
+                    subagent_launches.append(round(rel, 1))
+    return {
+        "first_write_seconds": first_write,
+        "main_turn_at_first_write": turns_at,
+        "subagent_launch_seconds": subagent_launches,
+        "end_seconds": round(end, 1) if end is not None else None,
+        "main_turns": turn,
+    }
+
+
 def aggregate(workdir: Path) -> dict:
     per_msg: dict[str, tuple[bool, dict]] = {}
     rate_limits: list[dict] = []
@@ -98,6 +161,7 @@ def aggregate(workdir: Path) -> dict:
         "subagents_count": len(subagent_totals),
         "all_agents": total,
         "rate_limit_events": rate_limits,
+        "timeline": step_timeline(workdir),
     }
 
 

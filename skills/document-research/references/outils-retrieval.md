@@ -7,11 +7,11 @@ chaque référence du brief (URL, titre) à son fichier local : c'est la table d
 correspondance à utiliser pour la bibliographie ; ne pas tenter d'accéder aux
 URL.
 
-- Inventaire : Glob sur `fonds/**`.
-- Lecture : Read (lecture intégrale des documents courts ; les fichiers
+- Inventaire : listage des fichiers de `fonds/`.
+- Lecture : outil de lecture de fichier (lecture intégrale des documents courts ; les fichiers
   tabulaires — CSV, tableaux Markdown — se lisent en entier, jamais par
   recherche de mots-clés seule).
-- Recherche ciblée : Grep (mots-clés, chiffres, noms) pour localiser les
+- Recherche ciblée : recherche textuelle (mots-clés, chiffres, noms) pour localiser les
   passages avant de les lire dans leur contexte.
 - Extraits : copier le passage tel qu'il est dans le fichier. `fichier` =
   chemin relatif au fonds (ex. `Agents_1.md`, `key_metrics.csv`).

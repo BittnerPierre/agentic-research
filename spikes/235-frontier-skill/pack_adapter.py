@@ -542,7 +542,16 @@ def main() -> None:
                 "chapter_writer",
             )
         },
-        "timings": {"total": wall, "wall_seconds": wall},
+        "timings": {
+            "total": wall,
+            "wall_seconds": wall,
+            **{
+                f"first_write_{k}": v
+                for k, v in (
+                    (events_usage.get("timeline") or {}).get("first_write_seconds") or {}
+                ).items()
+            },
+        },
         "usage_by_phase": {"main_agent": usage_main, "total": usage_total},
         "agent_calls": {
             "subagents_spawned": ((extra.get("subagent_stats") or {}).get("spawned")),

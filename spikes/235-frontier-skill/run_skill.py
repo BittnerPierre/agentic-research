@@ -89,12 +89,20 @@ def launch_prompt(args, workdir: Path) -> str:
             "collection avec vector_search (serveur dataprep_search). Aucun accès direct aux fichiers "
             "de la base : le fonds n'est accessible que par ces outils."
         )
+    budget = (
+        f"Budget DUR : {args.max_budget_usd:.2f} $ au prix liste (le harnais coupe le run au-delà : "
+        f"tout ce qui n'est pas livré est perdu), {args.max_turns} tours maximum du responsable "
+        "(vise 12), cible de durée < 4 minutes : sous-agents en parallèle, sorties compactes, "
+        "aucune lecture intégrale du fonds par le responsable."
+    )
+    if args.subagent_model:
+        budget += f" Modèle autorisé pour les extracteurs : {args.subagent_model} (relecteur et responsable : modèle principal)."
     return (
         f"/document-research {mode} Dossier de travail : {workdir} (répertoire courant). "
         "Brief : brief.md. Exécute les 8 étapes jusqu'à la livraison (08-livraison/rapport.md) "
         "sans demander de confirmation : aucun humain ne lit la conversation, seulement les "
-        "livrables. Livrables intermédiaires et journal en français ; le rapport final suit le brief "
-        "(langue, sections, longueur, ton)."
+        f"livrables. {budget} Livrables intermédiaires et journal en français ; le rapport final "
+        "suit le brief (langue, sections, longueur, ton)."
     )
 
 
@@ -133,8 +141,20 @@ def main() -> None:
     p.add_argument("--config", default=str(DEFAULT_CONFIG), help="bras B : config dataprep")
     p.add_argument("--dataprep-host", default="localhost")
     p.add_argument("--model", default="claude-fable-5-1")
-    p.add_argument("--max-budget-usd", type=float, default=60.0)
-    p.add_argument("--max-turns", type=int, default=400)
+    p.add_argument(
+        "--max-budget-usd", type=float, default=5.0, help="plafond DUR (campagne 5 $, essai 1 $)"
+    )
+    p.add_argument(
+        "--max-turns", type=int, default=40, help="tours du responsable (le skill vise ≤ 12)"
+    )
+    p.add_argument(
+        "--effort", default=None, help="niveau d'effort du harnais (low|medium|high|xhigh|max)"
+    )
+    p.add_argument(
+        "--subagent-model",
+        default=None,
+        help="modèle autorisé pour les extracteurs (défaut : même modèle)",
+    )
     p.add_argument("--process-notes", help="retex de processus d'un run précédent (optionnel)")
     p.add_argument("--runs-root", default=os.environ.get("DR_RUNS_ROOT", ""))
     p.add_argument(
@@ -144,7 +164,9 @@ def main() -> None:
     if args.arm == "A" and not args.fonds:
         p.error("--fonds est requis pour le bras A")
     args.collection = args.collection or args.name
-    runs_root = Path(args.runs_root or (REPO / "output" / "spike235-work")).resolve()
+    runs_root = Path(
+        args.runs_root or (REPO / "output" / "spike235-work")
+    ).resolve()  # hors dépôt git (output/ ignoré)
     runs_root.mkdir(parents=True, exist_ok=True)
     workdir = runs_root / args.name
     if workdir.exists():
@@ -191,6 +213,8 @@ def main() -> None:
     ]
     if args.arm == "B":
         cmd += ["--mcp-config", mcp_config(args, workdir), "--strict-mcp-config"]
+    if args.effort:
+        cmd += ["--effort", args.effort]
     if args.dry_run:
         print(json.dumps(cmd, ensure_ascii=False, indent=1))
         return
@@ -231,6 +255,10 @@ def main() -> None:
         "returncode": proc.returncode,
         "result": result,
         "collection": args.collection if args.arm == "B" else None,
+        "effort": args.effort,
+        "subagent_model": args.subagent_model,
+        "max_budget_usd": args.max_budget_usd,
+        "max_turns": args.max_turns,
     }
     (workdir / "run_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
