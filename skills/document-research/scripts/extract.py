@@ -12,10 +12,15 @@ Usage :
       --range Ketogenic_diet.md:120-126 --range Agents_1.md:40-44
   # rechercher d'abord des passages : --find "mot ou expression" [--file F] affiche fichier:lignes + contexte
   python3 scripts/extract.py --find "operating cash flow" --context 2
-  # mode dataprep : texte collé tel que renvoyé par vector_search, avec son chunk_id
-  python3 scripts/extract.py --part 03-extraits/parts/Q2.jsonl --question Q2 --start-id 31 \
-      --chunk doc_x.md:12 --file x.md --text "…texte exact…"
-Les identifiants sont attribués à partir de --start-id (ou du dernier id du fichier + 1).
+  # mode dataprep, ou lot d'extraits : un fichier de spécification JSON écrit par l'extracteur
+  #   {"part": "03-extraits/parts/Q2.jsonl", "question": "Q2", "start_id": 31,
+  #    "items": [{"range": "Ketogenic_diet.md:120-126"},
+  #              {"file": "x.md", "chunk_id": "doc_x.md:12", "text": "…texte exact renvoyé par vector_search…",
+  #               "localisation": "…"}]}
+  python3 scripts/extract.py --spec 03-extraits/parts/Q2.spec.json
+  (préférer --spec dès qu'un texte est collé : aucun problème de guillemets ni de longueur de commande ;
+   la commande shell reste simple, sans cd ni pipe)
+Les identifiants sont attribués à partir de start_id (ou du dernier id du fichier + 1).
 """
 
 from __future__ import annotations
@@ -64,8 +69,20 @@ def main() -> None:
     p.add_argument("--chunk", help="mode dataprep : chunk_id")
     p.add_argument("--text", help="mode dataprep : texte exact du morceau (ou passage contigu)")
     p.add_argument("--localisation", default="")
+    p.add_argument(
+        "--spec", help="fichier JSON de spécification (part, question, start_id, items[])"
+    )
     args = p.parse_args()
     fonds = Path(args.fonds)
+
+    if args.spec:
+        spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
+        args.part = spec.get("part") or args.part
+        args.question = spec.get("question") or args.question
+        args.start_id = spec.get("start_id") or args.start_id
+        spec_items = spec.get("items") or []
+    else:
+        spec_items = []
 
     if args.find:
         find(fonds, args.find, args.file, args.context)
@@ -99,21 +116,53 @@ def main() -> None:
         )
         eid += 1
     if args.text:
-        if not args.file:
-            sys.exit("--file requis avec --text (nom du fichier source renvoyé par l'outil)")
+        spec_items.append(
+            {
+                "file": args.file,
+                "text": args.text,
+                "chunk_id": args.chunk,
+                "localisation": args.localisation,
+            }
+        )
+    for item in spec_items:
+        if item.get("range"):
+            m = re.fullmatch(r"(.+?):(\d+)-(\d+)", str(item["range"]))
+            if not m:
+                sys.exit(f"plage invalide : {item['range']}")
+            fname, a, b = m.group(1), int(m.group(2)), int(m.group(3))
+            path = fonds / fname
+            if not path.is_file():
+                sys.exit(f"fichier introuvable dans {fonds} : {fname}")
+            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            if not (1 <= a <= b <= len(lines)):
+                sys.exit(f"plage hors fichier : {item['range']} ({len(lines)} lignes)")
+            records.append(
+                {
+                    "id": f"E{eid}",
+                    "fichier": fname,
+                    "texte": "\n".join(lines[a - 1 : b]).strip("\n"),
+                    "localisation": f"L{a}-{b}",
+                    "question": args.question,
+                }
+            )
+            eid += 1
+            continue
+        text = str(item.get("text") or "")
+        if not item.get("file") or not text.strip():
+            sys.exit("chaque item doit avoir « range », ou « file » + « text »")
         rec = {
             "id": f"E{eid}",
-            "fichier": args.file,
-            "texte": args.text,
-            "localisation": args.localisation,
+            "fichier": item["file"],
+            "texte": text,
+            "localisation": item.get("localisation") or "",
             "question": args.question,
         }
-        if args.chunk:
-            rec["chunk_id"] = args.chunk
+        if item.get("chunk_id"):
+            rec["chunk_id"] = item["chunk_id"]
         records.append(rec)
         eid += 1
     if not records:
-        sys.exit("rien à ajouter (--range ou --text)")
+        sys.exit("rien à ajouter (--range, --text ou --spec)")
     with part.open("a", encoding="utf-8") as handle:
         for rec in records:
             handle.write(json.dumps(rec, ensure_ascii=False) + "\n")

@@ -18,6 +18,10 @@ Plafonds : ≤ <8 à 12> extraits, un par idée ; ≤ <6> requêtes ou lectures.
 Hors périmètre (traité par d'autres) : Q<m> « … », Q<p> « … » — n'extrais rien pour eux.
 Contrat : une ligne JSON par extrait dans 03-extraits/parts/Q<n>.jsonl, ids E<a>–E<b>,
  {"id","fichier","texte" (VERBATIM, sans nettoyage),"localisation","question","chunk_id" (dataprep)}.
+Méthode : écris 03-extraits/parts/Q<n>.spec.json (part, question, start_id, items = plages
+ « fichier:a-b » ou {file, chunk_id, text}) avec l'outil d'écriture de fichier, puis UNE commande :
+ python3 <skill>/scripts/extract.py --spec 03-extraits/parts/Q<n>.spec.json
+ Commande shell simple : depuis le dossier de travail, sans cd, sans pipe, sans texte long en argument.
 Interdits : mémoire personnelle, web, autres fichiers que le fonds, sous-agents.
 Réponse attendue (≤ 10 lignes) : nombre d'extraits, fichiers mobilisés, ce que le fonds
  ne dit PAS sur Q<n> (avec les requêtes ou recherches faites), doublons évités.
@@ -45,6 +49,15 @@ Mission : vérifier le manuscrit contre le brief et les extraits.
  d'anomalies (≤ 20 lignes) : bloquantes d'abord, avec la correction proposée.
 Interdits : réécrire le manuscrit, lire le fonds, mémoire, web, sous-agents.
 ```
+
+## Discipline shell (tous les sous-agents)
+
+Le harnais n'autorise que les scripts du package (`python3 <skill>/scripts/…`)
+et quelques commandes de base. Une commande composée (`cd … && …`, `|`,
+`;`), un texte long ou des guillemets imbriqués en argument sont refusés :
+passer par un fichier de spécification et une commande simple. Ne pas
+réessayer une commande refusée sous une autre forme : lire le message, écrire
+le fichier, relancer une fois.
 
 ## Ce que le responsable ne délègue pas
 

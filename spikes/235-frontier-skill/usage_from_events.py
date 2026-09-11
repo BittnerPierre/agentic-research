@@ -15,13 +15,37 @@ import json
 import sys
 from pathlib import Path
 
-PRICE = {
-    "input": 10.0,
-    "cache_create_1h": 20.0,
-    "cache_create_5m": 12.5,
-    "cache_read": 0.25,
-    "output": 50.0,
+PRICES = {  # $/M tokens, prix liste ; cache 5 min = 1,25x entrée, 1 h = 2x entrée, lecture = 0,1x (0,25 sur Fable)
+    "claude-fable-5-1": {
+        "input": 10.0,
+        "cache_create_1h": 20.0,
+        "cache_create_5m": 12.5,
+        "cache_read": 0.25,
+        "output": 50.0,
+    },
+    "claude-opus-5": {
+        "input": 5.0,
+        "cache_create_1h": 10.0,
+        "cache_create_5m": 6.25,
+        "cache_read": 0.5,
+        "output": 25.0,
+    },
+    "claude-sonnet-5": {
+        "input": 2.0,
+        "cache_create_1h": 4.0,
+        "cache_create_5m": 2.5,
+        "cache_read": 0.2,
+        "output": 10.0,
+    },
+    "claude-haiku-4-5": {
+        "input": 1.0,
+        "cache_create_1h": 2.0,
+        "cache_create_5m": 1.25,
+        "cache_read": 0.1,
+        "output": 5.0,
+    },
 }
+PRICE = PRICES["claude-fable-5-1"]
 
 
 STEP_MARKERS = [
@@ -88,6 +112,14 @@ def step_timeline(workdir: Path) -> dict:
 
 
 def aggregate(workdir: Path) -> dict:
+    global PRICE
+    meta_path = workdir / "run_meta.json"
+    if meta_path.is_file():
+        try:
+            model = str(json.loads(meta_path.read_text(encoding="utf-8")).get("model") or "")
+            PRICE = next((v for k, v in PRICES.items() if model.startswith(k)), PRICE)
+        except json.JSONDecodeError:
+            pass
     per_msg: dict[str, tuple[bool, dict]] = {}
     rate_limits: list[dict] = []
     subagent_totals: dict[str, int] = {}  # task_progress.usage.total_tokens (cumulé par sous-agent)

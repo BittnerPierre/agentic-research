@@ -118,8 +118,9 @@ Détail et gabarits : `references/processus.md`.
    trouvé. Mode fichiers : l'extracteur repère les passages (`extract.py --find`,
    recherche textuelle, lecture ciblée) puis les matérialise par plages de
    lignes avec `scripts/extract.py --range fichier:debut-fin` : le script copie
-   le texte exact, l'extracteur ne le recopie jamais. Mode dataprep :
-   `extract.py --text … --chunk …` avec le texte renvoyé par `vector_search`.
+   le texte exact, l'extracteur ne le recopie jamais. Mode dataprep : le texte
+   renvoyé par `vector_search` va dans un fichier de spécification
+   (`Q<n>.spec.json`) puis `extract.py --spec …`, une seule commande simple.
    Puis `scripts/verify_extracts.py` (déterministe) : identifiants uniques,
    verbatim, doublons ; tu écris `corpus-retenu.md` depuis les comptes rendus
    et ce contrôle.

@@ -2,6 +2,7 @@
 
 Tous s'exécutent depuis le dossier de travail : `python3 <chemin-du-skill>/scripts/<script>.py …`
 (le chemin du skill est celui où le harnais l'a installé, par exemple `.claude/skills/document-research`).
+Commandes simples : pas de `cd … &&`, pas de `|`, pas de texte long en argument (utiliser `--spec`).
 Ils ne lisent que le dossier de travail et `fonds/` ; ils n'appellent aucun modèle.
 
 | Script | Étape | Remplace | Sortie |
@@ -9,7 +10,7 @@ Ils ne lisent que le dossier de travail et `fonds/` ; ils n'appellent aucun mod�
 | `inventory.py [--fonds fonds] [--keywords …]` | 2 | la lecture du fonds par le responsable | lignes, mots, titres (avec numéro de ligne) et occurrences de mots-clés par fichier |
 | `extract.py --find "…" [--file F] [--context N]` | 3 | la lecture exploratoire | passages candidats avec `fichier:lignes` |
 | `extract.py --part 03-extraits/parts/Q<n>.jsonl --question Q<n> [--start-id N] --range fichier:a-b [--range …]` | 3 | la recopie du texte par le modèle | extraits verbatim ajoutés au fichier de la question |
-| `extract.py --part … --question … --file F --text "…" [--chunk id]` | 3 (dataprep) | idem, texte renvoyé par `vector_search` | extrait ajouté |
+| `extract.py --spec 03-extraits/parts/Q<n>.spec.json` | 3 | idem, en lot : plages et/ou textes renvoyés par `vector_search` (mode dataprep), depuis un fichier JSON écrit par l'extracteur — à préférer dès qu'un texte est collé | extraits ajoutés |
 | `verify_extracts.py [--json]` | 3 bis | le sous-agent de contrôle verbatim | verbatim / normalisés / non verbatim, ids dupliqués, textes dupliqués, extraits par question ; code 1 si à corriger |
 | `check_report.py [--manuscrit …] [--sections … --min-words N --max-words N --columns …] [--json]` | 7 et 8 | la partie mécanique de la relecture et le comptage de mots | bloquants (citations inconnues, chiffres sans appui, longueur, sections, tableau, URL), paragraphes sans citation ; lit `01-cadrage/contrat.json` par défaut ; code 1 si bloquant |
 | `build_report.py [--manuscrit …] [--out 08-livraison/rapport.md]` | 8 | la recopie du rapport et la rédaction de la section Sources | rapport final = corps + `## Sources` (extraits cités, bibliographie) |
