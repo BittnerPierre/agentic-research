@@ -164,9 +164,11 @@ def main() -> None:
     if args.arm == "A" and not args.fonds:
         p.error("--fonds est requis pour le bras A")
     args.collection = args.collection or args.name
-    runs_root = Path(
-        args.runs_root or (REPO / "output" / "spike235-work")
-    ).resolve()  # hors dépôt git (output/ ignoré)
+    # Le dossier de travail doit être HORS du dépôt : les règles de refus couvrent tout le
+    # dépôt (corpus gelés, answer keys) et une règle de refus n'a pas d'exception.
+    runs_root = Path(args.runs_root or (REPO.parent / "spike235-work")).resolve()
+    if runs_root.is_relative_to(REPO):
+        sys.exit(f"--runs-root doit être hors du dépôt ({REPO}) : {runs_root}")
     runs_root.mkdir(parents=True, exist_ok=True)
     workdir = runs_root / args.name
     if workdir.exists():

@@ -10,4 +10,4 @@ Outillage du spike (issue #235). Le skill lui-même est `skills/document-researc
 - `open-eval/` — évaluation ouverte sur un thème tiers (kéto) : brief, grille de lecture, lectures.
 - `NOTE-DE-DECISION.md` — livrable du spike.
 
-Les dossiers de travail sont archivés dans `output/spike235/<run>/` (non suivi).
+Les dossiers de travail vivent hors du dépôt (`../spike235-work/<run>/`, car les règles de refus couvrent tout le dépôt) et sont archivés dans `output/spike235/<run>/` (non suivi).
