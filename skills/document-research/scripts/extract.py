@@ -50,7 +50,7 @@ def next_id(part: Path) -> int:
     last = 0
     if part.is_file():
         for line in part.read_text(encoding="utf-8").splitlines():
-            m = re.search(r'"id"\s*:\s*"E(\d+)"', line)
+            m = re.search(r'"id"\s*:\s*"S(\d+)"', line)
             if m:
                 last = max(last, int(m.group(1)))
     return last + 1
@@ -107,7 +107,7 @@ def main() -> None:
         text = "\n".join(lines[a - 1 : b]).strip("\n")
         records.append(
             {
-                "id": f"E{eid}",
+                "id": f"S{eid}",
                 "fichier": fname,
                 "texte": text,
                 "localisation": f"L{a}-{b}",
@@ -138,7 +138,7 @@ def main() -> None:
                 sys.exit(f"plage hors fichier : {item['range']} ({len(lines)} lignes)")
             records.append(
                 {
-                    "id": f"E{eid}",
+                    "id": f"S{eid}",
                     "fichier": fname,
                     "texte": "\n".join(lines[a - 1 : b]).strip("\n"),
                     "localisation": f"L{a}-{b}",
@@ -151,7 +151,7 @@ def main() -> None:
         if not item.get("file") or not text.strip():
             sys.exit("chaque item doit avoir « range », ou « file » + « text »")
         rec = {
-            "id": f"E{eid}",
+            "id": f"S{eid}",
             "fichier": item["file"],
             "texte": text,
             "localisation": item.get("localisation") or "",

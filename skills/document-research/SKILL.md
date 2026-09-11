@@ -80,7 +80,7 @@ d'outil d'attente ou de planification).
 02-collecte/bibliographie.md     table : référence → fichier/identifiant, nature, questions couvertes, statut
 03-extraits/parts/Q<n>.jsonl     extraits VERBATIM avec provenance, UN fichier par sous-agent (contrat ci-dessous)
 03-extraits/corpus-retenu.md     documents mobilisés / écartés, lacunes constatées par question
-04-analyse/synthese.md           par question : puces référencées [E<n>] ; convergences, contradictions, lacunes
+04-analyse/synthese.md           par question : puces référencées [S<n>] ; convergences, contradictions, lacunes
 05-conception/plan.md            sections imposées → extraits mobilisés → lacunes à déclarer (une table)
 06-redaction/manuscrit.md        texte complet
 07-revision/verification.md      grille du relecteur : citations, chiffres, conformité au brief, longueur mesurée
@@ -139,7 +139,7 @@ Détail et gabarits : `references/processus.md`.
 5. **Conception** — `plan.md` : une table section → extraits
    → lacunes à déclarer.
 6. **Rédaction** — `manuscrit.md` complet, écrit une fois, dans la
-   longueur cible (vise 85 % de la borne haute : les citations `[E<n>]`
+   longueur cible (vise 85 % de la borne haute : les citations `[S<n>]`
    comptent comme des mots pour `wc -w`). Chaque paragraphe factuel porte ses
    citations au plus près de l'affirmation. Chiffres recopiés tels quels
    (valeur, unité, période). Lacunes dites explicitement.
@@ -159,10 +159,24 @@ Détail et gabarits : `references/processus.md`.
    `08-livraison/rapport.md` = corps + section `## Sources` générée depuis les
    extraits cités et la bibliographie ; `retex.md` ; dernière ligne du journal.
 
+## Convention de citation
+
+Deux familles d'identifiants, quel que soit le brief :
+
+- **Documents** de la bibliographie : `D1`, `D2`, … (jamais un autre
+  préfixe, même si le brief parle de « source ID »).
+- **Extraits** : `S1`, `S2`, … ; c'est eux que le rapport cite, entre
+  crochets, au plus près de l'affirmation : `[S7]` ou `[S7][S12]`. Jamais de
+  plage, de localisateur ni d'autre texte dans le crochet, et jamais un
+  identifiant de document dans une citation.
+
+La section `## Sources` du rapport liste chaque extrait cité (identifiant,
+document, localisation, premiers mots) puis la bibliographie D<n>.
+
 ## Contrat d'extrait (`03-extraits/parts/Q<n>.jsonl`, une ligne JSON par extrait)
 
 ```json
-{"id": "E7", "fichier": "<nom exact du fichier du fonds ou renvoyé par vector_search>",
+{"id": "S7", "fichier": "<nom exact du fichier du fonds ou renvoyé par vector_search>",
  "texte": "<passage VERBATIM, copié sans modification, 1 à ~10 lignes>",
  "localisation": "<section / ligne si connue>", "question": "Q2",
  "chunk_id": "<mode dataprep : chunk_id renvoyé par vector_search, sinon omis>"}
@@ -179,7 +193,7 @@ uniques (une plage disjointe par extracteur), stables jusqu'à la livraison.
 - **N'affirmer que ce qu'on a lu.** Pas de fait, de définition ni de chiffre
   venu de mémoire. Une source qui nomme un concept sans l'expliquer n'est pas
   une preuve de l'explication.
-- **Citer localement.** `[E<n>]` au niveau de la phrase ou du paragraphe
+- **Citer localement.** `[S<n>]` au niveau de la phrase ou du paragraphe
   qu'elle soutient ; une citation par affirmation suffit quand plusieurs
   extraits concordent.
 - **Déclarer les lacunes.** Ce que le fonds ne couvre pas est dit tel quel,

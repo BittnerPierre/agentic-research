@@ -22,7 +22,7 @@ Ces règles valent pour tout thème et tout fonds. Elles ne dépendent d'aucun
   l'exige ; alors montrer l'opération.
 - Les dérivations demandées par le brief (différence, ratio, croissance) se
   font à partir de chiffres cités et s'écrivent avec leurs opérandes
-  (« 139,5 − 131,8 = 7,7 [E4] »).
+  (« 139,5 − 131,8 = 7,7 [S4] »).
 - Pas d'agrégat non demandé (somme de plusieurs entités, moyenne, « environ »).
 - Une cellule de tableau « non disponible » est une affirmation : elle doit
   être vraie du fonds (aucune source ne donne la valeur), pas seulement de la
@@ -48,7 +48,7 @@ Ces règles valent pour tout thème et tout fonds. Elles ne dépendent d'aucun
 - Une section demandée qui n'a pas de matière existe quand même, avec la
   déclaration de lacune.
 - Citations au plus près de l'affirmation (fin de phrase ou de paragraphe),
-  format `[E<n>]` ou `[E<n>][E<m>]`, jamais de plage ni de localisateur dans
+  format `[S<n>]` ou `[S<n>][S<m>]`, jamais de plage ni de localisateur dans
   le crochet.
 - Aucune URL, aucun nom de fichier, aucune référence externe dans le corps du
   rapport : tout cela vit dans `## Sources`.

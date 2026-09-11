@@ -23,7 +23,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 from src.dataprep.vector_backends import clean_for_rag  # noqa: E402
 
-CITE_RE = re.compile(r"\[(E\d+(?:\s*[,;]\s*E?\d+)*)\]")
+CITE_RE = re.compile(r"\[(S\d+(?:\s*[,;]\s*S?\d+)*)\]")
 SOURCES_RE = re.compile(r"(?im)^##\s+Sources\s*$")
 
 
@@ -103,7 +103,7 @@ def main() -> None:
     extracts = load_extracts(w)
     cited = []
     for mm in CITE_RE.finditer(body):
-        cited += [f"E{re.sub(r'\D', '', part)}" for part in re.split(r"[,;]", mm.group(1))]
+        cited += [f"S{re.sub(r'\D', '', part)}" for part in re.split(r"[,;]", mm.group(1))]
     cited_unique = list(dict.fromkeys(cited))
     out["n_extracts"] = len(extracts)
     out["n_citations"] = len(cited)
@@ -173,7 +173,7 @@ def main() -> None:
         for sent in sentences:
             eids = list(
                 dict.fromkeys(
-                    f"E{re.sub(r'\D', '', part)}"
+                    f"S{re.sub(r'\D', '', part)}"
                     for mm in CITE_RE.finditer(sent)
                     for part in re.split(r"[,;]", mm.group(1))
                 )

@@ -6,7 +6,7 @@ extraits verbatim avec provenance). Le banc note un PACK : report.md ([S<n>]),
 sources.json, chunks.json (extraits bruts vérifiables), stats.json,
 raw_sources/. Cet adaptateur fait la traduction, sans rien ajouter au contenu :
 
-- [E<n>] → [S<k>] dans l'ordre de première citation ; une source par extrait cité ;
+- les citations [S<n>] du skill sont reprises telles quelles (aucune réécriture) ; une source par extrait cité ;
 - bras A : chaque extrait devient un chunk `<fichier>:<i>` dont le texte est
   vérifié verbatim contre le fichier du fonds (repli : relocalisation à
   espaces normalisés, sinon extrait non résolu — signalé, jamais corrigé) ;
@@ -42,7 +42,7 @@ from usage_from_events import aggregate as aggregate_events  # noqa: E402
 
 from src.dataprep.vector_backends import clean_for_rag  # noqa: E402
 
-CITE_RE = re.compile(r"\[(E\d+(?:\s*[,;]\s*E?\d+)*)\]")
+CITE_RE = re.compile(r"\[(S\d+(?:\s*[,;]\s*S?\d+)*)\]")
 SOURCES_RE = re.compile(r"(?im)^##\s+Sources\s*$")
 
 
@@ -302,22 +302,16 @@ def build_arm_b(
     return {"schema_version": 1, "chunks": chunks, "conflicts": conflicts}, e_to_chunk
 
 
-def renumber(body: str, extracts: dict[str, dict]) -> tuple[str, list[str]]:
+def cited_order(body: str, extracts: dict[str, dict]) -> list[str]:
+    """Extraits cités, dans l'ordre de première citation. Le skill cite déjà [S<n>] :
+    aucune réécriture du texte (convention de citation du skill, décision Pierre 11/09)."""
     order: list[str] = []
-
-    def repl(match: re.Match) -> str:
-        ids = [f"E{re.sub(r'\D', '', part)}" for part in re.split(r"[,;]", match.group(1))]
-        out = []
-        for eid in ids:
-            if eid not in extracts:
-                out.append(f"[{eid}]")  # identifiant inconnu : laissé tel quel (faute du candidat)
-                continue
-            if eid not in order:
-                order.append(eid)
-            out.append(f"[S{order.index(eid) + 1}]")
-        return "".join(out)
-
-    return CITE_RE.sub(repl, body), order
+    for match in CITE_RE.finditer(body):
+        for part in re.split(r"[,;]", match.group(1)):
+            sid = f"S{re.sub(r'\D', '', part)}"
+            if sid in extracts and sid not in order:
+                order.append(sid)
+    return order
 
 
 def claude_usage(meta: dict) -> tuple[dict, dict]:
@@ -424,9 +418,21 @@ def main() -> None:
     ChunkSnapshot.model_validate(chunks_payload)  # auto-contrôle du schéma
 
     body = split_body(report_path.read_text(encoding="utf-8")) if report_path else ""
-    body, order = renumber(body, extracts)
+    order = cited_order(body, extracts)
+    unknown = sorted(
+        {
+            f"S{re.sub(r'\D', '', p)}"
+            for m in CITE_RE.finditer(body)
+            for p in re.split(r"[,;]", m.group(1))
+        }
+        - set(order)
+    )
+    if unknown:
+        log.append(
+            f"citations sans extrait (faute du candidat, laissées telles quelles) : {', '.join(unknown[:10])}"
+        )
     sources = []
-    for i, eid in enumerate(order, 1):
+    for eid in order:
         rec = extracts[eid]
         filename = Path(str(rec.get("fichier") or "")).name
         chunk = next(
@@ -436,12 +442,11 @@ def main() -> None:
             filename = chunk["filename"]
         sources.append(
             {
-                "source_id": f"S{i}",
+                "source_id": eid,
                 "file_name": filename,
                 "topic": str(rec.get("question") or rec.get("localisation") or eid),
                 "content": rec.get("_content") or str(rec.get("texte") or ""),
                 "doc_ids": [e_to_chunk[eid]] if eid in e_to_chunk else [],
-                "extract_id": eid,
             }
         )
     sources_md = "\n".join(f"- [{s['source_id']}] {s['topic']} — {s['file_name']}" for s in sources)

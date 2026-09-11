@@ -12,7 +12,7 @@ dossier `fonds/` et son `catalogue.md`.
 | 1. Cadrage | `01-cadrage/cadrage.md` | Ce que le travail cherche à établir, comprendre, démontrer ou raconter. Thèmes, questions, types de sources, méthode, périmètre. Attentes du destinataire. | Questions secondaires numérotées ; attentes de forme toutes renseignées ; politique de corpus écrite ; plan de recherche (quelle question, quelles sources, quelle méthode). |
 | 2. Recherche et collecte | `02-collecte/bibliographie.md` | Identification et collecte des documents susceptibles d'alimenter le travail. Bibliographie de travail et corpus initial. | Chaque document du fonds a une notice (identifiant, titre, nature, couverture attendue par question). Les documents manquants ou inaccessibles sont listés. Décision : couverture suffisante ou arbitrage. |
 | 3. Sélection et extraction | `03-extraits/parts/Q<n>.jsonl` (un fichier par extracteur, plages d'identifiants disjointes), `03-extraits/corpus-retenu.md` | Sélection des sources réellement pertinentes ; extraction des passages, citations, données, faits, en conservant provenance et localisation. | Chaque question secondaire a au moins un extrait ou une mention explicite « aucun extrait trouvé ». Chaque extrait est verbatim et localisé. |
-| 4. Analyse, annotation, synthèse | `04-analyse/synthese.md` (les fiches = les `parts/*.jsonl`) | Analyse et confrontation des sources. Le dossier de recherche réunit corpus, bibliographie, extraits, notes et synthèse. | Notes référencées `[E<n>]`, dédoublonnées, sans transformation. Synthèse par question : convergences, divergences, lacunes. |
+| 4. Analyse, annotation, synthèse | `04-analyse/synthese.md` (les fiches = les `parts/*.jsonl`) | Analyse et confrontation des sources. Le dossier de recherche réunit corpus, bibliographie, extraits, notes et synthèse. | Notes référencées `[S<n>]`, dédoublonnées, sans transformation. Synthèse par question : convergences, divergences, lacunes. |
 | 5. Conception | `05-conception/plan.md` | Organisation argumentative, démonstrative ou narrative du document final. | Plan conforme aux sections imposées ; extraits affectés par section ; lacunes à déclarer positionnées. |
 | 6. Rédaction | `06-redaction/manuscrit.md` | Première matérialisation complète du document. | Texte complet, chaque affirmation factuelle citée, longueur dans la cible. |
 | 7. Révision et relecture | `07-revision/verification.md` (corrections appliquées par éditions ciblées du manuscrit) | Révision du fond et de la structure, vérification des faits et des sources, style, correction, conformité aux attentes. | Grille de vérification remplie (voir ci-dessous) ; toutes les anomalies corrigées ou déclarées ; au plus un aller-retour vers 2-3. |
@@ -43,7 +43,7 @@ Répartition du budget (plafond monétaire s'il est fixé, temps) entre extracti
 
 ```markdown
 # Bibliographie de travail
-| Réf | Fichier / identifiant | Titre | Nature | Couvre (Q…) | Ne couvre pas | Statut |
+| Réf (D<n>) | Fichier / identifiant | Titre | Nature | Couvre (Q…) | Ne couvre pas | Statut |
 |---|---|---|---|---|---|---|
 | D1 | … | … | article / donnée / note interne … | Q1, Q3 | Q4 | disponible / acquis / manquant |
 ## Manques constatés
@@ -53,7 +53,7 @@ Suffisante pour livrer (avec lacunes déclarées : …) | Arbitrage requis (moti
 
 ## Gabarit — `04-analyse/synthese.md`
 
-Par question : ce que disent les sources (avec `[E<n>]`), convergences,
+Par question : ce que disent les sources (avec `[S<n>]`), convergences,
 divergences (les deux positions, les deux extraits), lacunes. Une rubrique
 finale « Points de vigilance pour la rédaction » (chiffres à recopier tels
 quels, définitions à respecter, pièges du brief).
@@ -78,8 +78,8 @@ Sections : … · Longueur : … mots (cible …) · Langue : … · Ton : … �
 ```markdown
 ## Sources
 ### Extraits cités
-- [E1] <fichier> — <localisation> — « <premiers mots de l'extrait…> »
-- [E2] …
+- [S1] <fichier> — <localisation> — « <premiers mots de l'extrait…> »
+- [S2] …
 ### Bibliographie
 - D1 — <titre> — <fichier> — <URL si connue>
 ```

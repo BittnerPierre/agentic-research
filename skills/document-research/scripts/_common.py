@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 
-CITE_RE = re.compile(r"\[(E\d+(?:\s*[,;]\s*E?\d+)*)\]")
+CITE_RE = re.compile(r"\[(S\d+(?:\s*[,;]\s*S?\d+)*)\]")
 SOURCES_RE = re.compile(r"(?im)^##\s+Sources\s*$")
 LINK_RE = re.compile(r"\[([^\]]*)\]\((?:<[^>]*>|[^)\s]*)(?:\s+\"[^\"]*\")?\)")
 
@@ -21,7 +21,7 @@ def cited_ids(text: str) -> list[str]:
         for part in re.split(r"[,;]", m.group(1)):
             digits = re.sub(r"\D", "", part)
             if digits:
-                out.append(f"E{digits}")
+                out.append(f"S{digits}")
     return out
 
 

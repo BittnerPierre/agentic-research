@@ -27,7 +27,7 @@ Fonds : <mode fichiers : liste des fichiers pressentis dans fonds/, lecture et r
          top_k ≤ 8, varier les formulations, filtrer par filenames si besoin>
 Budget : <ce que le responsable alloue : extraits attendus (un par idée), requêtes ou lectures>.
 Hors périmètre (traité par d'autres) : Q<m> « … », Q<p> « … » — n'extrais rien pour eux.
-Contrat : une ligne JSON par extrait dans 03-extraits/parts/Q<n>.jsonl, ids E<a>–E<b>,
+Contrat : une ligne JSON par extrait dans 03-extraits/parts/Q<n>.jsonl, ids S<a>–S<b>,
  {"id","fichier","texte" (VERBATIM, sans nettoyage),"localisation","question","chunk_id" (dataprep)}.
 Méthode : écris 03-extraits/parts/Q<n>.spec.json (part, question, start_id, items = plages
  « fichier:a-b » ou {file, chunk_id, text}) avec l'outil d'écriture de fichier, puis UNE commande :
@@ -52,7 +52,7 @@ contre les sources).
 
 ```
 Mission : vérifier le manuscrit contre le brief et les extraits.
-1. Chaque citation [E<n>] existe et l'extrait soutient réellement la phrase.
+1. Chaque citation [S<n>] existe et l'extrait soutient réellement la phrase.
 2. Chaque chiffre du manuscrit est identique (valeur, unité, période) à un extrait cité dans la phrase.
 3. Affirmations factuelles sans citation.
 4. Conformité au brief : sections et intitulés, ordre, tableau et colonnes, langue, ton, longueur
