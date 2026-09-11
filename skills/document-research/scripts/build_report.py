@@ -10,7 +10,6 @@ Affiche le nombre de mots du corps.
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
