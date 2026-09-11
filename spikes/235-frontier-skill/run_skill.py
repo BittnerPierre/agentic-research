@@ -196,6 +196,8 @@ def main() -> None:
         "Skill",
         "TodoWrite",
         "Bash(wc *)",
+        "Bash(cp 0*)",
+        "Bash(python3 .claude/skills/document-research/scripts/*)",
     ]
     if args.arm == "B":
         allowed += ["mcp__dataprep", "mcp__dataprep_search"]
@@ -242,6 +244,9 @@ def main() -> None:
         k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"
     }  # abonnement, pas la clé
     env.pop("CLAUDECODE", None)  # autorise le lancement depuis une session Claude Code
+    if args.subagent_model:
+        # Modèle des sous-agents imposé par le harnais (déterministe), en plus de la consigne.
+        env["CLAUDE_CODE_SUBAGENT_MODEL"] = args.subagent_model
     t0 = time.time()
     with (
         (workdir / "events.jsonl").open("w", encoding="utf-8") as events,

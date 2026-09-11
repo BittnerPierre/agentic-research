@@ -91,7 +91,13 @@ def main() -> None:
                 str(args.max_budget_usd),
                 "--config",
                 args.config,
+                "--max-turns",
+                str(args.max_turns),
             ]
+            if args.effort:
+                cmd += ["--effort", args.effort]
+            if args.subagent_model:
+                cmd += ["--subagent-model", args.subagent_model]
             if args.runs_root:
                 cmd += ["--runs-root", args.runs_root]
             if args.arm == "A":
