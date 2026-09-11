@@ -123,6 +123,51 @@ adjustments:
     arbitre: "Pierre"
     date: "2026-09-07"
 
+  - run: "20260911_150036_fable-skill-A_smoke-fable-skillA-capex-1"
+    campagne: "smoke-fable-skillA-capex-1"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 60.0
+    score_ajuste: 100.0
+    motif: >-
+      2 « chiffres faux » excusés après relecture : « Amazon Capex 100.0 vs
+      131.8 » et « Alphabet Capex 75.0 vs 91.4 » sont les guidances initiales
+      FY2025 (~100 Md$, ~75 Md$), placées dans une table de guidance au
+      format imposé | Company | Metric | Period | Value | avec la métrique
+      « Initial capex guidance ». Le vérificateur lit « capex » dans la
+      cellule métrique et compare la guidance au réalisé. Variante de la
+      famille « tableau guidance » du catalogue (garde sur l'en-tête, pas sur
+      la cellule) ; issue #238. Producteur : skill document-research (spike
+      #235), bras A.
+    verification: >-
+      Lignes 88 et 90 du rapport (guidances, dates 2025-02-06 et 2025-02-04) ;
+      lignes 45 et 49 : « | Amazon | Capex | FY2025 (FYE Dec) | $131.8B | »
+      et « | Alphabet | Capex | FY2025 (FYE Dec) | $91.4B | ». Couverture
+      42/42, 0 fabrication. Note ajustée par analogie avec le jumeau propre
+      smoke2-fable-skillB-capex-1 (42/42, 0 faux, 0 fabrication) noté 100.0.
+    arbitre: "Pierre"
+    date: "2026-09-11"
+
+  - run: "20260911_151642_fable-skill-B_smoke2-sonnet-skillB-capex-1"
+    campagne: "smoke2-sonnet-skillB-capex-1"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 60.0
+    score_ajuste: 100.0
+    motif: >-
+      1 « chiffre faux » excusé après relecture : « NVIDIA Capex: report says
+      unavailable for FY2025 ». La phrase (ligne 101) dit « capex is not
+      available in this corpus for FY2020 and FY2021 (reported as None) »,
+      ce qui est vrai de key_metrics.csv ; l'indisponibilité est attribuée
+      par le vérificateur à FY2025 alors que la table donne « | NVIDIA |
+      Capex | FY2025 | $3.2B | » (ligne 71). Famille nouvelle « indisponibilité
+      attribuée à la mauvaise période » ; issue #238. Producteur : skill
+      document-research (spike #235), Sonnet 5 partout, bras B.
+    verification: >-
+      key_metrics.csv : aucune ligne NVIDIA Capex pour FY2020 ni FY2021 ;
+      NVIDIA Capex FY2025 = 3.2. Couverture 42/42, 0 fabrication. Note
+      ajustée par analogie avec smoke2-fable-skillB-capex-1 noté 100.0.
+    arbitre: "Pierre"
+    date: "2026-09-11"
+
 exclusions:
   - campagne: "camp-dsv4-capex-3"
     motif: >-

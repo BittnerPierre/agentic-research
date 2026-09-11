@@ -87,8 +87,8 @@ et plus nombreux (57 à 93 tours), relit beaucoup plus.
 
 ### 4.2 Seconde lecture (obligatoire avant publication)
 
-- **Les deux C** sont, à la relecture, deux faux positifs de l'évaluateur, à traiter par
-  exception post-examen (proposées à Pierre, non écrites) : bras A finance, les « chiffres
+- **Les deux C** sont, à la relecture, deux faux positifs de l'évaluateur, traités par
+  exception post-examen (`adjustments.yaml`, arbitre Pierre, 11/09 ; issue #238) : bras A finance, les « chiffres
   faux » sont les guidances Amazon (~100 Md$) et Alphabet (~75 Md$) dans une table de guidance au
   format imposé, dont l'intitulé de métrique « Initial capex guidance » est lu comme le capex
   réalisé (variante de la famille « tableau guidance » du catalogue) ; Sonnet finance, la phrase
@@ -96,10 +96,11 @@ et plus nombreux (57 à 93 tours), relit beaucoup plus.
   comme une indisponibilité FY2025, alors que la table donne 3,2 Md$ pour FY2025. Les lettres
   restent C dans le tableau (une exception ne blanchit que D et F).
 - **Finance, drapeau « non qualifié »** : le run bras B fumée 2 (100/100) porte deux réserves
-  qui sont deux familles de faux positif signalées dans l'issue #237 (exigence non numérique
-  présente mais en tableau ; preuve vraie tirée d'un autre fichier du corpus que celui attendu).
-  Ces familles touchent aussi les cinq runs gpt-5.6-sol : aucun run finance du tableau n'est
-  « qualifié ».
+  qui sont deux familles de faux positif déjà consignées : exigence non numérique présente
+  mais non reconnue (#211, formats de dates #214) ; liaison source → morceau perdue dans
+  l'adjudication (#222). Ces familles touchent aussi les cinq runs gpt-5.6-sol : aucun run
+  finance du tableau n'est « qualifié ». Toutes les corrections d'évaluateur sont regroupées
+  sous le label `evaluateur` et l'issue chapeau #239.
 - **Conceptuel** : les exigences perdues par le skill sont du même type que celles des
   références : few-shot ou zero-shot définis à partir d'un exemple du corpus au lieu de déclarer
   la lacune, orchestration sans l'intégration des résultats des sous-agents, embeddings sans le
@@ -169,9 +170,11 @@ fois la durée. Face au workflow sur modèle local (DSV4F sur deux DGX Spark), l
    le skill tient 8 à 12 minutes et 2 à 5 $ avec une variance à mesurer sur N=5 (non fait ici
    pour son coût). À l'échelle de dix livrables en parallèle, le harnais suit, mais le coût par
    livrable reste 2 à 5 fois celui du workflow à modèle équivalent.
-3. **Le point commun aux deux est l'évaluateur.** La campagne a révélé trois familles de faux
-   positifs (#237) qui touchent toutes les lignes ; le drapeau « qualifié » est faux pour tous
-   les runs finance. La priorité de développement est là, avant toute nouvelle ligne.
+3. **Le point commun aux deux est l'évaluateur.** Le spike a rencontré quatre familles de faux
+   positifs, dont deux déjà consignées (#211, #222) et deux nouvelles (#238) ; le drapeau
+   « qualifié » est faux pour tous les runs finance. Les corrections sont planifiées dans
+   l'issue chapeau #239 (label `evaluateur`) : c'est la priorité de développement, avant
+   toute nouvelle ligne au tableau.
 
 **Ce qu'il faudrait pour trancher plus fermement** : une campagne N=5 en Sonnet partout (15 $)
 pour mesurer la dispersion du skill à prix équivalent à gpt-5.6-sol, et la même chose sur un
@@ -180,16 +183,16 @@ couverte par ce spike.
 
 ## 7. Limites et suites
 
-- N=1 ou N=2 par cellule pour le skill : les dispersions annoncées sont indicatives ; la
-  campagne N=5 en Fable + Sonnet a été écartée pour son coût (45 $ de prix liste), celle en
-  Sonnet partout (15 $) reste à décider.
+- N=1 ou N=2 par cellule pour le skill : les dispersions annoncées sont indicatives ; les
+  campagnes N=5 (Fable + Sonnet, 45 $ ; Sonnet partout, 15 $) ont été écartées par Pierre pour
+  leur coût.
 - Les deux runs Sonnet partout ont d'abord été coupés par un garde-fou de 40 tours du lanceur,
   relancés à 150 ; le coût facturé par le harnais inclut le cache, celui des références non.
 - Budget consommé : environ 100 $ de prix liste sur l'abonnement (dont 54 $ pour les deux runs
   de développement du skill v1), 1 $ d'appels au juge sur la clé OpenAI ; environ 9 heures
   d'agent sur deux journées.
-- Le drapeau « qualifié » du banc est faux pour tous les runs finance des références (issue
-  #237) ; il n'entre pas dans le podium officiel.
+- Le drapeau « qualifié » du banc est faux pour tous les runs finance des références (#211,
+  #222, chapeau #239) ; il n'entre pas dans le podium officiel.
 - Le MCP dataprep livré n'expose pas la recherche vectorielle ; le bras B a exigé un serveur
   compagnon (`skills/document-research/mcp/dataprep_search_server.py`) qui réutilise le
   pipeline des agents du workflow.
