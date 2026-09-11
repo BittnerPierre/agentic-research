@@ -6,6 +6,15 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ## [Unreleased]
 
+### Added
+- Spike #235: `document-research`, a standard Agent Skill that runs the 8-step documentary research process
+  (framing, collection, extraction, analysis, outline, drafting, revision, delivery) on a closed corpus, with one
+  readable deliverable per step, a running log and verbatim extracts; two arms (files, or dataprep over MCP with a
+  companion `vector_search` server); a bench adapter turning the skill's natural output into a gradable pack; headless
+  runner and N-run parallel battery; open evaluation on a third-party topic; eight graded bench runs and the
+  decision note (hybrid: method in skills, coded workflows for low-cost repeatability, evaluator first). Evaluator
+  false positives reported in #237. ([#236](https://github.com/BittnerPierre/agentic-research/pull/236), relates to #235, #234, #237)
+
 ## 2026-09-07
 
 ### Added
