@@ -32,7 +32,9 @@ def main() -> None:
         text = f.read_text(encoding="utf-8", errors="ignore")
         lines = text.splitlines()
         print(f"## {f.name} — {len(lines)} lignes, {len(text.split())} mots")
-        heads = [(i, l.strip()) for i, l in enumerate(lines, 1) if re.match(r"^#{1,4}\s+\S", l)]
+        heads = [
+            (i, line.strip()) for i, line in enumerate(lines, 1) if re.match(r"^#{1,4}\s+\S", line)
+        ]
         for i, h in heads[: args.max_headings]:
             print(f"  L{i}: {h[:90]}")
         if len(heads) > args.max_headings:

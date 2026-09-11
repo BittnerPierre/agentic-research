@@ -35,13 +35,13 @@ from _common import (
     word_count,
 )
 
-NUM_RE = re.compile(r"\d(?:[\s ]?\d|[.,·]\d)*")
+NUM_RE = re.compile(r"\d(?:[\s\u00a0]?\d|[.,·]\d)*")
 
 
 def numbers(text: str) -> set[str]:
     out = set()
     for m in NUM_RE.finditer(text):
-        tok = re.sub(r"[\s ]", "", m.group(0)).replace(",", ".").replace("·", ".").strip(".")
+        tok = re.sub(r"[\s\u00a0]", "", m.group(0)).replace(",", ".").replace("·", ".").strip(".")
         if tok and (len(tok) >= 2 or tok.isdigit()):
             out.add(tok)
     return out

@@ -43,12 +43,10 @@ def main() -> None:
     biblio = w / args.bibliographie
     if biblio.is_file():
         rows = [
-            l
-            for l in biblio.read_text(encoding="utf-8").splitlines()
-            if l.startswith("|") and not re.match(r"^\|\s*-", l)
+            line for line in biblio.read_text(encoding="utf-8").splitlines() if line.startswith("|")
         ]
         if len(rows) > 2:
-            lines += ["", "### Bibliographie", ""] + rows
+            lines += ["", "### Bibliographie", "", *rows]
     out = w / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(body.rstrip() + "\n\n" + "\n".join(lines) + "\n", encoding="utf-8")

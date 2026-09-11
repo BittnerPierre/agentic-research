@@ -113,7 +113,6 @@ def _normalized_view(raw: str, strip_links: bool) -> tuple[str, list[int]]:
     perd le lien ; on retrouve alors le passage brut exact, liens compris).
     """
     keep = [True] * len(raw)
-    replaced: dict[int, str] = {}
     if strip_links:
         for m in LINK_RE.finditer(raw):
             for i in range(m.start(), m.end()):
