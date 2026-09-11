@@ -37,11 +37,20 @@ ARCHIVE_ROOT = REPO / "output" / "spike235"
 
 
 def deny_rules(workdir: Path, runs_root: Path) -> list[str]:
+    # Bash : seuls wc, cp et les scripts du package sont dans l'allowlist ; le reste est
+    # refusé par défaut en -p. Les outils d'attente, de planification et de messagerie sont
+    # refusés : en autonome, un tour terminé = fin du run (essai v3-keto-B-sonnet-2).
     rules = [
         "WebFetch",
         "WebSearch",
         "NotebookEdit",
-    ]  # Bash : seul « wc » est dans l'allowlist, le reste est refusé par défaut en -p
+        "ScheduleWakeup",
+        "Monitor",
+        "CronCreate",
+        "ListAgents",
+        "SendMessage",
+        "Workflow",
+    ]
     targets = [str(REPO)]
     for sibling in runs_root.iterdir() if runs_root.is_dir() else []:
         if sibling.is_dir() and sibling.resolve() != workdir.resolve():
@@ -93,7 +102,8 @@ def launch_prompt(args, workdir: Path) -> str:
         f"Budget DUR : {args.max_budget_usd:.2f} $ au prix liste (le harnais coupe le run au-delà : "
         f"tout ce qui n'est pas livré est perdu), {args.max_turns} tours maximum du responsable "
         "(vise 12), cible de durée < 4 minutes : sous-agents en parallèle, sorties compactes, "
-        "aucune lecture intégrale du fonds par le responsable."
+        "aucune lecture intégrale du fonds par le responsable. Sous-agents en délégation synchrone "
+        "(premier plan, attendus dans le même tour) ; ne termine jamais ton tour avant d'avoir livré."
     )
     if args.subagent_model:
         budget += f" Modèle autorisé pour les extracteurs : {args.subagent_model} (relecteur et responsable : modèle principal)."
@@ -185,7 +195,6 @@ def main() -> None:
         "Agent",
         "Skill",
         "TodoWrite",
-        "Task",
         "Bash(wc *)",
     ]
     if args.arm == "B":
