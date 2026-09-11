@@ -18,7 +18,7 @@ dossier `fonds/` et son `catalogue.md`.
 | 7. Révision et relecture | `07-revision/verification.md` (corrections appliquées par éditions ciblées du manuscrit) | Révision du fond et de la structure, vérification des faits et des sources, style, correction, conformité aux attentes. | Grille de vérification remplie (voir ci-dessous) ; toutes les anomalies corrigées ou déclarées ; au plus un aller-retour vers 2-3. |
 | 8. Livraison | `08-livraison/rapport.md`, `retex.md` | Version validée et mise en forme, remise au commanditaire. | Rapport final avec section `## Sources` ; journal et retex écrits. |
 
-## Gabarit — `01-cadrage/cadrage.md` (≤ 40 lignes)
+## Gabarit — `01-cadrage/cadrage.md`
 
 ```markdown
 # Cadrage
@@ -34,9 +34,9 @@ Q1 … / Q2 … (numérotées ; chaque section du livrable final s'y rattache)
 Fermé strict | acquisition des références nommées par le brief : …
 ## Références initiales (du brief)
 ## Plan de délégation
-| Sous-agent | Questions | Sources pressenties | Plafond extraits | Plafond lectures/requêtes | Ids |
+| Sous-agent | Périmètre (questions / sources) | Budget alloué (extraits, requêtes ou lectures) | Ids |
 ## Budget
-Tours du responsable (≤ 12), sous-agents (≤ 8), allers-retours 7→3 (1), plafond monétaire s'il est fixé, réserve rédaction-relecture (1/3) : …
+Répartition du budget (plafond monétaire s'il est fixé, temps) entre extraction, rédaction et relecture ; allers-retours 7→3 autorisés (1 par défaut) : …
 ```
 
 ## Gabarit — `02-collecte/bibliographie.md`

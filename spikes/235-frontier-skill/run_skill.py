@@ -100,10 +100,10 @@ def launch_prompt(args, workdir: Path) -> str:
         )
     budget = (
         f"Budget DUR : {args.max_budget_usd:.2f} $ au prix liste (le harnais coupe le run au-delà : "
-        f"tout ce qui n'est pas livré est perdu), {args.max_turns} tours maximum du responsable "
-        "(vise 12), cible de durée < 4 minutes : sous-agents en parallèle, sorties compactes, "
-        "aucune lecture intégrale du fonds par le responsable. Sous-agents en délégation synchrone "
-        "(premier plan, attendus dans le même tour) ; ne termine jamais ton tour avant d'avoir livré."
+        f"tout ce qui n'est pas livré est perdu), {args.max_turns} tours maximum du responsable. "
+        "Cible d'efficience : quelques minutes et un volume de tokens comparable à un workflow codé ; "
+        "à toi de répartir le budget. Sous-agents en délégation synchrone (premier plan, attendus "
+        "dans le même tour) ; ne termine jamais ton tour avant d'avoir livré."
     )
     if args.subagent_model:
         budget += f" Modèle autorisé pour les extracteurs : {args.subagent_model} (relecteur et responsable : modèle principal)."

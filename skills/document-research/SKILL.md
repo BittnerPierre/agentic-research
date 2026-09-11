@@ -5,9 +5,9 @@ description: >-
   fonds documentaire FERMÉ (fichiers locaux ou base de connaissances dataprep
   via MCP), en suivant les 8 étapes du processus de recherche documentaire
   (cadrage, collecte, sélection et extraction, analyse, conception, rédaction,
-  révision, livraison) avec un livrable court et lisible par étape, une main
-  courante, des citations verbatim traçables et un budget serré (tours, tokens,
-  temps, coût). Utiliser ce skill quand on demande une synthèse documentaire,
+  révision, livraison) avec un livrable lisible par étape, une main courante,
+  des citations verbatim traçables et une efficience comparable à un workflow
+  codé (temps, tokens, coût). Utiliser ce skill quand on demande une synthèse documentaire,
   un dossier de fond, un brief, un état de l'art ou un rapport de recherche
   sourcé sur un corpus donné (audit flash, dossier pour un script vidéo, note
   de synthèse, data pack). NE PAS l'utiliser pour une question ponctuelle, une
@@ -27,32 +27,34 @@ Le fonds est **fermé** : seules les sources du fonds (ou celles que le brief
 demande d'acquérir) alimentent le rapport. Aucune connaissance personnelle,
 aucune recherche web.
 
-## Objectif de coût, non négociable
+## Efficience : un objectif, pas des règles
 
-Un run complet = **au plus 12 tours du responsable**, **5 à 8 sous-agents**
-bornés, **moins de 4 minutes** si les sous-agents tournent en parallèle, et un
-volume de tokens comparable à un workflow codé (ordre de grandeur 300 à 600 k
-tokens tout compris). La consigne de lancement peut fixer un plafond monétaire
-dur : s'il est atteint, le run est perdu. Donc :
+Le résultat attendu est un rapport de qualité produit **à un coût et dans un
+temps comparables à un workflow codé** : quelques minutes, quelques centaines
+de milliers de tokens tout compris. La consigne de lancement peut fixer un
+plafond monétaire dur : s'il est atteint, le run est perdu. À toi de répartir
+ce budget entre les étapes et de choisir combien déléguer, à qui, et avec
+quelle profondeur. Trois principes, tirés des essais mesurés :
 
-- **Planifie d'abord, exécute une fois.** Le cadrage est un contrat de
-  travail court ; les sous-agents partent tous en parallèle sur ce contrat.
-- **Ne termine jamais ton tour avant la livraison.** Personne ne relancera la
-  conversation : un tour terminé sans `08-livraison/rapport.md` est un run
-  perdu. Les sous-agents se lancent en délégation synchrone.
-- **Jamais de lecture intégrale du fonds par le responsable.** Tu lis le brief,
-  le catalogue, les sorties compactes des sous-agents, et le manuscrit.
-- **Sorties compactes entre étapes** : tables et listes, pas de prose ; pas de
-  recopie d'extraits d'un fichier à l'autre.
-- **Réserve** : les étapes 6 à 8 (rédaction, relecture, livraison) ont droit à
-  un tiers du budget. Si l'extraction menace cette réserve, elle s'arrête et
-  on livre avec les lacunes déclarées.
+- **Le corpus ne passe pas par ton contexte.** Lire le fonds soi-même puis le
+  relire à chaque tour a coûté vingt fois le prix d'un run délégué. Tu lis le
+  brief, le catalogue, les sorties compactes des sous-agents et le manuscrit.
 - **Le mécanique ne passe pas par le modèle.** Le package fournit des scripts
   Python autonomes (`scripts/`, voir `references/scripts.md`) : inventaire du
   fonds, extraction verbatim par plages de lignes, contrôle des extraits,
   vérification du manuscrit (citations, chiffres, sections, longueur),
-  assemblage du rapport. Les utiliser à chaque fois qu'ils s'appliquent : un
-  script coûte zéro token et ne se trompe pas en recopiant.
+  assemblage du rapport. Un script coûte zéro token et ne se trompe pas en
+  recopiant.
+- **Sorties compactes, une seule fois.** Entre les étapes circulent des tables
+  et des listes référencées, jamais le texte des sources ; un extrait n'est
+  écrit qu'une fois (par le script), le manuscrit qu'une fois (puis corrigé
+  par éditions ciblées).
+
+Deux contraintes du mode autonome : **ne termine jamais ton tour avant la
+livraison** (personne ne relancera la conversation ; un tour terminé sans
+`08-livraison/rapport.md` est un run perdu) et **lance les sous-agents en
+délégation synchrone** (attendus dans le même tour ; pas d'arrière-plan, pas
+d'outil d'attente ou de planification).
 
 ## Entrées
 
@@ -73,18 +75,18 @@ dur : s'il est atteint, le run est perdu. Donc :
 ## Dossier de travail (un livrable court par étape)
 
 ```
-01-cadrage/cadrage.md            ≤ 40 lignes : questions Q1..Qn, attentes de forme, politique de corpus, plan de délégation, budget par étape
+01-cadrage/cadrage.md            court : questions Q1..Qn, attentes de forme, politique de corpus, plan de délégation, budget par étape
 01-cadrage/contrat.json          contrat de forme lisible par les scripts : sections, min_words, max_words, table_columns, language
 02-collecte/bibliographie.md     table : référence → fichier/identifiant, nature, questions couvertes, statut
 03-extraits/parts/Q<n>.jsonl     extraits VERBATIM avec provenance, UN fichier par sous-agent (contrat ci-dessous)
-03-extraits/corpus-retenu.md     ≤ 15 lignes : documents mobilisés / écartés, lacunes constatées par question
-04-analyse/synthese.md           par question : 3 à 8 puces référencées [E<n>] ; convergences, contradictions, lacunes
+03-extraits/corpus-retenu.md     documents mobilisés / écartés, lacunes constatées par question
+04-analyse/synthese.md           par question : puces référencées [E<n>] ; convergences, contradictions, lacunes
 05-conception/plan.md            sections imposées → extraits mobilisés → lacunes à déclarer (une table)
 06-redaction/manuscrit.md        texte complet
 07-revision/verification.md      grille du relecteur : citations, chiffres, conformité au brief, longueur mesurée
 08-livraison/rapport.md          document final (= manuscrit corrigé), avec section ## Sources
 journal.md                       main courante : une ligne par étape, horodatée (voir references/main-courante.md)
-retex.md                         ≤ 15 lignes : ce qui a bien/mal marché dans le PROCESSUS, budget consommé par étape
+retex.md                         ce qui a bien/mal marché dans le PROCESSUS, budget consommé par étape
 ARBITRAGE-REQUIS.md              seulement si un arbitrage humain est nécessaire
 ```
 
@@ -96,28 +98,28 @@ recopie pas en prose.
 
 Détail et gabarits : `references/processus.md`.
 
-1. **Cadrage** (1 tour) — Questions secondaires numérotées Q1..Qn, une par
+1. **Cadrage** — Questions secondaires numérotées Q1..Qn, une par
    section imposée ou par thème du brief. Attentes de forme (format, sections,
    colonnes, longueur, langue, public, ton). Politique de corpus (fermé
    strict ; acquisition seulement des références nommées). **Plan de
-   délégation** : un sous-agent par question (ou par paire de questions
-   proches), avec pour chacun ses sources pressenties, son plafond d'extraits
-   et de lectures ou de requêtes. Budget par étape écrit. Écris aussi
+   délégation** : qui extrait quoi (par question, par source ou autre
+   découpage que tu juges efficace), avec pour chaque sous-agent son
+   périmètre, ses sources pressenties et le budget que tu lui alloues. Budget
+   par étape écrit. Écris aussi
    `contrat.json` (sections imposées dans l'ordre, bornes de longueur,
    colonnes du tableau imposé, langue) : les scripts de vérification le lisent.
-2. **Recherche et collecte** (1 tour, en mode dataprep : + acquisition et
-   indexation, lancées en parallèle) — Bibliographie de travail à partir du
+2. **Recherche et collecte** (mode dataprep : acquisition et indexation
+   d'abord, en parallèle) — Bibliographie de travail à partir du
    catalogue (pas des documents). Mode fichiers : `scripts/inventory.py`
    (tailles, titres, mots-clés par fichier) pour affecter les sources aux
    extracteurs sans rien lire. Si le fonds ne peut manifestement pas
    couvrir le cœur de la demande : arbitrage.
-3. **Sélection et extraction** (1 tour de lancement + 1 tour de
-   consolidation) — Lance **tous les extracteurs en parallèle dans un même
+3. **Sélection et extraction** — Lance **tous les extracteurs en parallèle dans un même
    tour, en délégation synchrone** : tu attends leurs comptes rendus dans ce
    tour (pas de mode arrière-plan, pas d'outil d'attente ou de
    planification : en exécution autonome, terminer ton tour termine le run).
-   Chacun reçoit le contrat d'extrait, ses sources, la liste des questions des
-   autres extracteurs (pour éviter les doublons) et ses plafonds
+   Chacun reçoit le contrat d'extrait, son périmètre, ses sources, ce que les
+   autres couvrent (pour éviter les doublons) et le budget que tu lui as fixé
    (`references/sous-agents.md`). Chaque extracteur écrit
    `03-extraits/parts/Q<n>.jsonl` et te renvoie **un compte rendu de 10
    lignes maximum** : extraits produits, questions couvertes, ce qu'il n'a pas
@@ -130,34 +132,32 @@ Détail et gabarits : `references/processus.md`.
    Puis `scripts/verify_extracts.py` (déterministe) : identifiants uniques,
    verbatim, doublons ; tu écris `corpus-retenu.md` depuis les comptes rendus
    et ce contrôle.
-4. **Analyse et synthèse** (1 tour) — Tu lis les `parts/*.jsonl` (compacts)
+4. **Analyse et synthèse** — Tu lis les `parts/*.jsonl` (compacts)
    et écris `synthese.md` : par question, ce que disent les sources, où elles
    convergent, où elles se contredisent (les deux valeurs, les deux extraits),
    ce qu'elles ne disent pas. Pas de transformation ni d'agrégation.
-5. **Conception** (même tour que 4) — `plan.md` : une table section → extraits
+5. **Conception** — `plan.md` : une table section → extraits
    → lacunes à déclarer.
-6. **Rédaction** (1 tour) — `manuscrit.md` complet, écrit une fois, dans la
+6. **Rédaction** — `manuscrit.md` complet, écrit une fois, dans la
    longueur cible (vise 85 % de la borne haute : les citations `[E<n>]`
    comptent comme des mots pour `wc -w`). Chaque paragraphe factuel porte ses
    citations au plus près de l'affirmation. Chiffres recopiés tels quels
    (valeur, unité, période). Lacunes dites explicitement.
-7. **Révision** (1 tour de lancement + 1 tour de corrections) — D'abord
+7. **Révision** — D'abord
    `scripts/check_report.py` (citations inconnues, chiffres absents des
    extraits cités, paragraphes sans citation, sections, tableau, longueur,
    URL) : corrige ses bloquants. Puis **un** sous-agent relecteur à contexte
    restreint (brief + manuscrit + `parts/*.jsonl` + sortie du script, rien
    d'autre) ne traite que le sémantique : l'extrait soutient-il vraiment la
    phrase, ton, redondances, hors-sujet, lacunes non déclarées ; il remplit
-   `verification.md` et renvoie une liste d'anomalies numérotée (≤ 20 lignes). Tu corriges par éditions ciblées du manuscrit (pas de réécriture complète). Si une
-   information manque vraiment : **un** aller-retour vers l'étape 3 (un seul
-   extracteur, plafonné), par défaut ; au-delà, arbitrage.
-8. **Livraison** (1 tour) — `scripts/check_report.py` une dernière fois
+   `verification.md` et renvoie une liste d'anomalies numérotée. Tu corriges par éditions ciblées du manuscrit (pas de réécriture complète). Si une
+   information manque vraiment : un aller-retour vers l'étape 3 (une
+   extraction ciblée), un seul par défaut sauf indication du brief ; au-delà,
+   arbitrage.
+8. **Livraison** — `scripts/check_report.py` une dernière fois
    (doit dire OK), puis `scripts/build_report.py` : assemble
    `08-livraison/rapport.md` = corps + section `## Sources` générée depuis les
    extraits cités et la bibliographie ; `retex.md` ; dernière ligne du journal.
-
-Total visé : 9 à 12 tours du responsable. Si tu dépasses 12 tours, tu livres
-en l'état avec les lacunes déclarées.
 
 ## Contrat d'extrait (`03-extraits/parts/Q<n>.jsonl`, une ligne JSON par extrait)
 
@@ -172,8 +172,7 @@ Règles : `texte` est une copie exacte d'un passage contigu de la source (pas
 de « … », pas de correction, pas de fusion de passages, **pas de nettoyage** :
 liens Markdown, crochets de notes, puces restent tels qu'ils sont dans le
 fichier) ; **un extrait par idée**, pas un par occurrence ; identifiants
-uniques par plage disjointe (Q1 : E1–E30, Q2 : E31–E60, …), stables jusqu'à la
-livraison.
+uniques (une plage disjointe par extracteur), stables jusqu'à la livraison.
 
 ## Doctrines (universelles, quel que soit le thème)
 

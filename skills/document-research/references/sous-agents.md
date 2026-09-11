@@ -2,8 +2,10 @@
 
 Les sous-agents servent à **retirer le corpus du contexte du responsable**,
 pas à multiplier le travail. Chaque sous-agent reçoit une mission fermée, un
-contexte minimal et des plafonds explicites ; il renvoie un compte rendu
-court. Il ne délègue jamais à son tour.
+contexte minimal et le budget que le responsable lui alloue ; il renvoie un
+compte rendu court. Il ne délègue jamais à son tour. Le découpage (par
+question, par source, mixte) et le nombre de sous-agents sont des choix du
+responsable, pris au cadrage en fonction du brief et du budget.
 
 ## Délégation synchrone
 
@@ -23,7 +25,7 @@ Mission : extraire les passages du fonds qui répondent à Q<n> : « <question> 
 Fonds : <mode fichiers : liste des fichiers pressentis dans fonds/, lecture et recherche textuelle>
         <mode dataprep : collection « <nom> », outil vector_search, ≤ 6 requêtes,
          top_k ≤ 8, varier les formulations, filtrer par filenames si besoin>
-Plafonds : ≤ <8 à 12> extraits, un par idée ; ≤ <6> requêtes ou lectures.
+Budget : <ce que le responsable alloue : extraits attendus (un par idée), requêtes ou lectures>.
 Hors périmètre (traité par d'autres) : Q<m> « … », Q<p> « … » — n'extrais rien pour eux.
 Contrat : une ligne JSON par extrait dans 03-extraits/parts/Q<n>.jsonl, ids E<a>–E<b>,
  {"id","fichier","texte" (VERBATIM, sans nettoyage),"localisation","question","chunk_id" (dataprep)}.
@@ -32,13 +34,15 @@ Méthode : écris 03-extraits/parts/Q<n>.spec.json (part, question, start_id, it
  python3 <skill>/scripts/extract.py --spec 03-extraits/parts/Q<n>.spec.json
  Commande shell simple : depuis le dossier de travail, sans cd, sans pipe, sans texte long en argument.
 Interdits : mémoire personnelle, web, autres fichiers que le fonds, sous-agents.
-Réponse attendue (≤ 10 lignes) : nombre d'extraits, fichiers mobilisés, ce que le fonds
+Réponse attendue (courte) : nombre d'extraits, fichiers mobilisés, ce que le fonds
  ne dit PAS sur Q<n> (avec les requêtes ou recherches faites), doublons évités.
 ```
 
-Ordre de grandeur des plafonds : 8 à 12 extraits par question simple, 15 pour
-une question composite ; 6 lectures ou requêtes. Un extracteur qui n'a rien
-trouvé après ses requêtes le dit : c'est une lacune, pas un échec.
+Repères mesurés (pas des règles) : une question simple se couvre en général
+avec une dizaine d'extraits et quelques requêtes ; ce qui a coûté cher dans
+les essais, ce sont les requêtes redondantes à large `top_k` et les extraits
+« par occurrence ». Un extracteur qui n'a rien trouvé après ses requêtes le
+dit : c'est une lacune, pas un échec.
 
 ## Relecteur (étape 7) — un seul
 
@@ -54,8 +58,8 @@ Mission : vérifier le manuscrit contre le brief et les extraits.
 4. Conformité au brief : sections et intitulés, ordre, tableau et colonnes, langue, ton, longueur
    (mesurer : wc -w sur le corps hors ## Sources, ou tokens \S+ si pas de shell).
 5. Redondances, hors-sujet, lacunes non déclarées.
-Écris 07-revision/verification.md (grille, ≤ 60 lignes) et réponds par une liste numérotée
- d'anomalies (≤ 20 lignes) : bloquantes d'abord, avec la correction proposée.
+Écris 07-revision/verification.md (grille) et réponds par une liste numérotée
+ d'anomalies : bloquantes d'abord, avec la correction proposée.
 Interdits : réécrire le manuscrit, lire le fonds, mémoire, web, sous-agents.
 ```
 
