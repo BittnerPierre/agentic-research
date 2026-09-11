@@ -5,6 +5,15 @@ pas à multiplier le travail. Chaque sous-agent reçoit une mission fermée, un
 contexte minimal et des plafonds explicites ; il renvoie un compte rendu
 court. Il ne délègue jamais à son tour.
 
+## Délégation synchrone
+
+Le responsable lance ses sous-agents **dans un même tour, en mode bloquant**
+(tous les extracteurs en parallèle, puis il attend leurs retours dans ce
+tour). Jamais en arrière-plan, jamais avec un outil d'attente, de
+planification ou de messagerie : en exécution autonome, le harnais met fin au
+run quand le responsable termine son tour, et les sous-agents encore actifs
+sont coupés.
+
 ## Extracteur (étape 3) — un par question (ou paire de questions proches)
 
 Consigne type (à adapter, garder court) :

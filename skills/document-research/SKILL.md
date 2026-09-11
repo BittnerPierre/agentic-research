@@ -37,6 +37,9 @@ dur : s'il est atteint, le run est perdu. Donc :
 
 - **Planifie d'abord, exécute une fois.** Le cadrage est un contrat de
   travail court ; les sous-agents partent tous en parallèle sur ce contrat.
+- **Ne termine jamais ton tour avant la livraison.** Personne ne relancera la
+  conversation : un tour terminé sans `08-livraison/rapport.md` est un run
+  perdu. Les sous-agents se lancent en délégation synchrone.
 - **Jamais de lecture intégrale du fonds par le responsable.** Tu lis le brief,
   le catalogue, les sorties compactes des sous-agents, et le manuscrit.
 - **Sorties compactes entre étapes** : tables et listes, pas de prose ; pas de
@@ -109,9 +112,12 @@ Détail et gabarits : `references/processus.md`.
    extracteurs sans rien lire. Si le fonds ne peut manifestement pas
    couvrir le cœur de la demande : arbitrage.
 3. **Sélection et extraction** (1 tour de lancement + 1 tour de
-   consolidation) — Lance **tous les extracteurs en parallèle**, un par
-   question, avec le contrat d'extrait, ses sources, la liste des questions
-   des autres extracteurs (pour éviter les doublons) et ses plafonds
+   consolidation) — Lance **tous les extracteurs en parallèle dans un même
+   tour, en délégation synchrone** : tu attends leurs comptes rendus dans ce
+   tour (pas de mode arrière-plan, pas d'outil d'attente ou de
+   planification : en exécution autonome, terminer ton tour termine le run).
+   Chacun reçoit le contrat d'extrait, ses sources, la liste des questions des
+   autres extracteurs (pour éviter les doublons) et ses plafonds
    (`references/sous-agents.md`). Chaque extracteur écrit
    `03-extraits/parts/Q<n>.jsonl` et te renvoie **un compte rendu de 10
    lignes maximum** : extraits produits, questions couvertes, ce qu'il n'a pas
