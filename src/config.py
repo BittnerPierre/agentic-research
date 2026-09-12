@@ -52,6 +52,12 @@ class VectorSearchConfig(BaseModel):
     score_threshold: float | None = Field(default=None)
 
 
+class WebSearchConfig(BaseModel):
+    """Configuration for web search provider used by StandardResearchManager."""
+
+    provider: Literal["openai", "tavily"] = Field(default="openai")
+
+
 class DataConfig(BaseModel):
     """Configuration for data sources."""
 
@@ -188,6 +194,7 @@ class Config(BaseModel):
     config_name: str
     vector_store: VectorStoreConfig
     vector_search: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
+    web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     dataprep: DataprepConfig = Field(default_factory=DataprepConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)
