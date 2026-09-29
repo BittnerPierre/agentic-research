@@ -52,6 +52,15 @@ class VectorSearchConfig(BaseModel):
     score_threshold: float | None = Field(default=None)
 
 
+class WebSearchConfig(BaseModel):
+    """Configuration for the web search provider (StandardResearchManager)."""
+
+    # "openai" keeps the OpenAI WebSearchTool; "youcom" uses the You.com search
+    # tool (keyless free profile by default, or YDC_API_KEY for the authenticated
+    # profile).
+    provider: str = Field(default="openai")
+
+
 class DataConfig(BaseModel):
     """Configuration for data sources."""
 
@@ -188,6 +197,7 @@ class Config(BaseModel):
     config_name: str
     vector_store: VectorStoreConfig
     vector_search: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
+    web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     dataprep: DataprepConfig = Field(default_factory=DataprepConfig)
     debug: DebugConfig = Field(default_factory=DebugConfig)

@@ -6,6 +6,11 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ## [Unreleased]
 
+### Added
+- Optional `web_search.provider` config for the standard manager: `"youcom"` routes web searches through the You.com
+  MCP search tool (keyless free profile by default, `YDC_API_KEY` for the authenticated profile), while `"openai"`
+  (default) keeps the current `WebSearchTool` behavior. ([#237](https://github.com/BittnerPierre/agentic-research/pull/PLACEHOLDER))
+
 ## 2026-09-07
 
 ### Added

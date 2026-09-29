@@ -76,6 +76,19 @@ The default manager can be configured in `configs/config-default.yaml`:
 ```yaml
 manager:
   default_manager: "agentic_manager" # Options: agentic_manager (Supervisor with CoT), deep_manager (Deep Agents approach), manager (simple example), ou chemin.vers.ClasseManager
+
+### Web search provider (standard manager)
+
+The standard manager (`--manager manager`) uses the OpenAI `WebSearchTool` by default. To run web
+searches with You.com instead, set in `configs/config-default.yaml`:
+
+```yaml
+web_search:
+  provider: "youcom" # openai | youcom
+```
+
+The You.com provider calls the You.com MCP search endpoint. It works without any API key (keyless
+free profile); set `YDC_API_KEY` in your environment to use the authenticated profile.
 ```
 
 You can also set the default manager via the `DEFAULT_MANAGER` environment variable.
