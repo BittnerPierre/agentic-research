@@ -10,6 +10,12 @@ vector_store:
 vector_search:
   provider: "openai"
 
+# Configuration web search (manager standard)
+web_search:
+  # openai : OpenAI WebSearchTool (requiert OPENAI_API_KEY)
+  # youcom : recherche web You.com via MCP (keyless par défaut, ou YDC_API_KEY)
+  provider: "openai"
+
 # Configuration des données d'entrée
 data:
   # Fichier contenant les URLs à traiter (une par ligne)
