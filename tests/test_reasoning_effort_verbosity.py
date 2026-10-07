@@ -55,6 +55,20 @@ class TestApplyEndpointModelSettings:
         )
         assert ms.reasoning.effort == "high"
 
+    def test_mistral_reasoning_effort_is_allowed_by_litellm(self):
+        spec = ModelEndpointConfig(
+            name="litellm/mistral/mistral-large-4",
+            api_key="key",
+            reasoning_effort="none",
+        )
+        ms = ModelSettings()
+
+        apply_endpoint_model_settings(spec, ms)
+
+        assert ms.reasoning is not None and ms.reasoning.effort == "none"
+        assert ms.extra_args is not None
+        assert ms.extra_args["allowed_openai_params"] == ["reasoning_effort"]
+
     def test_verbosity_grafted_from_pydantic_spec(self):
         spec = ModelEndpointConfig(
             name="openai/gpt-5-mini",

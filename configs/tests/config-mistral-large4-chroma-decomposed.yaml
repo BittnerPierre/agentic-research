@@ -4,7 +4,8 @@
 # Ne pas fixer temperature=0 : l'API Mistral le refuse si top_p n'est pas 1.
 # Les paramètres d'échantillonnage sont donc laissés aux valeurs par défaut
 # compatibles du fournisseur. Le plafond de sortie évite un raisonnement
-# indéfiniment long dans les appels agents structurés.
+# indéfiniment long dans les appels agents structurés. Mistral Large 4 prend
+# en charge reasoning_effort=none : ce profil privilégie la latence agentique.
 config_name: mistral-large4-chroma-decomposed
 vector_store:
   name: agentic-research-dgx
@@ -50,6 +51,7 @@ models:
     name: litellm/mistral/mistral-large-4
     api_key_env: MISTRAL_API_KEY
     max_tokens: 4096
+    reasoning_effort: none
   planning_model: *mistral_large4
   search_model: *mistral_large4
   writer_model: *mistral_large4

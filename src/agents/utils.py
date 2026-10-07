@@ -500,6 +500,14 @@ def apply_endpoint_model_settings(model_spec: Any, model_settings) -> None:
         from openai.types.shared.reasoning import Reasoning
 
         model_settings.reasoning = Reasoning(effort=reasoning_effort)
+        # LiteLLM 1.76 predates Mistral Large 4 and requires this opt-in to
+        # forward Mistral's documented reasoning_effort parameter.
+        if model_spec_to_string(model_spec).startswith("litellm/mistral/"):
+            extra_args = model_settings.extra_args or {}
+            allowed = set(extra_args.get("allowed_openai_params") or [])
+            allowed.add("reasoning_effort")
+            extra_args["allowed_openai_params"] = sorted(allowed)
+            model_settings.extra_args = extra_args
 
     if verbosity is not None:
         model_settings.verbosity = verbosity
