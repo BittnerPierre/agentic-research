@@ -67,6 +67,18 @@ class TestApplyEndpointModelSettings:
 
         assert ms.verbosity == "low"
 
+    def test_max_tokens_grafted_from_pydantic_spec(self):
+        spec = ModelEndpointConfig(
+            name="litellm/mistral/mistral-large-4",
+            api_key="key",
+            max_tokens=4096,
+        )
+        ms = ModelSettings()
+
+        apply_endpoint_model_settings(spec, ms)
+
+        assert ms.max_tokens == 4096
+
     def test_both_fields_grafted_together(self):
         spec = ModelEndpointConfig(
             name="openai/gpt-oss-20b",

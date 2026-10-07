@@ -506,7 +506,7 @@ def apply_endpoint_model_settings(model_spec: Any, model_settings) -> None:
 
     # Per-endpoint sampling controls (campaign: each model at its recommended
     # settings; a low temperature stabilizes tool-call argument discipline).
-    for field in ("temperature", "top_p"):
+    for field in ("temperature", "top_p", "max_tokens"):
         value = (
             model_spec.get(field)
             if isinstance(model_spec, dict)
