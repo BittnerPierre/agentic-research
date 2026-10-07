@@ -128,7 +128,7 @@ class TestLiteLLMEndpoint:
         model = resolve_model(spec)
 
         assert isinstance(model, LitellmModel)
-        assert model.model == "litellm/mistral/mistral-medium-latest"
+        assert model.model == "mistral/mistral-medium-latest"
 
     def test_endpoint_config_resolves_to_litellm_model(self):
         spec = ModelEndpointConfig(

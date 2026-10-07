@@ -1,0 +1,69 @@
+# Mistral Large 4 servi par l'API Mistral via LiteLLM. Retrieval ChromaDB local
+# et embeddings Qwen3-Embedding-4B sur spark1:8003 restent identiques aux
+# autres campagnes cloud, pour une comparaison à armes égales.
+# Ne pas fixer temperature=0 : l'API Mistral le refuse si top_p n'est pas 1.
+# Les paramètres d'échantillonnage sont donc laissés aux valeurs par défaut
+# compatibles du fournisseur.
+config_name: mistral-large4-chroma-decomposed
+vector_store:
+  name: agentic-research-dgx
+  description: Vector store for the Mistral Large 4 benchmark campaign.
+  expires_after_days: 30
+vector_search:
+  top_k: 12
+  provider: chroma
+  chroma_host: localhost
+  chroma_port: 8000
+  chroma_ssl: false
+  chroma_embedding_provider: openai
+  chroma_embedding_api_base: http://spark1:8003/v1
+  chroma_embedding_model: Qwen3-Embedding-4B-Q8_0.gguf
+  chroma_embedding_api_key_env: CHROMA_OPENAI_API_KEY
+data:
+  knowledge_db_path: data/knowledge_db.json
+  local_storage_dir: data/
+dataprep:
+  llm:
+    enabled: true
+    model:
+      name: mistral-large-4
+      base_url: https://api.mistral.ai/v1
+    api_key_env: MISTRAL_API_KEY
+    temperature: 0.1
+    max_tokens: 256
+    timeout_seconds: 30.0
+debug:
+  enabled: false
+  output_dir: debug_output
+  save_reports: true
+  show_content_preview: true
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+mcp:
+  server_host: localhost
+  server_port: 8001
+  client_timeout_seconds: 60.0
+models:
+  research_model: &mistral_large4
+    name: litellm/mistral/mistral-large-4
+    api_key_env: MISTRAL_API_KEY
+  planning_model: *mistral_large4
+  search_model: *mistral_large4
+  writer_model: *mistral_large4
+  knowledge_preparation_model: *mistral_large4
+  outline_model: *mistral_large4
+  chapter_writer_model: *mistral_large4
+manager:
+  default_manager: deep_manager
+agents:
+  max_search_plan: 5-7
+  output_dir: output/
+  writer_output_format: markdown
+  file_search_rewrite_mode: none
+  file_search_rewrite_max_variants: 2
+  file_search_top_k: null
+  file_search_score_threshold: null
+  writer_strategy: decomposed
+  chapter_max_revisions: 1
+  writer_max_chapters: null

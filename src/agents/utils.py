@@ -456,7 +456,10 @@ def resolve_model(model_spec: Any):
         return model_spec
 
     if name.startswith("litellm/"):
-        return LitellmModel(model=name, base_url=base_url, api_key=api_key)
+        # ``litellm/`` is our routing marker, not part of LiteLLM's provider
+        # identifier.  LitellmModel forwards this value unchanged to
+        # litellm.acompletion(), which expects e.g. ``mistral/mistral-large-4``.
+        return LitellmModel(model=name.removeprefix("litellm/"), base_url=base_url, api_key=api_key)
 
     if name.startswith("openai/"):
         bare = name[len("openai/") :]
