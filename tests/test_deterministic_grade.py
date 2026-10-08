@@ -166,6 +166,48 @@ def test_table_cells_parse_canonical_long_format_and_small_integer() -> None:
     ]
 
 
+def test_capex_operating_cash_flow_ratio_is_not_misread_as_capex(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    (exercise / "corpus" / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Apple,Sep,Capex,FY2025,12.7,USD_billions\n"
+        "Apple,Sep,Capex/OCF,FY2025,11,percent\n",
+        encoding="utf-8",
+    )
+    report_md = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Capital Expenditures (Capex) | FY2025 | 12.7 |\n"
+        "| Apple | Capex/Operating-Cash-Flow Ratio | FY2025 | 11% |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_length_tolerance_is_explicit_and_applies_only_to_declared_maximum(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    spec_path = exercise / "spec.yaml"
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+    spec["length"] = {"min_words": 1, "max_words": 20, "max_words_tolerance_pct": 0.05}
+    spec_path.write_text(yaml.safe_dump(spec), encoding="utf-8")
+    sources = [{"source_id": "S1", "content": "Agent memory retains prior context."}]
+
+    within_tolerance = grade(
+        tmp_path / "run-within", exercise, "Agent memory [S1] " + "word " * 18, sources
+    )
+    beyond_tolerance = grade(
+        tmp_path / "run-beyond", exercise, "Agent memory [S1] " + "word " * 19, sources
+    )
+
+    assert within_tolerance["format"]["word_count"] == 21
+    assert within_tolerance["format"]["effective_max_words"] == 21
+    assert "report too long" not in within_tolerance["qualification"]["format_blockers"]
+    assert beyond_tolerance["format"]["word_count"] == 22
+    assert "report too long" in beyond_tolerance["qualification"]["format_blockers"]
+
+
 def test_combined_table_assists_coverage_but_never_accuses() -> None:
     # Arbitrage Pierre (2026-07-15) — « les en-têtes peuvent aider, jamais
     # accuser » : cette lecture par en-têtes fournit des claims d'ASSISTANCE
@@ -299,6 +341,66 @@ def test_derivation_uses_claimed_company_metric_and_periods(tmp_path: Path) -> N
     assert result["fabrication"]["count"] == 0
     assert [item["value"] for item in result["unverifiable"]["items"]] == [3.3]
     assert result["unverifiable"]["items"][0]["reason"] == "invalid_derivation"
+
+
+def test_historical_levels_next_to_growth_rates_are_not_invalid_derivations(tmp_path: Path) -> None:
+    """A source value remains a source value when prose also gives its growth rate."""
+    exercise = _write_exercise(tmp_path)
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "corpus" / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2023,52.7,USD_billions\n"
+        "Amazon,Dec,Capex,FY2024,83.0,USD_billions\n"
+        "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n",
+        encoding="utf-8",
+    )
+    report_md = (
+        "Amazon capex rose from $52.7B in FY2023 to $83.0B in FY2024. "
+        "The trend then accelerated to $131.8B in FY2025 (+59%).\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["fabrication"]["count"] == 0
+    assert result["unverifiable"]["count"] == 0
+
+
+def test_period_tagged_year_over_year_rate_uses_prior_corpus_year(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "corpus" / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2020,40.1,USD_billions\n"
+        "Amazon,Dec,Capex,FY2021,61.1,USD_billions\n"
+        "Amazon,Dec,Capex,FY2022,63.6,USD_billions\n",
+        encoding="utf-8",
+    )
+    report_md = "Amazon capex was $40.1B in FY2020. It then reached $61.1B in FY2021 (+52%).\n"
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["fabrication"]["count"] == 0
+    assert result["unverifiable"]["count"] == 0
 
 
 def test_false_latest_year_unavailability_is_accuracy_error(tmp_path: Path) -> None:

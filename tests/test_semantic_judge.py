@@ -720,6 +720,12 @@ def test_fixed_finance_contract_declares_adequacy_veto_without_numeric_authority
         for requirement in requirements
         for field in ("expected_answer", "required_points", "critical_errors")
     )
+    fiscal_requirement = next(
+        requirement
+        for requirement in requirements
+        if requirement["id"] == "fiscal_calendar_adequacy"
+    )
+    assert "capex_reference_data.md" in fiscal_requirement["source_files"]
 
 
 class TestCitationChainAudit:

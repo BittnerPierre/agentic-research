@@ -26,6 +26,12 @@ def test_extract_doc_ids_unique_in_order_and_ignores_source_ids():
     assert extract_doc_ids(content) == ["doc_a:0", "doc_b:12"]
 
 
+def test_extract_doc_ids_normalizes_mistral_chunk_index_notation():
+    content = "Guidance [doc_guidance:chunk_index 1], repeated [doc_guidance:chunk_index 1]."
+
+    assert extract_doc_ids(content) == ["doc_guidance:1"]
+
+
 def test_extract_doc_ids_empty_when_no_citations():
     assert extract_doc_ids("Plain summary with no citations.") == []
 
