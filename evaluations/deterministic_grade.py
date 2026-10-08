@@ -382,6 +382,46 @@ def parse_tables(md: str) -> list[list[list[str]]]:
     return tables
 
 
+def table_contexts(md: str) -> list[str]:
+    """Return the nearest Markdown heading for each parsed table.
+
+    A heading is semantic context, not table data.  In particular, a table under
+    ``Initial FY2025 capex guidance`` must not be parsed as a table of reported
+    FY2025 actuals merely because its own column labels omit the word guidance.
+    """
+    contexts: list[str] = []
+    heading = ""
+    current: list[list[str]] = []
+    for line in md.splitlines():
+        if re.match(r"^#{1,6}\s+", line):
+            heading = line
+        if line.strip().startswith("|"):
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if not all(set(cell) <= set("-: ") for cell in cells):
+                current.append(cells)
+            continue
+        if len(current) >= 2:
+            contexts.append(heading)
+        current = []
+    if len(current) >= 2:
+        contexts.append(heading)
+    return contexts
+
+
+def markdown_sections(md: str) -> list[str]:
+    """Keep headings, prose, and tables together for text requirements."""
+    sections: list[list[str]] = []
+    current: list[str] = []
+    for line in md.splitlines():
+        if re.match(r"^#{1,6}\s+", line) and current:
+            sections.append(current)
+            current = []
+        current.append(line)
+    if current:
+        sections.append(current)
+    return ["\n".join(section).strip() for section in sections if "\n".join(section).strip()]
+
+
 def _canonical_metric(text: str) -> str | None:
     normalized = _deaccent(text.lower().replace(" ", ""))
     return next((canon for key, canon in METRIC_ORDER if key in normalized), None)
@@ -465,7 +505,7 @@ _GUIDANCE_RE = re.compile(
 
 
 def _content_table_claims(
-    tables, companies: list[str]
+    tables, companies: list[str], guidance_table_ids: set[int] | None = None
 ) -> list[tuple[str, str, str | None, float | None, str]]:
     """Yield claims from CANONICAL rows — content-anchored, header-free.
 
@@ -482,7 +522,9 @@ def _content_table_claims(
         # autorité d'accusation : « | Alphabet | Environ 75 | 4 fév. 2025 | »
         # est un fait guidance du pack gelé, pas un capex réel (faux WRONG
         # observé sur gpt-5.6-sol : guidance 75 accusée contre l'actual 91.4).
-        if tbl and any(_GUIDANCE_RE.search(cell) for cell in tbl[0]):
+        if (guidance_table_ids and id(tbl) in guidance_table_ids) or (
+            tbl and any(_GUIDANCE_RE.search(cell) for cell in tbl[0])
+        ):
             continue
         current_company = None
         for row in tbl[1:]:
@@ -636,12 +678,17 @@ def _assisted_table_claims(
 
 
 def _table_claims(
-    tables, companies: list[str], default_period: str | None = None
+    tables,
+    companies: list[str],
+    default_period: str | None = None,
+    guidance_table_ids: set[int] | None = None,
 ) -> list[tuple[str, str, str | None, float | None, str, str]]:
     """Combined claims with authority: content rows accuse, header rows assist."""
     full = [
         (co, metric, period, value, status, "content")
-        for co, metric, period, value, status in _content_table_claims(tables, companies)
+        for co, metric, period, value, status in _content_table_claims(
+            tables, companies, guidance_table_ids
+        )
     ]
     seen = {(co, metric, period, value) for co, metric, period, value, _s, _a in full}
     assisted = [
@@ -943,7 +990,14 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             candidate_period = next(iter(declared_periods))
             if re.search(rf"\b{re.escape(candidate_period)}\b", report_body, re.I):
                 default_period = candidate_period
-        claims = _table_claims(parse_tables(report_body), companies, default_period)
+        tables = parse_tables(report_body)
+        contexts = table_contexts(report_body)
+        guidance_table_ids = {
+            id(table)
+            for table, context in zip(tables, contexts, strict=True)
+            if _GUIDANCE_RE.search(context)
+        }
+        claims = _table_claims(tables, companies, default_period, guidance_table_ids)
         cells = [
             (company, metric, period, value, authority)
             for company, metric, period, value, status, authority in claims
@@ -1097,7 +1151,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     contradictions = sorted(set(contradictions))
 
     if mode != "conceptual":
-        paragraphs = re.split(r"\n\s*\n", report_body)
+        paragraphs = markdown_sections(report_body)
         for requirement in ak.get("text_requirements") or []:
             evidence = None
             for paragraph in paragraphs:

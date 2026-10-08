@@ -1241,6 +1241,44 @@ def test_guidance_table_rows_never_accuse_actuals(tmp_path: Path) -> None:
     assert result["accuracy"]["wrong"] == 0
 
 
+def test_guidance_heading_context_never_accuses_actuals(tmp_path: Path) -> None:
+    """A Markdown heading can carry the guidance qualifier outside the table."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "# Initial FY2025 Capex Guidance — not actuals\n\n"
+        "| Company | Amount | Fiscal period | Release date |\n"
+        "|---|---:|---|---|\n"
+        "| Alphabet | approximately 75 | FY2025 | 2025-02-04 [S1] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_capex_trend_table_uses_markdown_heading_context(tmp_path: Path) -> None:
+    """A heading plus its table satisfies the six-company trend requirement."""
+    report = "\n".join(
+        [
+            "## Capex Trends",
+            "The table compares the earliest supplied capex endpoint with FY2025.",
+            "| Company | Earliest FY capex | FY2025 capex | Direction | Absolute change |",
+            "|---|---:|---:|---|---:|",
+            "| Amazon | FY2020: 40.1 | FY2025: 131.8 | increased | +91.7 |",
+            "| Alphabet | FY2020: 22.3 | FY2025: 91.4 | increased | +69.1 |",
+            "| Meta | FY2020: 15.2 | FY2025: 69.7 | increased | +54.5 |",
+            "| Microsoft | FY2020: 15.4 | FY2025: 64.6 | increased | +49.2 |",
+            "| NVIDIA | FY2022: 1.0 | FY2025: 3.2 | increased | +2.2 |",
+            "| Apple | FY2020: 7.3 | FY2025: 12.7 | increased | +5.4 [S1] |",
+        ]
+    )
+
+    result = grade(tmp_path / "run", _finance_exercise(), report, [])
+    requirements = {item["id"]: item for item in result["requirements"]}
+
+    assert requirements["capex_trends"]["status"] == "pass"
+
+
 def test_source_discrepancy_note_with_value_is_not_false_unavailability(tmp_path: Path) -> None:
     """gpt-5.6-sol flagged a documentary inconsistency — '[S3] indique
     l'operating income d'Apple comme indisponible, tandis que les données
