@@ -136,6 +136,7 @@ class ModelEndpointConfig(BaseModel):
     # settings; a low temperature stabilizes tool-call argument discipline).
     temperature: float | None = None
     top_p: float | None = None
+    max_tokens: int | None = None
 
 
 ModelSpec = str | ModelEndpointConfig

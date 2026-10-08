@@ -456,7 +456,10 @@ def resolve_model(model_spec: Any):
         return model_spec
 
     if name.startswith("litellm/"):
-        return LitellmModel(model=name, base_url=base_url, api_key=api_key)
+        # ``litellm/`` is our routing marker, not part of LiteLLM's provider
+        # identifier.  LitellmModel forwards this value unchanged to
+        # litellm.acompletion(), which expects e.g. ``mistral/mistral-large-4``.
+        return LitellmModel(model=name.removeprefix("litellm/"), base_url=base_url, api_key=api_key)
 
     if name.startswith("openai/"):
         bare = name[len("openai/") :]
@@ -497,13 +500,21 @@ def apply_endpoint_model_settings(model_spec: Any, model_settings) -> None:
         from openai.types.shared.reasoning import Reasoning
 
         model_settings.reasoning = Reasoning(effort=reasoning_effort)
+        # LiteLLM 1.76 predates Mistral Large 4 and requires this opt-in to
+        # forward Mistral's documented reasoning_effort parameter.
+        if model_spec_to_string(model_spec).startswith("litellm/mistral/"):
+            extra_args = model_settings.extra_args or {}
+            allowed = set(extra_args.get("allowed_openai_params") or [])
+            allowed.add("reasoning_effort")
+            extra_args["allowed_openai_params"] = sorted(allowed)
+            model_settings.extra_args = extra_args
 
     if verbosity is not None:
         model_settings.verbosity = verbosity
 
     # Per-endpoint sampling controls (campaign: each model at its recommended
     # settings; a low temperature stabilizes tool-call argument discipline).
-    for field in ("temperature", "top_p"):
+    for field in ("temperature", "top_p", "max_tokens"):
         value = (
             model_spec.get(field)
             if isinstance(model_spec, dict)

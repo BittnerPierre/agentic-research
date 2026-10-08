@@ -25,6 +25,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import math
 import re
 import unicodedata
 from itertools import pairwise
@@ -227,6 +228,8 @@ def alternate_comma_value(text: str, pos: int) -> float | None:
 # Keys are space-stripped + de-accented, ordered most-specific-first (EN + FR), so
 # "capex/ocf"/"intensite" wins over "capex", "disponible"(FCF) over generic "flux".
 METRIC_ORDER = [
+    ("capex/operating-cash-flowratio", "Capex/OCF"),
+    ("capex/operatingcashflowratio", "Capex/OCF"),
     ("capexintensity", "Capex/OCF"),
     ("intensitecapex", "Capex/OCF"),
     ("intensite", "Capex/OCF"),
@@ -295,6 +298,8 @@ METRIC_ALIASES = {
     "FCF": ("free cash flow", "fcf", "flux de tresorerie disponible"),
     "Capex/OCF": (
         "capex/ocf",
+        "capex/operating-cash-flow ratio",
+        "capex/operating cash flow ratio",
         "capex intensity",
         "capex intensity ratio",
         "capex as % ocf",
@@ -1237,7 +1242,24 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             for match in re.finditer(re.escape(_deaccent(alias.lower())), normalized_clause)
         ]
         if not metric_matches:
-            return None
+            # A trend paragraph often names its metric once, then gives a
+            # follow-up sentence containing only dated values. Inherit a
+            # single unambiguous metric from the preceding sentence on the
+            # same line; competing metrics deliberately remain ambiguous.
+            preceding = _deaccent(line[:clause_start].lower())
+            inherited_metrics = list(
+                dict.fromkeys(
+                    metric
+                    for metric, aliases in METRIC_ALIASES.items()
+                    if any(
+                        re.search(re.escape(_deaccent(alias.lower())), preceding)
+                        for alias in aliases
+                    )
+                )
+            )
+            if len(inherited_metrics) != 1:
+                return None
+            metric_matches = [(0, inherited_metrics[0])]
         ordered_metric_matches = []
         for position, matched_metric in sorted(metric_matches):
             if matched_metric not in {item[1] for item in ordered_metric_matches}:
@@ -1531,6 +1553,37 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         prior_metrics = [item for item in metric_matches if item[1] <= relative_pos]
         metric = min(prior_metrics or metric_matches)[2]
 
+        # A historical trajectory commonly writes one level at a time, then
+        # its year-over-year rate: ``$61.1B in FY2021 (+52%)``. The immediately
+        # preceding fiscal year can be an earlier sentence rather than the
+        # adjacent FY2022 level. Validate that local shape against the
+        # company/metric series before treating the percentage as an invalid
+        # derivation. A period-tagged level is required, so unsupported prose
+        # such as ``Amazon grew 73% year-over-year`` remains blocked.
+        if re.match(r"\s*[+\-\u2212]?\d+(?:[.,]\d+)?\s*%", report_md[pos : pos + 16]):
+            recent = paragraph[max(0, relative_pos - 80) : relative_pos]
+            dated_levels = list(
+                re.finditer(
+                    r"\$?(\d+(?:[.,]\d+)?)\s*(?:B|bn|billion(?:s)?)?\s+"
+                    r"(?:in|en|for)\s+FY\s*(20\d{2})\b",
+                    recent,
+                    re.I,
+                )
+            )
+            if dated_levels:
+                latest = dated_levels[-1]
+                displayed = float(latest.group(1).replace(",", "."))
+                year = int(latest.group(2))
+                current = facts.get((company.lower(), metric.lower(), f"fy{year}"))
+                previous = facts.get((company.lower(), metric.lower(), f"fy{year - 1}"))
+                if (
+                    current is not None
+                    and previous not in (None, 0)
+                    and close(displayed, current)
+                    and close(x, (current / previous - 1.0) * 100.0, tol_abs=0.6, tol_rel=0.02)
+                ):
+                    return "valid"
+
         following = report_md[pos : pos + 100]
         explicit_pair = re.search(
             r"(?:from|between)\s+FY\s*(20\d{2}).{0,30}?FY\s*(20\d{2})",
@@ -1767,6 +1820,13 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             r"arrond|rounded|rounding|concorden?t|pr[ée]sent[ée]|pr[ée]s\b|precision|pr[ée]cision|d[ée]cimal",
             report_md[max(0, pos - 70) : pos + 50].lower(),
         ):
+            continue
+        # A prose level explicitly attributable to a corpus fact stays a fact
+        # even when it sits next to a growth rate.  Run this before the
+        # derivation detector: otherwise ``$131.8B in FY2025 (+59%)`` can be
+        # misclassified as an invalid calculation rather than the FY2025 capex
+        # value plus a separate derived percentage.
+        if _fact_attribution_is_valid(val, unit, pos) is True:
             continue
         # skip correct derivations shown next to their operands (growth %, delta,
         # ratio, multiple) — first-level analysis the task explicitly asks for.
@@ -2045,6 +2105,12 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     min_tables = table_spec.get("min_tables", 0)
     length_spec = spec.get("length", {}) or {}
     min_words, max_words = length_spec.get("min_words"), length_spec.get("max_words")
+    max_words_tolerance_pct = float(length_spec.get("max_words_tolerance_pct", 0.0))
+    if not 0.0 <= max_words_tolerance_pct <= 1.0:
+        raise ValueError("length.max_words_tolerance_pct must be between 0 and 1")
+    effective_max_words = (
+        math.ceil(max_words * (1 + max_words_tolerance_pct)) if max_words is not None else None
+    )
     format_checks = []
     if req_chapters:
         format_checks.append(len(chapters_present) / len(req_chapters))
@@ -2056,7 +2122,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         format_checks.append(
             1.0
             if (min_words is None or word_count >= min_words)
-            and (max_words is None or word_count <= max_words)
+            and (effective_max_words is None or word_count <= effective_max_words)
             else 0.0
         )
     fmt = sum(format_checks) / len(format_checks) if format_checks else 1.0
@@ -2095,7 +2161,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         format_blockers.append("insufficient tables")
     if min_words is not None and word_count < min_words:
         format_blockers.append("report too short")
-    if max_words is not None and word_count > max_words:
+    if effective_max_words is not None and word_count > effective_max_words:
         format_blockers.append("report too long")
     max_unverifiable = unverifiable_spec.get("max_for_qualification")
 
@@ -2206,6 +2272,8 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             "word_count": word_count,
             "min_words": min_words,
             "max_words": max_words,
+            "max_words_tolerance_pct": max_words_tolerance_pct,
+            "effective_max_words": effective_max_words,
         },
         "source_policy": {"violations": source_violations},
         "root_cause": root_cause,

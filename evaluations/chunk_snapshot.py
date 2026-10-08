@@ -12,6 +12,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.dataprep.vector_backends import clean_for_rag
+from src.report_writer.aggregate import extract_doc_ids
 
 
 class RetrievedChunk(BaseModel):
@@ -311,9 +312,15 @@ def source_chunk_map(
         source_id = str(source.get("source_id") or "").upper()
         if not source_id:
             continue
+        # Older packs can predate support for Mistral's
+        # ``[document:chunk_index N]`` form and therefore archive an empty
+        # doc_ids field despite retaining the citation in source content.
+        # Recover only the same normalized inline identifiers used by the
+        # aggregator; resolution still requires an exact known chunk below.
+        raw_ids = source.get("doc_ids") or extract_doc_ids(str(source.get("content") or ""))
         resolved = [
             chunk_id
-            for raw_id in source.get("doc_ids") or []
+            for raw_id in raw_ids
             if (chunk_id := resolve_chunk_id(str(raw_id), valid_chunks)) is not None
         ]
         mapping[source_id] = list(dict.fromkeys(resolved))

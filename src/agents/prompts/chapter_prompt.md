@@ -11,6 +11,7 @@ On te fournit :
 Règles :
 - N'utilise QUE l'information présente dans le corpus fourni — aucune connaissance externe. Si une information manque, ne l'invente pas.
 - Concentre-toi sur l'objectif de ton chapitre. Tu peux puiser dans n'importe quelle source du corpus, pas seulement les prioritaires, si cela sert ton objectif.
+- L'objectif constitue aussi ton brief de production : respecte strictement tout budget de mots, format de table, niveau de détail ou style qui y est indiqué. Si un plafond de longueur est fourni, vérifie que ton texte le respecte et privilégie la synthèse aux détails secondaires. N'invente pas de contrainte absente du brief. Il n'y aura pas de relecture ni de réduction après l'assemblage des chapitres.
 - Cite tes sources inline avec leur identifiant, par exemple `[S2]`. Chaque affirmation importante doit être traçable à au moins une source. C'est ce qui rend le rapport vérifiable.
 - Commence directement par le contenu en markdown. Ne répète pas le titre du chapitre : il sera ajouté automatiquement lors de l'assemblage.
 - N'enveloppe PAS ta réponse dans un bloc de code (pas de ``` ni de ```markdown autour du texte) : écris le markdown directement, il est inséré tel quel dans le rapport.

@@ -369,10 +369,12 @@ async def vector_search(
     Args:
         query: La requête de recherche sémantique.
         domain_hint: Optionnel — indice de domaine pour contextualiser la recherche.
-        filenames: Optionnel — restreint la recherche à ces fichiers. Utiliser les
-            noms exacts tels que stockés dans la base de connaissances (champ
-            'filename' des entrées), pas les titres de documents. En cas de doute,
-            omettre ce paramètre (la recherche porte alors sur tout le corpus).
+        filenames: Optionnel — restreint la recherche aux fichiers explicitement
+            demandés par l'appelant. Utiliser les noms exacts tels que stockés dans
+            la base de connaissances (champ 'filename' des entrées), pas les titres
+            de documents. Sans ce paramètre, la recherche porte déjà sur tout le
+            corpus. Ce filtre ne sert pas à explorer ou améliorer la couverture
+            après un résultat ; s'il n'est pas fourni dans la tâche, l'omettre.
     """
     # Small-model robustness: gpt-oss-20b (and similar) occasionally emit
     # `filenames` as a bare string when there is only one file, breaking the

@@ -14,9 +14,10 @@ import re
 
 from ..agents.schemas import SourceDocument
 
-# Inline retrieval citations emitted by the file_search agent, e.g. "[doc_id:3]".
-# Our own "[S1]" source ids have no ":<digits>" and are intentionally not matched.
-_CITATION_RE = re.compile(r"\[([^\[\]]+?:\d+)\]")
+# Inline retrieval citations emitted by the file_search agent.  Mistral Large 4
+# renders the index label explicitly (``[doc_id:chunk_index 3]``); normalize
+# both forms to ``doc_id:3``.  Our own ``[S1]`` source ids are not matched.
+_CITATION_RE = re.compile(r"\[([^\[\]]+?):(?:chunk_index\s+)?(\d+)\]", re.I)
 
 
 def topic_from_filename(file_name: str) -> str:
@@ -36,8 +37,8 @@ def extract_doc_ids(content: str) -> list[str]:
     must treat an empty list as normal rather than an error.
     """
     seen: dict[str, None] = {}
-    for match in _CITATION_RE.findall(content):
-        seen.setdefault(match.strip(), None)
+    for document_id, chunk_index in _CITATION_RE.findall(content):
+        seen.setdefault(f"{document_id.strip()}:{chunk_index}", None)
     return list(seen)
 
 
