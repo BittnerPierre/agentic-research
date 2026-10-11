@@ -91,6 +91,11 @@ def main() -> None:
         help="préfixes output_dir à re-noter (ex: camp-mistral)",
     )
     p.add_argument("--skip-judge", action="store_true")
+    p.add_argument(
+        "--kind",
+        choices=("concept", "capex"),
+        help="ne re-noter que cet exercice (évite de toucher l'autre moitié d'une campagne)",
+    )
     p.add_argument("--control-only", action="store_true")
     args = p.parse_args()
 
@@ -113,6 +118,8 @@ def main() -> None:
             continue
         name = Path((stats.get("output_dir") or "").rstrip("/")).name
         if not any(name.startswith(pref) for pref in args.prefixes):
+            continue
+        if args.kind and args.kind not in name:
             continue
         run_dir = str(Path(sp).parent)
         ex = "ai-engineering-syllabus" if "concept" in name else "ai-capex-intensity"

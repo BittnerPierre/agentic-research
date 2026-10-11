@@ -120,8 +120,10 @@ Lire `evaluations/campaign/references/doctrines.md` AVANT de publier quoi que
 ce soit : boucle d'audit des verdicts (obligatoire, y compris pour les A
 inattendus), conduite face à un faux positif (signaler, ne pas corriger),
 exceptions post-examen, doctrines de comptage, sémantique des lettres
-(A/C/D/F/E), calibration de référence. Présentation officielle : séquence de
-lettres + couverture médiane, jamais un score unique.
+(A/C/D/F/E), calibration de référence. Présentation officielle : lettres Finance
+et deux dimensions Conceptuelles, jamais un score unique. Le Conceptuel sépare les
+14 notions validées des 2 exigences de synthèse pratique et de discipline de preuve ;
+le score historique 16 points reste une annexe.
 
 ```bash
 uv run python evaluations/campaign/scripts/compile_table.py \

@@ -14,6 +14,7 @@ from evaluations.semantic_judge import (
     ConceptualAdjudication,
     OpenAIJudgeClient,
     PrimaryVerdict,
+    RequirementAdjudication,
     StructuredCall,
     adjudicate_conceptual_run,
     adjudicate_semantic_run,
@@ -613,6 +614,49 @@ def test_apply_conceptual_judgment_replaces_lexical_authority(tmp_path: Path) ->
     assert merged["qualified"] is True
     assert merged["requirements"][0]["status"] == "pass"
     assert merged["lexical_diagnostic"]["score"] == 0.0
+
+
+def test_conceptual_dimensions_separate_notions_from_evidence_discipline() -> None:
+    requirements = [
+        RequirementAdjudication(
+            id=f"concept_{index}",
+            label=f"concept {index}",
+            critical=False,
+            final_status="pass" if index < 13 else "fail",
+            stage="ok",
+        )
+        for index in range(14)
+    ]
+    requirements += [
+        RequirementAdjudication(
+            id="practical_workflow_synthesis",
+            label="workflow",
+            critical=False,
+            final_status="pass",
+            stage="ok",
+        ),
+        RequirementAdjudication(
+            id="source_discipline",
+            label="sources",
+            critical=False,
+            final_status="fail",
+            stage="ok",
+        ),
+    ]
+    adjudication = ConceptualAdjudication(
+        status="complete",
+        qualified=False,
+        counts={"pass": 14, "fail": 2},
+        requirements=requirements,
+    )
+
+    merged = apply_conceptual_adjudication({}, adjudication)
+
+    assert merged["coverage"] == {"hit": 14, "total": 16, "pct": 0.875}
+    assert merged["conceptual_dimensions"] == {
+        "notions": {"hit": 13, "total": 14, "pct": 0.929},
+        "evidence_discipline": {"hit": 1, "total": 2, "pct": 0.5},
+    }
 
 
 def test_finance_adequacy_pass_cannot_rehabilitate_deterministic_failure() -> None:

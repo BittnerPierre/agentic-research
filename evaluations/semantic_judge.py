@@ -127,6 +127,15 @@ class ConceptualAdjudication(BaseModel):
     judge_io: list[dict] = Field(default_factory=list)
 
 
+# Le contrat conceptuel v2 comporte quatorze notions et deux exigences
+# transverses. Les séparer rend visible un écart que le seul 13/16 masquait :
+# une notion manquante n'est pas la même information qu'une synthèse ou une
+# discipline de preuve insuffisante.
+_CONCEPTUAL_EVIDENCE_REQUIREMENT_IDS = frozenset(
+    {"practical_workflow_synthesis", "source_discipline"}
+)
+
+
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -983,6 +992,30 @@ def apply_conceptual_adjudication(
         }
         for item in adjudication.requirements
     ]
+    evidence_requirements = [
+        item
+        for item in adjudication.requirements
+        if item.id in _CONCEPTUAL_EVIDENCE_REQUIREMENT_IDS
+    ]
+    concept_requirements = [
+        item
+        for item in adjudication.requirements
+        if item.id not in _CONCEPTUAL_EVIDENCE_REQUIREMENT_IDS
+    ]
+
+    def dimension(items: list[RequirementAdjudication]) -> dict[str, float | int]:
+        total = len(items)
+        hit = sum(item.final_status == "pass" for item in items)
+        return {"hit": hit, "total": total, "pct": round(hit / total, 3) if total else 0.0}
+
+    # N'émettre les deux axes que pour le contrat fermé attendu : un ancien
+    # pack ou un contrat modifié ne doit jamais recevoir une ventilation
+    # artificielle.
+    if len(concept_requirements) == 14 and len(evidence_requirements) == 2:
+        result["conceptual_dimensions"] = {
+            "notions": dimension(concept_requirements),
+            "evidence_discipline": dimension(evidence_requirements),
+        }
     total = len(adjudication.requirements)
     passed = adjudication.counts.get("pass", 0)
     result["coverage"] = {

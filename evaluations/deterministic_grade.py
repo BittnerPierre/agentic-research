@@ -2301,6 +2301,30 @@ def main() -> None:
         result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
             contract_path.read_bytes()
         )
+    elif answer_key.get("semantic_judge"):
+        # Re-correction locale : conserver l'autorité du verdict sémantique
+        # déjà archivé, sans rappeler le juge ni le candidat. Sans ce chemin,
+        # --skip-semantic-judge écrasait un score conceptuel autoritaire par le
+        # diagnostic lexical historique.
+        from .semantic_judge import (
+            ConceptualAdjudication,
+            apply_conceptual_adjudication,
+            apply_finance_adequacy_veto,
+        )
+
+        judge_path = run_dir / "semantic_judge.json"
+        if judge_path.is_file():
+            adjudication = ConceptualAdjudication.model_validate_json(judge_path.read_text())
+            if result["mode"] == "conceptual":
+                result = apply_conceptual_adjudication(result, adjudication)
+            else:
+                result = apply_finance_adequacy_veto(result, adjudication)
+            result["provenance"]["semantic_judge_sha256"] = _sha256_bytes(judge_path.read_bytes())
+            contract_path = run_dir / "adjudication_contract.json"
+            if contract_path.is_file():
+                result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
+                    contract_path.read_bytes()
+                )
     (run_dir / "det_grade.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
