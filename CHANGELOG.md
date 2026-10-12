@@ -6,6 +6,16 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ## [Unreleased]
 
+### Added
+- Mistral Large 4 and GLM-5.3 benchmark configurations through the Mistral API,
+  with LiteLLM provider routing and campaign safeguards for search, outline and
+  report-length constraints. ([#242](https://github.com/BittnerPierre/agentic-research/pull/242), closes #241)
+
+### Fixed
+- Finance grader keeps the zero-tolerance numeric gate for prose: an approximate
+  corpus number is not accepted merely because it appears next to a valid growth rate.
+  ([#242](https://github.com/BittnerPierre/agentic-research/pull/242), closes #241)
+
 ## 2026-09-07
 
 ### Added

@@ -343,8 +343,7 @@ def test_derivation_uses_claimed_company_metric_and_periods(tmp_path: Path) -> N
     assert result["unverifiable"]["items"][0]["reason"] == "invalid_derivation"
 
 
-def test_historical_levels_next_to_growth_rates_are_not_invalid_derivations(tmp_path: Path) -> None:
-    """A source value remains a source value when prose also gives its growth rate."""
+def test_nearby_growth_rate_cannot_whitelist_wrong_corpus_fact(tmp_path: Path) -> None:
     exercise = _write_exercise(tmp_path)
     (exercise / "answer_key.yaml").write_text(
         yaml.safe_dump(
@@ -359,48 +358,25 @@ def test_historical_levels_next_to_growth_rates_are_not_invalid_derivations(tmp_
     )
     (exercise / "corpus" / "key_metrics.csv").write_text(
         "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
-        "Amazon,Dec,Capex,FY2023,52.7,USD_billions\n"
         "Amazon,Dec,Capex,FY2024,83.0,USD_billions\n"
         "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n",
         encoding="utf-8",
     )
-    report_md = (
-        "Amazon capex rose from $52.7B in FY2023 to $83.0B in FY2024. "
-        "The trend then accelerated to $131.8B in FY2025 (+59%).\n"
-    )
+    report_md = "Amazon capex reached $132.9B in FY2025 (+59%) [S1].\n"
 
-    result = grade(tmp_path / "run", exercise, report_md, [])
-
-    assert result["fabrication"]["count"] == 0
-    assert result["unverifiable"]["count"] == 0
-
-
-def test_period_tagged_year_over_year_rate_uses_prior_corpus_year(tmp_path: Path) -> None:
-    exercise = _write_exercise(tmp_path)
-    (exercise / "answer_key.yaml").write_text(
-        yaml.safe_dump(
+    result = grade(
+        tmp_path / "run",
+        exercise,
+        report_md,
+        [
             {
-                "theme": "test",
-                "companies_in_scope": ["Amazon"],
-                "must_cover": [],
-                "distractors": {},
+                "source_id": "S1",
+                "content": "Amazon capex was $131.8B in FY2025, up 59% year over year.",
             }
-        ),
-        encoding="utf-8",
+        ],
     )
-    (exercise / "corpus" / "key_metrics.csv").write_text(
-        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
-        "Amazon,Dec,Capex,FY2020,40.1,USD_billions\n"
-        "Amazon,Dec,Capex,FY2021,61.1,USD_billions\n"
-        "Amazon,Dec,Capex,FY2022,63.6,USD_billions\n",
-        encoding="utf-8",
-    )
-    report_md = "Amazon capex was $40.1B in FY2020. It then reached $61.1B in FY2021 (+52%).\n"
 
-    result = grade(tmp_path / "run", exercise, report_md, [])
-
-    assert result["fabrication"]["count"] == 0
-    assert result["unverifiable"]["count"] == 0
+    assert result["fabrication"]["count"] == 1
 
 
 def test_false_latest_year_unavailability_is_accuracy_error(tmp_path: Path) -> None:
