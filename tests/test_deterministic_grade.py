@@ -155,12 +155,14 @@ def test_table_cells_parse_canonical_long_format_and_small_integer() -> None:
         "| Company | Metric | Period | Value |\n"
         "| --- | --- | --- | --- |\n"
         "| Apple | Revenue | FY2025 | 416.2 |\n"
+        "| Apple | Capital expenditures | FY2025 | 12.7 |\n"
         "| Apple | Capex/OCF | FY2025 | 11 |\n"
         "| Apple | FCF | FY2025 | (16.9) [S2] |\n"
     )
 
     assert table_cells(parse_tables(report_md), ["Apple"]) == [
         ("Apple", "Revenue", "FY2025", 416.2),
+        ("Apple", "Capex", "FY2025", 12.7),
         ("Apple", "Capex/OCF", "FY2025", 11.0),
         ("Apple", "FCF", "FY2025", -16.9),
     ]

@@ -123,6 +123,26 @@ adjustments:
     arbitre: "Pierre"
     date: "2026-09-07"
 
+  - run: "20261012_172525_gpt-5.6-sol-chroma-decomposed (bench)_decomposed"
+    campagne: "test-gpt56sol-after-246-capex-1"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 99.0
+    score_ajuste: 100.0
+    motif: >-
+      Faux négatif sur l'exigence « guidance release dates and Meta basis ».
+      Le rapport contient le tableau de guidance avec les dates Amazon
+      (Feb. 6, 2025), Alphabet (Feb. 4, 2025) et Meta (Jan. 29, 2025), puis
+      explique explicitement que la guidance Meta inclut les remboursements
+      de principal de leases alors que le capex XBRL les exclut. Le contrôle
+      marque néanmoins l'exigence absente.
+    verification: >-
+      Relecture manuelle du rapport, section Guidance vs Actuals, lignes
+      104-118 : les trois dates, la base de mesure et la non-comparabilité de
+      la variance Meta sont présentes. Couverture 42/42, 0 chiffre faux,
+      0 fabrication.
+    arbitre: "Pierre"
+    date: "2026-10-12"
+
 exclusions:
   - campagne: "camp-dsv4-capex-3"
     motif: >-

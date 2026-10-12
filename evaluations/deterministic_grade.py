@@ -252,6 +252,8 @@ METRIC_ORDER = [
     ("revenue", "Revenue"),
     ("revenus", "Revenue"),
     ("ocf", "Operating cash flow"),
+    ("capitalexpenditures", "Capex"),
+    ("capitalexpenditure", "Capex"),
     ("depensesdinvestissement", "Capex"),
     ("capex", "Capex"),
 ]
