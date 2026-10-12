@@ -6,6 +6,11 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ## [Unreleased]
 
+### Fixed
+- Finance grader reads an immediately attached guidance heading as table context without
+  weakening paragraph-level evidence requirements or exempting document-level headings.
+  ([#246](https://github.com/BittnerPierre/agentic-research/pull/246), fixes #245)
+
 ## 2026-09-07
 
 ### Added

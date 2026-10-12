@@ -1245,10 +1245,10 @@ def test_guidance_heading_context_never_accuses_actuals(tmp_path: Path) -> None:
     """A Markdown heading can carry the guidance qualifier outside the table."""
     exercise = _amazon_ratio_exercise(tmp_path)
     report_md = (
-        "# Initial FY2025 Capex Guidance — not actuals\n\n"
-        "| Company | Amount | Fiscal period | Release date |\n"
+        "## Initial FY2025 Capex Guidance\n\n"
+        "| Company | Metric | Fiscal period | Amount |\n"
         "|---|---:|---|---|\n"
-        "| Alphabet | approximately 75 | FY2025 | 2025-02-04 [S1] |\n"
+        "| Amazon | Capex | FY2025 | 75 [S1] |\n"
     )
 
     result = grade(tmp_path / "run", exercise, report_md, [])
@@ -1261,7 +1261,7 @@ def test_capex_trend_table_uses_markdown_heading_context(tmp_path: Path) -> None
     report = "\n".join(
         [
             "## Capex Trends",
-            "The table compares the earliest supplied capex endpoint with FY2025.",
+            "",
             "| Company | Earliest FY capex | FY2025 capex | Direction | Absolute change |",
             "|---|---:|---:|---|---:|",
             "| Amazon | FY2020: 40.1 | FY2025: 131.8 | increased | +91.7 |",
@@ -1277,6 +1277,34 @@ def test_capex_trend_table_uses_markdown_heading_context(tmp_path: Path) -> None
     requirements = {item["id"]: item for item in result["requirements"]}
 
     assert requirements["capex_trends"]["status"] == "pass"
+
+
+def test_distributed_requirement_words_do_not_pass_as_one_evidence_unit(tmp_path: Path) -> None:
+    report = (
+        "The capex discussion is introduced here.\n\n"
+        "FY2020 is the earliest comparison point.\n\n"
+        "FY2025 increased [S1].\n\n"
+        "This final paragraph is unrelated.\n"
+    )
+
+    result = grade(tmp_path / "run", _finance_exercise(), report, [])
+    requirements = {item["id"]: item for item in result["requirements"]}
+
+    assert requirements["capex_trends"]["status"] == "missing_or_unsupported"
+
+
+def test_document_h1_does_not_exempt_actuals_table_from_accuracy(tmp_path: Path) -> None:
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report = (
+        "# AI Capex Intensity: FY2025 Capex, Guidance and Ratios\n\n"
+        "| Company | Metric | Fiscal period | Amount |\n"
+        "|---|---:|---|---|\n"
+        "| Amazon | Capex | FY2025 | 75 [S1] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["accuracy"]["wrong"] == 1
 
 
 def test_source_discrepancy_note_with_value_is_not_false_unavailability(tmp_path: Path) -> None:
