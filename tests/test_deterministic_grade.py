@@ -1293,6 +1293,19 @@ def test_distributed_requirement_words_do_not_pass_as_one_evidence_unit(tmp_path
     assert requirements["capex_trends"]["status"] == "missing_or_unsupported"
 
 
+def test_adjacent_titles_cannot_satisfy_finance_requirement(tmp_path: Path) -> None:
+    report = (
+        "## Capex Trends\n\n"
+        "## Direction et ampleur des dépenses de capex (FY2020-FY2025)\n\n"
+        "The following section introduces the evidence.\n"
+    )
+
+    result = grade(tmp_path / "run", _finance_exercise(), report, [])
+    requirements = {item["id"]: item for item in result["requirements"]}
+
+    assert requirements["capex_trends"]["status"] == "missing_or_unsupported"
+
+
 def test_document_h1_does_not_exempt_actuals_table_from_accuracy(tmp_path: Path) -> None:
     exercise = _amazon_ratio_exercise(tmp_path)
     report = (

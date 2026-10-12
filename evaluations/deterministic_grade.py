@@ -423,10 +423,15 @@ def markdown_requirement_units(md: str) -> list[str]:
     """Keep the paragraph authority, with only immediate title/table joins."""
     visible_md = re.sub(r"```.*?```", "", md, flags=re.S)
     blocks = [block.strip() for block in re.split(r"\n\s*\n", visible_md) if block.strip()]
-    units = list(blocks)
+    # A title names a topic; it is not evidence by itself. It may qualify the
+    # immediately following prose or table, never another title.
+    units = [block for block in blocks if not re.fullmatch(r"#{1,6}\s+[^\n]+", block)]
     for index, block in enumerate(blocks[:-1]):
         next_block = blocks[index + 1]
-        if re.fullmatch(r"#{1,6}\s+[^\n]+", block):
+        next_has_non_heading_line = any(
+            line.strip() and not re.match(r"^#{1,6}\s+", line) for line in next_block.splitlines()
+        )
+        if re.fullmatch(r"#{1,6}\s+[^\n]+", block) and next_has_non_heading_line:
             units.append(f"{block}\n{next_block}")
         elif not block.lstrip().startswith("|") and next_block.lstrip().startswith("|"):
             units.append(f"{block}\n{next_block}")
