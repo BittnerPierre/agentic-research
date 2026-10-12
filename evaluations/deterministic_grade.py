@@ -380,7 +380,11 @@ def parse_tables_with_context(md: str) -> list[tuple[list[list[str]], str]]:
             # A document H1 is not a table qualifier. A lower-level heading can
             # qualify its immediately following table, with at most one prose
             # line in between.
-            context = heading if heading_level > 1 and len(intervening) <= 1 else ""
+            context = (
+                "\n".join([heading, *intervening])
+                if heading_level > 1 and len(intervening) <= 1
+                else ""
+            )
             tables.append((cur, context))
         cur = []
 
@@ -848,7 +852,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         must = ak.get("must_cover", [])
         min_explanation_words = int(ak.get("min_explanation_words", 20))
         require_citation = bool(ak.get("require_citation", True))
-        paragraphs = markdown_requirement_units(report_body)
+        paragraphs = re.split(r"\n\s*\n", report_body)
 
         def _citation_has_expected_origin(citation: str, concept: dict) -> bool:
             expected_files = concept.get("source_files") or []
@@ -1159,7 +1163,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     contradictions = sorted(set(contradictions))
 
     if mode != "conceptual":
-        paragraphs = re.split(r"\n\s*\n", report_body)
+        paragraphs = markdown_requirement_units(report_body)
         for requirement in ak.get("text_requirements") or []:
             evidence = None
             for paragraph in paragraphs:

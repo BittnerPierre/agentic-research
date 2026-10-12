@@ -1262,7 +1262,7 @@ def test_capex_trend_table_uses_markdown_heading_context(tmp_path: Path) -> None
         [
             "## Capex Trends",
             "",
-            "| Company | Earliest FY capex | FY2025 capex | Direction | Absolute change |",
+            "| Company | Earliest FY | FY2025 | Direction | Absolute change |",
             "|---|---:|---:|---|---:|",
             "| Amazon | FY2020: 40.1 | FY2025: 131.8 | increased | +91.7 |",
             "| Alphabet | FY2020: 22.3 | FY2025: 91.4 | increased | +69.1 |",
@@ -1297,6 +1297,21 @@ def test_document_h1_does_not_exempt_actuals_table_from_accuracy(tmp_path: Path)
     exercise = _amazon_ratio_exercise(tmp_path)
     report = (
         "# AI Capex Intensity: FY2025 Capex, Guidance and Ratios\n\n"
+        "| Company | Metric | Fiscal period | Amount |\n"
+        "|---|---:|---|---|\n"
+        "| Amazon | Capex | FY2025 | 75 [S1] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["accuracy"]["wrong"] == 1
+
+
+def test_reported_prose_between_guidance_heading_and_table_blocks_exemption(tmp_path: Path) -> None:
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report = (
+        "## FY2025 Guidance\n\n"
+        "Reported actuals:\n\n"
         "| Company | Metric | Fiscal period | Amount |\n"
         "|---|---:|---|---|\n"
         "| Amazon | Capex | FY2025 | 75 [S1] |\n"
