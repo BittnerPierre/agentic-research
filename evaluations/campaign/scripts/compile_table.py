@@ -103,6 +103,15 @@ def letter(det: dict, stats: dict) -> str:
     return "A"
 
 
+def has_authoritative_conceptual_dimensions(det: dict) -> bool:
+    dimensions = det.get("conceptual_dimensions") or {}
+    return (
+        det.get("score_authority") == "llm_categorical_requirement_coverage"
+        and bool((dimensions.get("notions") or {}).get("total"))
+        and bool((dimensions.get("evidence_discipline") or {}).get("total"))
+    )
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument(
@@ -130,6 +139,20 @@ def main() -> None:
                 # disparaître (Qwen a silencieusement manqué au podium).
                 print(f"!! {label}: aucun run trouvé pour {prefix}-{kind}")
                 continue
+            if kind == "concept":
+                authoritative_names = []
+                for name in names:
+                    if has_authoritative_conceptual_dimensions(runs[name][1]):
+                        authoritative_names.append(name)
+                    else:
+                        print(
+                            f"!! {name}: score conceptuel non autoritaire ou dimensions absentes; "
+                            "exclu du podium"
+                        )
+                names = authoritative_names
+                if not names:
+                    print(f"!! {label}: aucun pack conceptuel autoritaire pour {prefix}")
+                    continue
             letters, covs, notions, evidence, durs, toks, flagged = [], [], [], [], [], [], []
             for n in names:
                 _run, det, stats = runs[n]
@@ -195,9 +218,9 @@ def main() -> None:
             rows.append((key, label, letters, covs, notions, evidence, durs, toks, flagged))
 
         print(f"\n===== {title} =====")
-        # Revue Codex (exécution) #6 : en conceptuel la granularité du juge est
-        # de 6.25 pts (16 exigences) — deux médianes à ≤ 6.25 d'écart sont un
-        # ex æquo statistique, pas un classement. Le « ≈ » le rend visible.
+        # Les deux axes sont ordinaux et affichés séparément : seul le même
+        # couple de médianes est un ex æquo. Une différence d'une exigence est
+        # donc visible au lieu d'être masquée par l'ancien seuil de 6,25 points.
         prev_median = None
         for i, (_k, label, letters, covs, notions, evidence, durs, toks, flagged) in enumerate(
             sorted(rows), 1

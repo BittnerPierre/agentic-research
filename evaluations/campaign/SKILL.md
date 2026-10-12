@@ -124,6 +124,10 @@ exceptions post-examen, doctrines de comptage, sémantique des lettres
 et deux dimensions Conceptuelles, jamais un score unique. Le Conceptuel sépare les
 14 notions validées des 2 exigences de synthèse pratique et de discipline de preuve ;
 le score historique 16 points reste une annexe.
+Une re-notation --skip-judge réutilise seulement un verdict archivé dont les empreintes
+du rapport, de l'answer key et de la spec correspondent ; sinon elle échoue avant
+d'écrire un score lexical. Les packs conceptuels sans autorité sémantique ou dimensions
+sont exclus du tableau avec une alerte visible.
 
 ```bash
 uv run python evaluations/campaign/scripts/compile_table.py \

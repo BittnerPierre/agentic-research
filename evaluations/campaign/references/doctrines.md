@@ -94,6 +94,12 @@ non aboutie. Les lettres ne s'agrègent pas : on montre la séquence (la
 variance à l'œil nu). Podium Finance trié F > D > C > couverture. Le tableau
 Conceptuel sépare les 14 notions validées des 2 exigences de synthèse pratique et
 de discipline de preuve ; le score historique 16 points reste disponible en annexe.
+Un ex æquo Conceptuel exige les mêmes médianes sur les deux axes : une exigence de
+différence doit rester visible, pas être absorbée par le score historique.
+
+Une re-notation sans juge ne peut réutiliser qu'un verdict archivé dont les empreintes
+du rapport, de l'answer key et de la spec correspondent à l'entrée courante. Un pack
+sans verdict sémantique autoritaire ou sans dimensions est exclu du podium avec alerte.
 
 ## 5. Résultats de référence (calibration)
 

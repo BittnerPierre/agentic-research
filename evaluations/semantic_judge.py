@@ -127,13 +127,20 @@ class ConceptualAdjudication(BaseModel):
     judge_io: list[dict] = Field(default_factory=list)
 
 
-# Le contrat conceptuel v2 comporte quatorze notions et deux exigences
-# transverses. Les séparer rend visible un écart que le seul 13/16 masquait :
-# une notion manquante n'est pas la même information qu'une synthèse ou une
-# discipline de preuve insuffisante.
-_CONCEPTUAL_EVIDENCE_REQUIREMENT_IDS = frozenset(
-    {"practical_workflow_synthesis", "source_discipline"}
-)
+def dimension_requirements(answer_key: dict) -> dict[str, list[str]]:
+    """Derive conceptual dimensions from the rubric sections, never fixed IDs."""
+    section_labels = {
+        "must_cover": "notions",
+        "report_requirements": "evidence_discipline",
+    }
+    judge = answer_key.get("semantic_judge") or {}
+    dimensions: dict[str, list[str]] = {}
+    for section in judge.get("requirement_sections") or []:
+        requirements = answer_key.get(section) or []
+        ids = [requirement.get("id") for requirement in requirements if requirement.get("id")]
+        if ids:
+            dimensions[section_labels.get(section, section)] = ids
+    return dimensions
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -876,6 +883,7 @@ async def adjudicate_semantic_run(
     requirements = [
         requirement for section_payload in section_payloads for requirement in section_payload
     ]
+    contract["dimension_requirements"] = dimension_requirements(answer_key)
     requirement_ids = [requirement.get("id") for requirement in requirements]
     if not requirements or any(not requirement_id for requirement_id in requirement_ids):
         return ConceptualAdjudication(
@@ -992,32 +1000,22 @@ def apply_conceptual_adjudication(
         }
         for item in adjudication.requirements
     ]
-    evidence_requirements = [
-        item
-        for item in adjudication.requirements
-        if item.id in _CONCEPTUAL_EVIDENCE_REQUIREMENT_IDS
-    ]
-    concept_requirements = [
-        item
-        for item in adjudication.requirements
-        if item.id not in _CONCEPTUAL_EVIDENCE_REQUIREMENT_IDS
-    ]
 
     def dimension(items: list[RequirementAdjudication]) -> dict[str, float | int]:
         total = len(items)
         hit = sum(item.final_status == "pass" for item in items)
         return {"hit": hit, "total": total, "pct": round(hit / total, 3) if total else 0.0}
 
-    # N'émettre les deux axes que pour le contrat fermé attendu : un ancien
-    # pack ou un contrat modifié ne doit jamais recevoir une ventilation
-    # artificielle.
-    if len(concept_requirements) == 14 and len(evidence_requirements) == 2:
-        result["conceptual_dimensions"] = {
-            "notions": dimension(concept_requirements),
-            "evidence_discipline": dimension(evidence_requirements),
-        }
+    by_id = {item.id: item for item in adjudication.requirements}
+    dimensions = {
+        name: dimension([by_id[item_id] for item_id in ids if item_id in by_id])
+        for name, ids in (adjudication.contract.get("dimension_requirements") or {}).items()
+        if ids and all(item_id in by_id for item_id in ids)
+    }
+    if dimensions:
+        result["conceptual_dimensions"] = dimensions
     total = len(adjudication.requirements)
-    passed = adjudication.counts.get("pass", 0)
+    passed = sum(item.final_status == "pass" for item in adjudication.requirements)
     result["coverage"] = {
         "hit": passed,
         "total": total,

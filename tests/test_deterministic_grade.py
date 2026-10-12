@@ -12,9 +12,11 @@ from evaluations.deterministic_grade import (
     extract_numbers,
     grade,
     parse_tables,
+    reuse_archived_adjudication,
     table_cells,
     to_float,
 )
+from evaluations.semantic_judge import ConceptualAdjudication
 
 
 def _write_exercise(tmp_path: Path, *, mode: str = "numeric") -> Path:
@@ -768,6 +770,33 @@ def test_grade_records_reproducibility_hashes(tmp_path: Path) -> None:
         "sources_sha256",
     }
     assert all(len(value) == 64 for value in result["provenance"].values())
+
+
+def test_reuse_archived_adjudication_requires_matching_input_hashes(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    run = tmp_path / "run"
+    run.mkdir()
+    result = grade(run, exercise, "Agent memory [S1].", [{"source_id": "S1", "content": "x"}])
+    contract = {
+        key: result["provenance"][key]
+        for key in ("report_sha256", "answer_key_sha256", "spec_sha256")
+    }
+    adjudication = ConceptualAdjudication(status="complete", qualified=True, contract=contract)
+    (run / "semantic_judge.json").write_text(adjudication.model_dump_json(), encoding="utf-8")
+
+    assert reuse_archived_adjudication(result, run).status == "complete"
+
+    result["provenance"]["report_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="report_sha256"):
+        reuse_archived_adjudication(result, run)
+
+
+def test_reuse_archived_adjudication_rejects_missing_verdict(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    result = grade(tmp_path / "run", exercise, "Agent memory [S1].", [])
+
+    with pytest.raises(ValueError, match="archived semantic verdict is unavailable"):
+        reuse_archived_adjudication(result, tmp_path / "run")
 
 
 def test_finance_manifest_matches_committed_corpus() -> None:

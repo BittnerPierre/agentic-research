@@ -35,6 +35,11 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
+def exercise_kind(run_name: str) -> str:
+    """Keep selection consistent with the grader's historical name routing."""
+    return "concept" if "concept" in run_name else "capex"
+
+
 def check_suite() -> bool:
     r = run(["uv", "run", "pytest", "-q"])
     ok = " failed" not in r.stdout and "error" not in r.stdout.lower()
@@ -119,10 +124,10 @@ def main() -> None:
         name = Path((stats.get("output_dir") or "").rstrip("/")).name
         if not any(name.startswith(pref) for pref in args.prefixes):
             continue
-        if args.kind and args.kind not in name:
+        if args.kind and args.kind != exercise_kind(name):
             continue
         run_dir = str(Path(sp).parent)
-        ex = "ai-engineering-syllabus" if "concept" in name else "ai-capex-intensity"
+        ex = "ai-engineering-syllabus" if exercise_kind(name) == "concept" else "ai-capex-intensity"
         cmd = [
             "uv",
             "run",

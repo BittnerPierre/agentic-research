@@ -648,6 +648,15 @@ def test_conceptual_dimensions_separate_notions_from_evidence_discipline() -> No
         qualified=False,
         counts={"pass": 14, "fail": 2},
         requirements=requirements,
+        contract={
+            "dimension_requirements": {
+                "notions": [f"concept_{index}" for index in range(14)],
+                "evidence_discipline": [
+                    "practical_workflow_synthesis",
+                    "source_discipline",
+                ],
+            }
+        },
     )
 
     merged = apply_conceptual_adjudication({}, adjudication)

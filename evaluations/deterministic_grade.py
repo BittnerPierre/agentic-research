@@ -667,6 +667,32 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def reuse_archived_adjudication(result: dict, run_dir: Path):
+    """Load an archived semantic verdict only when it matches this grading input."""
+    from .semantic_judge import ConceptualAdjudication
+
+    judge_path = run_dir / "semantic_judge.json"
+    if not judge_path.is_file():
+        raise ValueError("archived semantic verdict is unavailable; refusing lexical fallback")
+    adjudication = ConceptualAdjudication.model_validate_json(
+        judge_path.read_text(encoding="utf-8")
+    )
+    archived = adjudication.contract
+    current = result["provenance"]
+    required_hashes = ("report_sha256", "answer_key_sha256", "spec_sha256")
+    mismatches = [
+        name
+        for name in required_hashes
+        if not archived.get(name) or archived.get(name) != current.get(name)
+    ]
+    if mismatches:
+        raise ValueError(
+            "archived semantic verdict does not match current grading input: "
+            + ", ".join(mismatches)
+        )
+    return adjudication
+
+
 def _hash_tree(path: Path) -> str:
     digest = hashlib.sha256()
     if not path.is_dir():
@@ -2239,7 +2265,7 @@ def main() -> None:
         "--skip-concept-judge",
         dest="skip_semantic_judge",
         action="store_true",
-        help="emit non-qualifying diagnostics without calling the semantic judge",
+        help="reuse a matching archived semantic verdict without calling the judge",
     )
     p.add_argument(
         "--judge-concurrency",
@@ -2262,69 +2288,62 @@ def main() -> None:
 
     result = grade(run_dir, exercise, report_md, sources)
     answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8")) or {}
-    if answer_key.get("semantic_judge") and not args.skip_semantic_judge:
+    adjudication = None
+    semantic_judge_reused = False
+    if answer_key.get("semantic_judge"):
         from .semantic_judge import (
-            adjudicate_semantic_run,
             apply_conceptual_adjudication,
             apply_finance_adequacy_veto,
+            dimension_requirements,
         )
 
-        adjudication = asyncio.run(
-            adjudicate_semantic_run(
-                run_dir=run_dir,
-                exercise=exercise,
-                report=report_md,
-                sources=sources,
-                request=str(stats.get("query") or ""),
-                concurrency=args.judge_concurrency,
+        if args.skip_semantic_judge:
+            adjudication = reuse_archived_adjudication(result, run_dir)
+            # Les archives v2 antérieures à cette ventilation n'avaient pas
+            # encore ce champ, mais leur answer key est vérifiée ci-dessus.
+            adjudication.contract.setdefault(
+                "dimension_requirements", dimension_requirements(answer_key)
             )
-        )
-        judge_path = run_dir / "semantic_judge.json"
-        judge_path.write_text(
-            json.dumps(adjudication.model_dump(mode="json"), ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        contract_path = run_dir / "adjudication_contract.json"
-        contract_path.write_text(
-            json.dumps(
-                {"contract": adjudication.contract, "judge": adjudication.judge},
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+            semantic_judge_reused = True
+        else:
+            from .semantic_judge import adjudicate_semantic_run
+
+            adjudication = asyncio.run(
+                adjudicate_semantic_run(
+                    run_dir=run_dir,
+                    exercise=exercise,
+                    report=report_md,
+                    sources=sources,
+                    request=str(stats.get("query") or ""),
+                    concurrency=args.judge_concurrency,
+                )
+            )
+            judge_path = run_dir / "semantic_judge.json"
+            judge_path.write_text(
+                json.dumps(adjudication.model_dump(mode="json"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            contract_path = run_dir / "adjudication_contract.json"
+            contract_path.write_text(
+                json.dumps(
+                    {"contract": adjudication.contract, "judge": adjudication.judge},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
         if result["mode"] == "conceptual":
             result = apply_conceptual_adjudication(result, adjudication)
         else:
             result = apply_finance_adequacy_veto(result, adjudication)
-        result["provenance"]["semantic_judge_sha256"] = _sha256_bytes(judge_path.read_bytes())
-        result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
-            contract_path.read_bytes()
-        )
-    elif answer_key.get("semantic_judge"):
-        # Re-correction locale : conserver l'autorité du verdict sémantique
-        # déjà archivé, sans rappeler le juge ni le candidat. Sans ce chemin,
-        # --skip-semantic-judge écrasait un score conceptuel autoritaire par le
-        # diagnostic lexical historique.
-        from .semantic_judge import (
-            ConceptualAdjudication,
-            apply_conceptual_adjudication,
-            apply_finance_adequacy_veto,
-        )
-
         judge_path = run_dir / "semantic_judge.json"
-        if judge_path.is_file():
-            adjudication = ConceptualAdjudication.model_validate_json(judge_path.read_text())
-            if result["mode"] == "conceptual":
-                result = apply_conceptual_adjudication(result, adjudication)
-            else:
-                result = apply_finance_adequacy_veto(result, adjudication)
-            result["provenance"]["semantic_judge_sha256"] = _sha256_bytes(judge_path.read_bytes())
-            contract_path = run_dir / "adjudication_contract.json"
-            if contract_path.is_file():
-                result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
-                    contract_path.read_bytes()
-                )
+        result["provenance"]["semantic_judge_sha256"] = _sha256_bytes(judge_path.read_bytes())
+        contract_path = run_dir / "adjudication_contract.json"
+        if contract_path.is_file():
+            result["provenance"]["adjudication_contract_sha256"] = _sha256_bytes(
+                contract_path.read_bytes()
+            )
+        result["provenance"]["semantic_judge_reused"] = semantic_judge_reused
     (run_dir / "det_grade.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
