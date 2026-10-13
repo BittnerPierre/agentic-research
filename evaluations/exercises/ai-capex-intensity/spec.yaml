@@ -32,6 +32,7 @@ tone:
 length:
   min_words: 500
   max_words: 1800
+  max_words_tolerance_pct: 0.05
 
 unverifiable_claims:
   per_item_penalty: 1

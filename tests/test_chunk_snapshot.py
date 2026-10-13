@@ -115,6 +115,31 @@ def test_source_chunk_map_resolves_prefixed_short_document_ids(tmp_path: Path) -
     assert mapping == {"S1": ["abcdef12-3456:0"], "S2": []}
 
 
+def test_source_chunk_map_recovers_mistral_citation_from_legacy_source_content(
+    tmp_path: Path,
+) -> None:
+    exercise, text = _exercise_with_source(tmp_path)
+    chunk = _chunk(text)
+    validation = validate_chunk_snapshot(
+        ChunkSnapshot(schema_version=1, chunks=[chunk]),
+        exercise,
+        tmp_path / "runs" / "run",
+    )
+
+    mapping = source_chunk_map(
+        [
+            {
+                "source_id": "S4",
+                "doc_ids": [],
+                "content": "Frozen guidance [abcdef12-3456:chunk_index 0].",
+            }
+        ],
+        validation.valid_chunks,
+    )
+
+    assert mapping == {"S4": ["abcdef12-3456:0"]}
+
+
 def test_chunk_snapshot_rejects_payload_hash_mismatch(tmp_path: Path) -> None:
     exercise, text = _exercise_with_source(tmp_path)
     chunk = _chunk(text).model_copy(update={"sha256": "0" * 64})
