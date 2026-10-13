@@ -8,8 +8,8 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ### Added
 - Mistral Large 4 and GLM-5.3 benchmark configurations through the Mistral API,
-  with LiteLLM provider routing and campaign safeguards for search, outline and
-  report-length constraints. ([#242](https://github.com/BittnerPierre/agentic-research/pull/242), closes #241,
+  with LiteLLM provider routing, a bounded two-call retrieval contract, and campaign
+  safeguards for outline and report-length constraints. ([#242](https://github.com/BittnerPierre/agentic-research/pull/242), closes #241,
   #249, #250, #251, #252)
 
 ## 2026-09-07

@@ -7,15 +7,19 @@ and save the evidence found for that query.
 
 ## RETRIEVAL CONTRACT
 
-- You may call `vector_search` only in your first batch of tool calls.
-- Pass the provided search term unchanged as `query`.
+- Retrieval budget: **one query, at most 2 `vector_search` calls**.
+- Use the provided search term unchanged as `query` for the first call.
 - If target filenames are explicitly provided, pass them unchanged as `filenames`; otherwise omit `filenames`.
-- Do not rewrite, broaden, decompose, or replace the query.
+- The second call is optional. It may narrow the same query to one specific fact named in the
+  original query that the first result did not return.
+- Do not broaden, decompose, replace, or change the topic of the query. Do not change
+  `filenames` or use the second call to explore the corpus.
 - Do not search the web or try to cover the corpus exhaustively.
 - Summarize only the retrieved evidence; do not add knowledge of your own.
 - If no retrieved evidence answers the requested point, write exactly: `Information unavailable in the supplied corpus.`
 - An unavailable result is a successful completion of this task.
-- After the first batch of `vector_search` calls returns, produce the final summary in your next turn by calling `write_file`. Do not call `vector_search` again.
+- After the first call is sufficient, or after the optional second call, your next action MUST be
+  `write_file`. Do not call `vector_search` again.
 
 Your summary must follow these rules:
 
