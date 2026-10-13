@@ -157,15 +157,59 @@ def test_table_cells_parse_canonical_long_format_and_small_integer() -> None:
         "| Company | Metric | Period | Value |\n"
         "| --- | --- | --- | --- |\n"
         "| Apple | Revenue | FY2025 | 416.2 |\n"
+        "| Apple | Capital expenditures | FY2025 | 12.7 |\n"
         "| Apple | Capex/OCF | FY2025 | 11 |\n"
         "| Apple | FCF | FY2025 | (16.9) [S2] |\n"
     )
 
     assert table_cells(parse_tables(report_md), ["Apple"]) == [
         ("Apple", "Revenue", "FY2025", 416.2),
+        ("Apple", "Capex", "FY2025", 12.7),
         ("Apple", "Capex/OCF", "FY2025", 11.0),
         ("Apple", "FCF", "FY2025", -16.9),
     ]
+
+
+def test_capex_operating_cash_flow_ratio_is_not_misread_as_capex(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    (exercise / "corpus" / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Apple,Sep,Capex,FY2025,12.7,USD_billions\n"
+        "Apple,Sep,Capex/OCF,FY2025,11,percent\n",
+        encoding="utf-8",
+    )
+    report_md = (
+        "| Company | Metric | Period | Value |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Apple | Capital Expenditures (Capex) | FY2025 | 12.7 |\n"
+        "| Apple | Capex/Operating-Cash-Flow Ratio | FY2025 | 11% |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_length_tolerance_is_explicit_and_applies_only_to_declared_maximum(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path, mode="conceptual")
+    spec_path = exercise / "spec.yaml"
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+    spec["length"] = {"min_words": 1, "max_words": 20, "max_words_tolerance_pct": 0.05}
+    spec_path.write_text(yaml.safe_dump(spec), encoding="utf-8")
+    sources = [{"source_id": "S1", "content": "Agent memory retains prior context."}]
+
+    within_tolerance = grade(
+        tmp_path / "run-within", exercise, "Agent memory [S1] " + "word " * 18, sources
+    )
+    beyond_tolerance = grade(
+        tmp_path / "run-beyond", exercise, "Agent memory [S1] " + "word " * 19, sources
+    )
+
+    assert within_tolerance["format"]["word_count"] == 21
+    assert within_tolerance["format"]["effective_max_words"] == 21
+    assert "report too long" not in within_tolerance["qualification"]["format_blockers"]
+    assert beyond_tolerance["format"]["word_count"] == 22
+    assert "report too long" in beyond_tolerance["qualification"]["format_blockers"]
 
 
 def test_combined_table_assists_coverage_but_never_accuses() -> None:
@@ -301,6 +345,42 @@ def test_derivation_uses_claimed_company_metric_and_periods(tmp_path: Path) -> N
     assert result["fabrication"]["count"] == 0
     assert [item["value"] for item in result["unverifiable"]["items"]] == [3.3]
     assert result["unverifiable"]["items"][0]["reason"] == "invalid_derivation"
+
+
+def test_nearby_growth_rate_cannot_whitelist_wrong_corpus_fact(tmp_path: Path) -> None:
+    exercise = _write_exercise(tmp_path)
+    (exercise / "answer_key.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "theme": "test",
+                "companies_in_scope": ["Amazon"],
+                "must_cover": [],
+                "distractors": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (exercise / "corpus" / "key_metrics.csv").write_text(
+        "Company,FYE_basis,Metric,FiscalYear,Value,Unit\n"
+        "Amazon,Dec,Capex,FY2024,83.0,USD_billions\n"
+        "Amazon,Dec,Capex,FY2025,131.8,USD_billions\n",
+        encoding="utf-8",
+    )
+    report_md = "Amazon capex reached $132.9B in FY2025 (+59%) [S1].\n"
+
+    result = grade(
+        tmp_path / "run",
+        exercise,
+        report_md,
+        [
+            {
+                "source_id": "S1",
+                "content": "Amazon capex was $131.8B in FY2025, up 59% year over year.",
+            }
+        ],
+    )
+
+    assert result["fabrication"]["count"] == 1
 
 
 def test_false_latest_year_unavailability_is_accuracy_error(tmp_path: Path) -> None:
@@ -1268,6 +1348,100 @@ def test_guidance_table_rows_never_accuse_actuals(tmp_path: Path) -> None:
     result = grade(tmp_path / "run", exercise, report_md, [])
 
     assert result["accuracy"]["wrong"] == 0
+
+
+def test_guidance_heading_context_never_accuses_actuals(tmp_path: Path) -> None:
+    """A Markdown heading can carry the guidance qualifier outside the table."""
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report_md = (
+        "## Initial FY2025 Capex Guidance\n\n"
+        "| Company | Metric | Fiscal period | Amount |\n"
+        "|---|---:|---|---|\n"
+        "| Amazon | Capex | FY2025 | 75 [S1] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report_md, [])
+
+    assert result["accuracy"]["wrong"] == 0
+
+
+def test_capex_trend_table_uses_markdown_heading_context(tmp_path: Path) -> None:
+    """A heading plus its table satisfies the six-company trend requirement."""
+    report = "\n".join(
+        [
+            "## Capex Trends",
+            "",
+            "| Company | Earliest FY | FY2025 | Direction | Absolute change |",
+            "|---|---:|---:|---|---:|",
+            "| Amazon | FY2020: 40.1 | FY2025: 131.8 | increased | +91.7 |",
+            "| Alphabet | FY2020: 22.3 | FY2025: 91.4 | increased | +69.1 |",
+            "| Meta | FY2020: 15.2 | FY2025: 69.7 | increased | +54.5 |",
+            "| Microsoft | FY2020: 15.4 | FY2025: 64.6 | increased | +49.2 |",
+            "| NVIDIA | FY2022: 1.0 | FY2025: 3.2 | increased | +2.2 |",
+            "| Apple | FY2020: 7.3 | FY2025: 12.7 | increased | +5.4 [S1] |",
+        ]
+    )
+
+    result = grade(tmp_path / "run", _finance_exercise(), report, [])
+    requirements = {item["id"]: item for item in result["requirements"]}
+
+    assert requirements["capex_trends"]["status"] == "pass"
+
+
+def test_distributed_requirement_words_do_not_pass_as_one_evidence_unit(tmp_path: Path) -> None:
+    report = (
+        "The capex discussion is introduced here.\n\n"
+        "FY2020 is the earliest comparison point.\n\n"
+        "FY2025 increased [S1].\n\n"
+        "This final paragraph is unrelated.\n"
+    )
+
+    result = grade(tmp_path / "run", _finance_exercise(), report, [])
+    requirements = {item["id"]: item for item in result["requirements"]}
+
+    assert requirements["capex_trends"]["status"] == "missing_or_unsupported"
+
+
+def test_adjacent_titles_cannot_satisfy_finance_requirement(tmp_path: Path) -> None:
+    report = (
+        "## Capex Trends\n\n"
+        "## Direction et ampleur des dépenses de capex (FY2020-FY2025)\n\n"
+        "The following section introduces the evidence.\n"
+    )
+
+    result = grade(tmp_path / "run", _finance_exercise(), report, [])
+    requirements = {item["id"]: item for item in result["requirements"]}
+
+    assert requirements["capex_trends"]["status"] == "missing_or_unsupported"
+
+
+def test_document_h1_does_not_exempt_actuals_table_from_accuracy(tmp_path: Path) -> None:
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report = (
+        "# AI Capex Intensity: FY2025 Capex, Guidance and Ratios\n\n"
+        "| Company | Metric | Fiscal period | Amount |\n"
+        "|---|---:|---|---|\n"
+        "| Amazon | Capex | FY2025 | 75 [S1] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["accuracy"]["wrong"] == 1
+
+
+def test_reported_prose_between_guidance_heading_and_table_blocks_exemption(tmp_path: Path) -> None:
+    exercise = _amazon_ratio_exercise(tmp_path)
+    report = (
+        "## FY2025 Guidance\n\n"
+        "Reported actuals:\n\n"
+        "| Company | Metric | Fiscal period | Amount |\n"
+        "|---|---:|---|---|\n"
+        "| Amazon | Capex | FY2025 | 75 [S1] |\n"
+    )
+
+    result = grade(tmp_path / "run", exercise, report, [])
+
+    assert result["accuracy"]["wrong"] == 1
 
 
 def test_source_discrepancy_note_with_value_is_not_false_unavailability(tmp_path: Path) -> None:

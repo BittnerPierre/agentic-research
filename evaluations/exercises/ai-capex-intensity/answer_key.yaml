@@ -123,7 +123,7 @@ adequacy_requirements:
       - Covers all six companies with the correct year-end grouping.
     critical_errors:
       - States or implies that all six FY2025 periods are calendar-year comparable.
-    source_files: [analyst_prep_notes.md, misc_disclosures.md]
+    source_files: [analyst_prep_notes.md, capex_reference_data.md, misc_disclosures.md]
   - id: capex_trend_adequacy
     concept: "six-company capex trend analysis"
     expected_answer: >-
