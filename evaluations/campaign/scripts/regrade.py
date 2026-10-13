@@ -70,7 +70,7 @@ def check_control() -> bool:
             "evaluations/exercises/ai-capex-intensity",
             "--report",
             CONTROL_REPORT,
-            "--skip-semantic-judge",
+            "--disable-semantic-judge",
         ]
     )
     m = re.search(r"ZERO TOL\): (\d+)", r.stdout)

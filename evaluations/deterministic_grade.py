@@ -2354,12 +2354,19 @@ def main() -> None:
         help="reuse a matching archived semantic verdict without calling the judge",
     )
     p.add_argument(
+        "--disable-semantic-judge",
+        action="store_true",
+        help="disable semantic judging entirely (for deterministic controls only)",
+    )
+    p.add_argument(
         "--judge-concurrency",
         type=int,
         default=4,
         help="maximum concurrent semantic judge calls",
     )
     args = p.parse_args()
+    if args.skip_semantic_judge and args.disable_semantic_judge:
+        p.error("--skip-semantic-judge and --disable-semantic-judge are mutually exclusive")
 
     run_dir = Path(args.run_dir)
     exercise = Path(args.exercise)
@@ -2376,7 +2383,7 @@ def main() -> None:
     answer_key = yaml.safe_load((exercise / "answer_key.yaml").read_text(encoding="utf-8")) or {}
     adjudication = None
     semantic_judge_reused = False
-    if answer_key.get("semantic_judge"):
+    if answer_key.get("semantic_judge") and not args.disable_semantic_judge:
         from .semantic_judge import (
             apply_conceptual_adjudication,
             apply_finance_adequacy_veto,
