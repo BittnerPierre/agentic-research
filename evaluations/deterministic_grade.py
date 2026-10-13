@@ -25,6 +25,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import math
 import re
 import unicodedata
 from itertools import pairwise
@@ -227,6 +228,8 @@ def alternate_comma_value(text: str, pos: int) -> float | None:
 # Keys are space-stripped + de-accented, ordered most-specific-first (EN + FR), so
 # "capex/ocf"/"intensite" wins over "capex", "disponible"(FCF) over generic "flux".
 METRIC_ORDER = [
+    ("capex/operating-cash-flowratio", "Capex/OCF"),
+    ("capex/operatingcashflowratio", "Capex/OCF"),
     ("capexintensity", "Capex/OCF"),
     ("intensitecapex", "Capex/OCF"),
     ("intensite", "Capex/OCF"),
@@ -297,6 +300,8 @@ METRIC_ALIASES = {
     "FCF": ("free cash flow", "fcf", "flux de tresorerie disponible"),
     "Capex/OCF": (
         "capex/ocf",
+        "capex/operating-cash-flow ratio",
+        "capex/operating cash flow ratio",
         "capex intensity",
         "capex intensity ratio",
         "capex as % ocf",
@@ -2118,6 +2123,12 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
     min_tables = table_spec.get("min_tables", 0)
     length_spec = spec.get("length", {}) or {}
     min_words, max_words = length_spec.get("min_words"), length_spec.get("max_words")
+    max_words_tolerance_pct = float(length_spec.get("max_words_tolerance_pct", 0.0))
+    if not 0.0 <= max_words_tolerance_pct <= 1.0:
+        raise ValueError("length.max_words_tolerance_pct must be between 0 and 1")
+    effective_max_words = (
+        math.ceil(max_words * (1 + max_words_tolerance_pct)) if max_words is not None else None
+    )
     format_checks = []
     if req_chapters:
         format_checks.append(len(chapters_present) / len(req_chapters))
@@ -2129,7 +2140,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         format_checks.append(
             1.0
             if (min_words is None or word_count >= min_words)
-            and (max_words is None or word_count <= max_words)
+            and (effective_max_words is None or word_count <= effective_max_words)
             else 0.0
         )
     fmt = sum(format_checks) / len(format_checks) if format_checks else 1.0
@@ -2168,7 +2179,7 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
         format_blockers.append("insufficient tables")
     if min_words is not None and word_count < min_words:
         format_blockers.append("report too short")
-    if max_words is not None and word_count > max_words:
+    if effective_max_words is not None and word_count > effective_max_words:
         format_blockers.append("report too long")
     max_unverifiable = unverifiable_spec.get("max_for_qualification")
 
@@ -2279,6 +2290,8 @@ def grade(run_dir: Path, exercise: Path, report_md: str, sources: list[dict]) ->
             "word_count": word_count,
             "min_words": min_words,
             "max_words": max_words,
+            "max_words_tolerance_pct": max_words_tolerance_pct,
+            "effective_max_words": effective_max_words,
         },
         "source_policy": {"violations": source_violations},
         "root_cause": root_cause,
