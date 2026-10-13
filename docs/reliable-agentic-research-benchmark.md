@@ -690,11 +690,11 @@ après une exception post-examen explicitement versionnée. Les lettres ne sont 
 moyennées : leur séquence expose directement la variance.
 
 Ces lettres s'appliquent **uniquement à la Finance**, où leur définition repose sur la
-porte numérique déterministe. Le Conceptuel est publié en couverture seulement ; il
-ne recevra des lettres que lorsqu'elles pourront être dérivées des verdicts du juge
-sémantique et du contradicteur.
+porte numérique déterministe. Le Conceptuel ne reçoit pas de lettres : il distingue
+les 14 notions validées des 2 exigences transverses de synthèse pratique et de
+discipline de preuve. Le score historique sur 16 reste publié pour comparaison.
 
-| Modèle | Finance : confiance | Finance : couverture médiane | Conceptuel : couverture médiane |
+| Modèle | Finance : confiance | Finance : couverture médiane | Conceptuel : score historique |
 |---|---|---:|---:|
 | DeepSeek-V4-Flash | A* A A* A A | 100 % | 75,0 % |
 | gpt-5.1 | A A A A A | 100 % | 62,5 % |
@@ -706,7 +706,8 @@ sémantique et du contradicteur.
 | Qwen3.6 | A A F F A | 97,6 % | 12,5 % |
 
 Le score conceptuel mesure ce que le modèle sait **prouver depuis les sources**, pas
-tout ce qu'il sait. DeepSeek illustre aussi pourquoi les conventions d'interface font
+tout ce qu'il sait. La séparation notions/preuve évite de confondre une explication
+manquante avec une synthèse ou une discipline de citation insuffisante. DeepSeek illustre aussi pourquoi les conventions d'interface font
 partie du benchmark : ses agents citaient correctement des identifiants
 `filename:index`, que le résolveur initial ne reconnaissait pas. Une résolution
 déterministe non ambiguë a permis de re-noter les packs, faisant passer sa médiane de

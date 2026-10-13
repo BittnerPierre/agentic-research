@@ -103,6 +103,15 @@ def letter(det: dict, stats: dict) -> str:
     return "A"
 
 
+def has_authoritative_conceptual_dimensions(det: dict) -> bool:
+    dimensions = det.get("conceptual_dimensions") or {}
+    return (
+        det.get("score_authority") == "llm_categorical_requirement_coverage"
+        and bool((dimensions.get("notions") or {}).get("total"))
+        and bool((dimensions.get("evidence_discipline") or {}).get("total"))
+    )
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument(
@@ -130,7 +139,21 @@ def main() -> None:
                 # disparaître (Qwen a silencieusement manqué au podium).
                 print(f"!! {label}: aucun run trouvé pour {prefix}-{kind}")
                 continue
-            letters, covs, durs, toks, flagged = [], [], [], [], []
+            if kind == "concept":
+                authoritative_names = []
+                for name in names:
+                    if has_authoritative_conceptual_dimensions(runs[name][1]):
+                        authoritative_names.append(name)
+                    else:
+                        print(
+                            f"!! {name}: score conceptuel non autoritaire ou dimensions absentes; "
+                            "exclu du podium"
+                        )
+                names = authoritative_names
+                if not names:
+                    print(f"!! {label}: aucun pack conceptuel autoritaire pour {prefix}")
+                    continue
+            letters, covs, notions, evidence, durs, toks, flagged = [], [], [], [], [], [], []
             for n in names:
                 _run, det, stats = runs[n]
                 let = letter(det, stats)
@@ -147,6 +170,11 @@ def main() -> None:
                 cov = det.get("coverage") or {}
                 if cov.get("total"):
                     covs.append(cov["hit"] / cov["total"] * 100)
+                dimensions = det.get("conceptual_dimensions") or {}
+                for key, values in (("notions", notions), ("evidence_discipline", evidence)):
+                    dimension = dimensions.get(key) or {}
+                    if dimension.get("total"):
+                        values.append(dimension["hit"] / dimension["total"] * 100)
                 t = (stats.get("timings") or {}).get("total")
                 if t:
                     durs.append(t)
@@ -179,15 +207,24 @@ def main() -> None:
                     -(statistics.median(covs) if covs else 0),
                 )
             else:
-                key = (-(statistics.median(covs) if covs else 0),)
-            rows.append((key, label, letters, covs, durs, toks, flagged))
+                # La couverture historique 16 points reste un repère, mais le
+                # classement exprime d'abord les 14 notions puis les deux
+                # exigences transverses de preuve et de synthèse.
+                key = (
+                    -(statistics.median(notions) if notions else 0),
+                    -(statistics.median(evidence) if evidence else 0),
+                    -(statistics.median(covs) if covs else 0),
+                )
+            rows.append((key, label, letters, covs, notions, evidence, durs, toks, flagged))
 
         print(f"\n===== {title} =====")
-        # Revue Codex (exécution) #6 : en conceptuel la granularité du juge est
-        # de 6.25 pts (16 exigences) — deux médianes à ≤ 6.25 d'écart sont un
-        # ex æquo statistique, pas un classement. Le « ≈ » le rend visible.
+        # Les deux axes sont ordinaux et affichés séparément : seul le même
+        # couple de médianes est un ex æquo. Une différence d'une exigence est
+        # donc visible au lieu d'être masquée par l'ancien seuil de 6,25 points.
         prev_median = None
-        for i, (_k, label, letters, covs, durs, toks, flagged) in enumerate(sorted(rows), 1):
+        for i, (_k, label, letters, covs, notions, evidence, durs, toks, flagged) in enumerate(
+            sorted(rows), 1
+        ):
             cov_s = (
                 f"{statistics.median(covs):5.1f}% ({min(covs):.0f}-{max(covs):.0f})"
                 if covs
@@ -205,16 +242,34 @@ def main() -> None:
             else:
                 e_count = letters.count("E")
                 let_s = f"({e_count}xE ; autres: n/a)" if e_count else "(lettres: n/a)"
-            median = statistics.median(covs) if covs else None
+            notions_s = (
+                f"{statistics.median(notions):5.1f}% ({min(notions):.0f}-{max(notions):.0f})"
+                if notions
+                else "?"
+            )
+            evidence_s = (
+                f"{statistics.median(evidence):5.1f}% ({min(evidence):.0f}-{max(evidence):.0f})"
+                if evidence
+                else "?"
+            )
+            median = (
+                (statistics.median(notions), statistics.median(evidence))
+                if notions and evidence
+                else None
+            )
             tie = (
                 "≈"
-                if kind == "concept"
-                and None not in (median, prev_median)
-                and abs(prev_median - median) <= 6.25
+                if kind == "concept" and None not in (median, prev_median) and median == prev_median
                 else " "
             )
             prev_median = median
-            print(f"{i}.{tie}{label:16} {let_s:16} cov {cov_s}  {dur_s}  {tok_s}")
+            if kind == "concept":
+                print(
+                    f"{i}.{tie}{label:16} {let_s:16} notions {notions_s}  "
+                    f"synthèse/preuve {evidence_s}  hist {cov_s}  {dur_s}  {tok_s}"
+                )
+            else:
+                print(f"{i}.{tie}{label:16} {let_s:16} cov {cov_s}  {dur_s}  {tok_s}")
             if args.flags:
                 for n, items in flagged:
                     print(f"     ⚠ {n} :")

@@ -6,6 +6,11 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
 
 ## [Unreleased]
 
+### Changed
+- Conceptual benchmark results are split into rubric-derived notions and evidence-discipline
+  dimensions. Archive-only regrades now require matching report, answer-key and specification
+  hashes, and campaign tables exclude non-authoritative conceptual packs. ([#248](https://github.com/BittnerPierre/agentic-research/pull/248), closes #247)
+
 ### Fixed
 - Finance grader reads an immediately attached guidance heading as table context without
   weakening paragraph-level evidence requirements or exempting document-level headings.
