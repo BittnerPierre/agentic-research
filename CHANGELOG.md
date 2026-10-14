@@ -17,6 +17,10 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
   ([#246](https://github.com/BittnerPierre/agentic-research/pull/246), fixes #245)
 
 ### Added
+- Three post-review exceptions for the 13 October campaign (gpt-5.6-sol capex-2 and capex-5,
+  Mistral Large 4 capex-5) recorded in `evaluations/adjustments.yaml`: grader false positives on a
+  mixed guidance heading, a spelled-out ratio label, the French revenue label and exact derived
+  figures, each verified against the frozen corpus. ([#260](https://github.com/BittnerPierre/agentic-research/pull/260), relates to #257)
 - Mistral Large 4 and GLM-5.3 benchmark configurations through the Mistral API,
   with LiteLLM provider routing, a bounded two-call retrieval contract, and campaign
   safeguards for outline and report-length constraints. ([#242](https://github.com/BittnerPierre/agentic-research/pull/242), closes #241,

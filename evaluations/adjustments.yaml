@@ -143,6 +143,81 @@ adjustments:
     arbitre: "Pierre"
     date: "2026-10-12"
 
+  - run: "20261013_211912_gpt-5.6-sol-chroma-decomposed (bench)_decomposed"
+    campagne: "camp-56sol-1013-capex-2"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 60.0
+    score_ajuste: 100.0
+    motif: >-
+      1 « chiffre faux » excusé après relecture : « Alphabet Capex
+      report=75.0 vs corpus=91.4 ». Le 75 est la guidance initiale
+      d'Alphabet (« approximately $75B »), dans un tableau sous le titre
+      « Guidance vs Actuals » suivi d'une ligne en gras « Guidance initiale
+      gelée au 7 février 2025 ». L'exemption guidance est perdue parce que
+      l'exclusion actual|reported|10-k matche le mot « Actuals » du titre.
+      Famille « tableaux guidance », variante titre mixte (issue #257,
+      famille 1). Le jumeau capex-1, même contenu sous un H3 « Frozen
+      initial FY2025 guidance », est noté 100.
+    verification: >-
+      Corpus capex_guidance_2025.md ligne 11 : Alphabet, 2025-02-04,
+      approximately $75B. Couverture 42/42, 0 autre chiffre faux,
+      0 fabrication. Score par analogie avec le jumeau propre
+      camp-56sol-1013-capex-1 (100.0).
+    arbitre: "Pierre"
+    date: "2026-10-14"
+
+  - run: "20261013_212549_gpt-5.6-sol-chroma-decomposed (bench)_decomposed"
+    campagne: "camp-56sol-1013-capex-5"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 100.0
+    motif: >-
+      Double faux positif. (a) « Fabrication » 47,43 % : ratio capex / OCF
+      Microsoft FY2025 recalculé, 64,6 / 136,2 = 47,43 %, exact ; les cinq
+      ratios jumeaux de la même phrase (94,48 / 55,49 / 60,19 / 4,99 / 11,39)
+      sont tolérés comme dérivables, seul celui-ci est classé blanchiment
+      (issue #257, famille 4). (b) Six revenus FY2025 « manquants » : le
+      libellé de ligne « Chiffre d'affaires » n'est pas canonisé parce que
+      la normalisation retire les espaces mais pas l'apostrophe (issue #257,
+      famille 3) ; les six valeurs 716,9 / 402,8 / 201,0 / 281,7 / 130,5 /
+      416,2 Md$ sont exactes.
+    verification: >-
+      Ratios recalculés depuis key_metrics.csv FY2025 (capex / OCF) :
+      131.8/139.5 = 94.48, 91.4/164.7 = 55.49, 69.7/115.8 = 60.19,
+      64.6/136.2 = 47.43, 3.2/64.1 = 4.99, 12.7/111.5 = 11.39. Revenus
+      FY2025 du corpus : 716.9, 402.8, 201.0, 281.7, 130.5, 416.2. Une fois
+      les revenus reconnus, couverture 42/42, 0 chiffre faux, 0 fabrication.
+      Score par analogie avec camp-56sol-1013-capex-1 (100.0).
+    arbitre: "Pierre"
+    date: "2026-10-14"
+
+  - run: "20261013_220648_mistral-large4-chroma-decomposed_decomposed"
+    campagne: "camp-ml4-1013-capex-5"
+    exercice: "ai-capex-intensity"
+    score_evaluateur: 40.0
+    score_ajuste: 96.5
+    motif: >-
+      Double faux positif. (a) Six « chiffres faux » « Operating cash flow
+      report=94.4 vs corpus=139.5 » (idem 55.5, 60.2, 47.4, 5.0, 11.4) : le
+      libellé de ligne « Capex / operating cash flow » est canonisé en
+      Operating cash flow ; les valeurs sont les ratios capex / OCF exacts
+      à une décimale (issue #257, famille 5). (b) « Fabrication » 16.4 :
+      delta exact du capex Microsoft FY2024 − FY2023 (44.5 − 28.1), dans la
+      phrase « largest absolute jumps in FY2024 (+$16.4B) and FY2025
+      (+$20.1B) » (issue #257, famille 6). Restent, non excusés : rapport
+      trop long (1949 mots pour 1890 tolérés) et exigences du juge
+      capex_trend_adequacy et data_gap_adequacy refusées pour chaîne de
+      citations cassée (sources sans chunks résolus), donc pack toujours
+      non qualifié.
+    verification: >-
+      key_metrics.csv : capex Microsoft FY2023 28.1, FY2024 44.5, FY2025
+      64.6 ; ratios FY2025 identiques à ceux de camp-56sol-1013-capex-5.
+      Couverture 42/42, 0 chiffre faux réel, 0 fabrication réelle. Score
+      par analogie avec le jumeau camp-ml4-1013-capex-2 (96.5 : même
+      profil trop long + capex_trend_adequacy refusée).
+    arbitre: "Pierre"
+    date: "2026-10-14"
+
 exclusions:
   - campagne: "camp-dsv4-capex-3"
     motif: >-
