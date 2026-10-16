@@ -10,6 +10,11 @@ vector_store:
 vector_search:
   provider: "openai"
 
+# Web search provider for StandardResearchManager
+# Options: "openai" (default, Bing-backed WebSearchTool) or "tavily" (requires TAVILY_API_KEY)
+web_search:
+  provider: "openai"
+
 # Configuration des données d'entrée
 data:
   # Fichier contenant les URLs à traiter (une par ligne)
