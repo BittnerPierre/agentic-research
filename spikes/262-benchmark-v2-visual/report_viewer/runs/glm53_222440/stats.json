@@ -1,0 +1,138 @@
+{
+  "provenance": {
+    "git_sha": "be1ebf2494c926ecc1ef1b8849890701cf88a990",
+    "git_dirty": false,
+    "config_file": "/Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/configs/tests/config-glm53-mistral-chroma-decomposed.yaml",
+    "config_sha256": "759124dc6ebd471078e4a3888a112dc481cbdf2899bfe22186a47266a467330e",
+    "chroma_collection": "camp-glm53-1013-capex-3",
+    "embedding_provider": "openai",
+    "embedding_api_base": "http://spark1:8003/v1",
+    "embedding_model": "Qwen3-Embedding-4B-Q8_0.gguf"
+  },
+  "config_name": "glm53-mistral-decomposed",
+  "writer_strategy": "decomposed",
+  "manager": "deep_manager",
+  "query": "<research_request>\n# Junior Analyst Data Pack - FY2025 AI Capex Intensity\n\n## Role and objective\n\nPrepare a concise, factual data pack for a senior analyst. This is a data collection\nand first-level analysis task, not an investment opinion. Cover Amazon, Alphabet,\nMeta, Microsoft, NVIDIA, and Apple using only the five provided sources.\n\n## Required facts\n\nFor every company, report all seven FY2025 metrics below. FY2025 is the latest fiscal\nyear with a complete set in this frozen corpus for all six companies.\n\n1. Revenue\n2. Operating income\n3. Operating margin\n4. Operating cash flow\n5. Capital expenditures (capex)\n6. Free cash flow (FCF)\n7. Capex/operating-cash-flow ratio\n\nUse the values supplied in the sources. FCF equals operating cash flow minus capex;\ncapex intensity equals capex divided by operating cash flow. Do not introduce other\ncompanies, estimates, or empirical figures.\n\n## Required analysis\n\n- State that fiscal-year ends differ: December for Amazon, Alphabet, and Meta; June\n  for Microsoft; late January for NVIDIA; and late September for Apple.\n- For each company, describe the direction and magnitude of its capex trend from the\n  earliest available capex year to FY2025. Use the endpoints in the corpus.\n- In a separate guidance section, report the frozen initial FY2025 guidance, release\n  date, and basis for Amazon, Alphabet, and Meta. Report Microsoft, NVIDIA, and Apple\n  guidance as unavailable in this source pack.\n- Keep guidance separate from FY2025 actuals. Do not calculate a Meta guidance variance\n  because guidance includes finance-lease principal while the XBRL cash-capex actual\n  does not use the same basis.\n- State whether any required actual metric is missing. Do not infer a missing value.\n\n## Report contract\n\nWrite a Markdown brief with these sections: Overview and Definitions; FY2025\nProfitability; FY2025 Capex and Cash Generation; Capex Trends; Guidance vs Actuals;\nCross-Company Comparison; Data Gaps.\n\nPut every required FY2025 fact in a parseable table using these columns:\n\n| Company | Metric | Period | Value |\n| --- | --- | --- | --- |\n\nPeriod must be explicit. Cite the supplied source ID next to each table or factual\nparagraph. Use a neutral, descriptive tone. Keep the report between 500 and 1,800\nwords, excluding the automatically generated Sources section.\n\n## External References\n\nUse exclusively these provided files. Do not browse the web.\n\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\n- https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\n\n</research_request>",
+  "report_file": "research_request__junior_analyst_data_pack__fy2025_final_report_20261013_222529.md",
+  "output_dir": "output/camp-glm53-1013-capex-3",
+  "success": true,
+  "models": {
+    "research": "litellm/mistral/zai-glm-5-3",
+    "planning": "litellm/mistral/zai-glm-5-3",
+    "search": "litellm/mistral/zai-glm-5-3",
+    "writer": "litellm/mistral/zai-glm-5-3",
+    "knowledge_preparation": "litellm/mistral/zai-glm-5-3",
+    "outline": "litellm/mistral/zai-glm-5-3",
+    "chapter_writer": "litellm/mistral/zai-glm-5-3"
+  },
+  "timings": {
+    "knowledge_preparation": 11.221073865890503,
+    "planning": 2.4159839153289795,
+    "search": 7.551135063171387,
+    "writing": 27.85127329826355,
+    "total": 49.05205678939819
+  },
+  "usage_by_phase": {
+    "knowledge_preparation": {
+      "requests": 4,
+      "input_tokens": 13476,
+      "output_tokens": 1282,
+      "total_tokens": 14758,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "planning": {
+      "requests": 1,
+      "input_tokens": 988,
+      "output_tokens": 599,
+      "total_tokens": 1587,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "search": {
+      "requests": 26,
+      "input_tokens": 195691,
+      "output_tokens": 5527,
+      "total_tokens": 201218,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "writing": {
+      "requests": 8,
+      "input_tokens": 38178,
+      "output_tokens": 4137,
+      "total_tokens": 42315,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    },
+    "total": {
+      "requests": 39,
+      "input_tokens": 248333,
+      "output_tokens": 11545,
+      "total_tokens": 259878,
+      "cached_tokens": 0,
+      "reasoning_tokens": 0
+    }
+  },
+  "agent_calls": {
+    "knowledge_preparation_agent": 1,
+    "file_planner_agent": 1,
+    "file_search_agent": 7,
+    "writer_agent": 8,
+    "total": 17,
+    "failures": 0
+  },
+  "n_sources": 7,
+  "n_chunks": 25,
+  "source_archive": {
+    "files": [
+      {
+        "filename": "Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+        "sha256": "ca53cee89f75d15d64d637935e172659de907cb88db48ce3ce92f34700ce2e5f"
+      },
+      {
+        "filename": "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+        "sha256": "7ca3c36cf4130ccaeef2d8f183050f6b9b47b34419c822976563d57967f34d7b"
+      },
+      {
+        "filename": "Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+        "sha256": "d4108d04ccecd256af1fc4003734fb8fb613cbd35e4cc5ac92c5a6f7ce9d71b0"
+      },
+      {
+        "filename": "key_metrics.csv.md",
+        "sha256": "3c83f569caeb6e6ee40ee5f0a4c4ec76e596970ace6920aa151cdacd16388738"
+      }
+    ],
+    "missing": []
+  },
+  "derived": {
+    "writing_throughput_tok_s": 148.5389897867948
+  },
+  "writer_metrics": {
+    "outline_title": "Junior Analyst Data Pack – FY2025 AI Capex Intensity (Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple)",
+    "outline_seconds": 17.55979800003115,
+    "n_chapters": 7,
+    "n_empty_chapters": 0,
+    "chapter_seconds": [
+      2.171956375008449,
+      8.729828292038292,
+      10.28634091699496,
+      2.4254057919606566,
+      6.659350416040979,
+      2.143323708034586,
+      1.4771380000165664
+    ],
+    "chapters_wall_seconds": 10.288764666998759,
+    "concurrency_ratio": 3.294209226964582,
+    "llm_calls": 8,
+    "grounding": {
+      "n_sources": 7,
+      "n_cited_sources": 7,
+      "source_coverage": 1.0,
+      "n_invalid_citations": 0,
+      "n_chapters": 7,
+      "chapters_with_citation": 7,
+      "chapter_citation_rate": 1.0
+    }
+  }
+}

@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capex IA FY2025</title>
+<meta name="description" content="Tableau de bord autonome : intensité capex IA et datacenter FY2025 de six sociétés, chiffres XBRL et lecture des 10-K.">
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#15181d; --muted:#5b6472; --line:#e3e6eb; --soft:#eef1f5;
+  --accent:#1f5eff; --warn:#b45309; --ok:#15803d; --bad:#b91c1c;
+  --amzn:#e8842a; --goog:#2f6fe4; --meta:#8a5cf6; --msft:#12a37a; --nvda:#7cb518; --aapl:#8b93a1;
+  --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1216; --panel:#171b21; --ink:#e8ebf0; --muted:#9aa3b0; --line:#2a313b; --soft:#1f252d;
+    --accent:#6b9bff; --warn:#f59e0b; --ok:#34d399; --bad:#f87171; --aapl:#a7afbb;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1216; --panel:#171b21; --ink:#e8ebf0; --muted:#9aa3b0; --line:#2a313b; --soft:#1f252d;
+  --accent:#6b9bff; --warn:#f59e0b; --ok:#34d399; --bad:#f87171; --aapl:#a7afbb; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif}
+body{padding:0 16px 48px}
+.wrap{max-width:1180px;margin:0 auto}
+header{padding:28px 0 12px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+h1{font-size:26px;margin:0;letter-spacing:-.01em}
+h2{font-size:18px;margin:0 0 4px}
+h3{font-size:14px;margin:0 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sub{color:var(--muted);margin:4px 0 0}
+.brief{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);margin:8px 0 18px}
+.brief b{color:var(--ink)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 16px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:14px}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.panel{display:none}
+.panel.active{display:block}
+.grid{display:grid;gap:16px}
+.cols-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.cols-3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.kpi .l{color:var(--muted);font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.card.full{grid-column:1/-1}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+select,button.btn{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer;font-size:13px;background:var(--panel);user-select:none}
+.chip .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chip[aria-pressed="false"]{opacity:.4}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;background:var(--panel);color:var(--ink);border:0;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+svg{display:block;width:100%;height:auto}
+.axis text{fill:var(--muted);font-size:11px}
+.axis line,.axis path{stroke:var(--line)}
+.gridline{stroke:var(--line);stroke-dasharray:2 3}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:12px;opacity:0;transition:opacity .08s;z-index:10;max-width:260px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+th .arr{opacity:.5;font-size:11px}
+.tscroll{overflow:auto;max-height:420px}
+.co{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.co .dot{width:10px;height:10px;border-radius:50%}
+.note{color:var(--muted);font-size:13px;margin-top:8px}
+.matrix{width:100%;border-collapse:separate;border-spacing:4px;table-layout:fixed}
+.matrix th{position:static;background:transparent;text-align:center;font-size:12px;white-space:normal;cursor:default;padding:4px}
+.matrix th:first-child{text-align:left}
+.matrix td{padding:0;border:0;text-align:center}
+.cell{display:block;width:100%;border:0;border-radius:8px;padding:10px 6px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink);background:var(--soft)}
+.cell.q{background:color-mix(in srgb,var(--ok) 22%,var(--panel));}
+.cell.t{background:color-mix(in srgb,var(--accent) 18%,var(--panel));}
+.cell.g{background:color-mix(in srgb,var(--warn) 20%,var(--panel));}
+.cell.n{background:color-mix(in srgb,var(--bad) 16%,var(--panel));color:var(--muted)}
+.cell.sel{outline:2px solid var(--accent);outline-offset:1px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:8px 0}
+.legend span i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.quote{border-left:3px solid var(--line);padding:6px 12px;margin:10px 0;font-size:14px}
+.quote .loc{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.reader{min-height:220px}
+.reader h4{margin:0 0 4px;font-size:15px}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);vertical-align:middle;margin-left:6px}
+.delta-up{color:var(--bad);font-weight:700}
+.delta-down{color:var(--ok);font-weight:700}
+.muted{color:var(--muted)}
+ul.tight{margin:6px 0 0 18px;padding:0}
+ul.tight li{margin:4px 0}
+.foot{color:var(--muted);font-size:12px;margin-top:28px;border-top:1px solid var(--line);padding-top:12px}
+.lifebar{display:flex;align-items:center;gap:10px;margin:8px 0}
+.lifebar .name{width:90px;font-weight:600;font-size:13px}
+.lifebar .track{flex:1;height:14px;background:var(--soft);border-radius:7px;position:relative}
+.lifebar .range{position:absolute;top:0;bottom:0;border-radius:7px;opacity:.85}
+.lifebar .lab{width:220px;font-size:12px;color:var(--muted)}
+@media (max-width:640px){.lifebar .lab{display:none} h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Capex IA et datacenters, exercice 2025</h1>
+    <p class="sub">Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple. Chiffres XBRL (Company Facts, SEC) et lecture des 10-K FY2025. Montants en milliards de dollars.</p>
+  </div>
+  <div class="controls" style="margin:0">
+    <span class="seg" role="group" aria-label="Thème">
+      <button id="th-auto" aria-pressed="true" onclick="setTheme('auto')">Auto</button>
+      <button id="th-light" aria-pressed="false" onclick="setTheme('light')">Clair</button>
+      <button id="th-dark" aria-pressed="false" onclick="setTheme('dark')">Sombre</button>
+    </span>
+  </div>
+</header>
+
+<div class="brief">
+  <b>Brief.</b> Destinataire : VP stratégie d'investissement. Question : qui finance la vague d'infrastructure IA, avec quelle intensité, sous quelle définition, et quels engagements hors bilan s'ajoutent au capex visible ? Les exercices fiscaux diffèrent : décembre pour Amazon, Alphabet et Meta, juin pour Microsoft, fin janvier pour NVIDIA (FY2025 = année civile 2024 pour l'essentiel), fin septembre pour Apple. Les comparaisons sont faites par exercice fiscal, jamais par année civile.
+</div>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-tab="synth">Synthèse</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="quanti">Chiffres 2020–2025</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="def">Définitions du capex</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="guid">Guidance et engagements</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="quali">Lecture des 10-K</button>
+</div>
+
+<!-- ============ SYNTHESE ============ -->
+<section class="panel active" id="tab-synth">
+  <div class="kpis" id="kpis"></div>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Capex FY2025 vs FY2024</h3>
+      <h2>Trois sociétés ont dépassé 60 Md$</h2>
+      <div id="chart-capex-bars"></div>
+      <p class="note">Base XBRL : ligne « achats d'immobilisations corporelles » du tableau de flux. Voir l'onglet Définitions pour les bases managériales.</p>
+    </div>
+    <div class="card">
+      <h3>Intensité : capex / cash-flow opérationnel</h3>
+      <h2>Amazon réinvestit 94 % de son cash opérationnel</h2>
+      <div id="chart-intensity"></div>
+      <p class="note">Intensité = capex / flux de trésorerie d'exploitation, par exercice fiscal. NVIDIA et Apple restent sous 12 %.</p>
+    </div>
+    <div class="card full">
+      <h3>Lecture d'ensemble</h3>
+      <div class="grid cols-3">
+        <div>
+          <h2>Trois profils</h2>
+          <ul class="tight">
+            <li><b>Bâtisseurs à pleine intensité</b> : Amazon (94 %) et Meta (60 %). Le free cash flow d'Amazon tombe à 7,7 Md$, son plus bas depuis 2022.</li>
+            <li><b>Bâtisseurs sous contrôle</b> : Alphabet (56 %) et Microsoft (47 %) gardent plus de 70 Md$ de FCF chacun.</li>
+            <li><b>Fournisseur et témoin</b> : NVIDIA encaisse la vague (marge opérationnelle 62 %, capex 5 %). Apple n'écrit rien sur une stratégie d'infrastructure IA.</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Le capex visible n'est pas tout</h2>
+          <ul class="tight">
+            <li>Baux signés non commencés, surtout datacenters : <b>104 Md$</b> Meta, <b>96 Md$</b> Amazon, <b>93 Md$</b> Microsoft, <b>58 Md$</b> Alphabet.</li>
+            <li>Engagements d'achat : <b>149 Md$</b> Alphabet, <b>131 Md$</b> Meta, <b>110 Md$</b> Microsoft.</li>
+            <li>Meta a levé 30 Md$ d'obligations en novembre 2025 et co-développe un campus en Louisiane (27 Md$, garanties de valeur résiduelle 28 Md$).</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Points de vigilance</h2>
+          <ul class="tight">
+            <li><b>Définitions divergentes</b> : Amazon, Meta et NVIDIA communiquent un capex différent de la ligne XBRL. Toujours nommer la base.</li>
+            <li><b>Durées d'amortissement</b> : Amazon raccourcit (6 → 5 ans, −1,0 Md$ de résultat), Meta allonge (→ 5,5 ans, +2,59 Md$). Deux lectures opposées de l'obsolescence IA.</li>
+            <li><b>Guidance 2025 dépassée</b> partout où elle existait : Amazon +32 %, Alphabet +22 %, Meta au-dessus de la fourchette.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUANTI ============ -->
+<section class="panel" id="tab-quanti">
+  <div class="card" style="margin-bottom:16px">
+    <div class="controls">
+      <label for="metric" class="muted">Métrique</label>
+      <select id="metric"></select>
+      <span class="seg" role="group" aria-label="Type de graphique">
+        <button id="ct-line" aria-pressed="true" onclick="setChartType('line')">Courbes</button>
+        <button id="ct-bar" aria-pressed="false" onclick="setChartType('bar')">Barres</button>
+      </span>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div id="chart-series"></div>
+    <p class="note" id="metric-note"></p>
+  </div>
+  <div class="card">
+    <h3>Tableau FY2025</h3>
+    <h2>Sept métriques, six sociétés <span class="badge">cliquer un en-tête pour trier</span></h2>
+    <div class="tscroll"><table id="tbl"></table></div>
+    <p class="note">Marge opérationnelle = résultat d'exploitation / chiffre d'affaires. FCF = flux opérationnel − capex. Intensité = capex / flux opérationnel. Source : Company Facts XBRL, fichier de référence de l'exercice.</p>
+  </div>
+</section>
+
+<!-- ============ DEFINITIONS ============ -->
+<section class="panel" id="tab-def">
+  <div class="grid cols-2">
+    <div class="card full">
+      <h3>Même exercice, deux chiffres</h3>
+      <h2>Ce que la ligne comptable dit, ce que la direction communique</h2>
+      <div class="controls">
+        <span class="seg" role="group" aria-label="Base">
+          <button id="b-xbrl" aria-pressed="true" onclick="setBasis('xbrl')">Base XBRL (tableau de flux)</button>
+          <button id="b-mgmt" aria-pressed="false" onclick="setBasis('mgmt')">Base managériale (MD&amp;A)</button>
+        </span>
+      </div>
+      <div id="chart-basis"></div>
+      <p class="note">Basculer la base change trois barres. Les écarts ne viennent pas d'années différentes : les deux chiffres couvrent exactement le même exercice.</p>
+    </div>
+    <div class="card full">
+      <div class="tscroll"><table>
+        <thead><tr><th style="cursor:default">Société</th><th style="cursor:default">Ligne XBRL</th><th style="cursor:default">Chiffre communiqué</th><th style="cursor:default">Écart</th><th style="cursor:default;text-align:left">Pourquoi</th></tr></thead>
+        <tbody>
+          <tr><td><span class="co"><i class="dot" style="background:var(--amzn)"></i>Amazon</span></td><td>131,8</td><td>128,3</td><td class="delta-down">−3,5</td><td style="text-align:left;white-space:normal">« Cash capital expenditures » = achats nets des 3,5 Md$ de « proceeds from property and equipment sales and incentives ». C'est la définition retenue pour le free cash flow d'Amazon.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--meta)"></i>Meta</span></td><td>69,7</td><td>72,2</td><td class="delta-up">+2,5</td><td style="text-align:left;white-space:normal">« Capital expenditures, including principal payments on finance leases » : 69,691 d'achats + 2,524 de principal des baux financiers, ligne séparée du tableau de flux. La guidance de Meta est exprimée sur cette base.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--nvda)"></i>NVIDIA</span></td><td>3,2</td><td>3,4</td><td class="delta-up">+0,1</td><td style="text-align:left;white-space:normal">« Purchases related to property and equipment and intangible assets » 3,236 + « principal payments on property and equipment and intangible assets » 0,129 = 3,365, arrondi à 3,4.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--goog)"></i>Alphabet</span></td><td>91,4</td><td>91,4</td><td class="muted">0</td><td style="text-align:left;white-space:normal">Le MD&amp;A reprend la ligne du tableau de flux.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--msft)"></i>Microsoft</span></td><td>64,6</td><td>64,6</td><td class="muted">0</td><td style="text-align:left;white-space:normal">« Additions to property and equipment » 64,551. Aucun autre chiffre de capex dans le MD&amp;A.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--aapl)"></i>Apple</span></td><td>12,7</td><td>12,7</td><td class="muted">0</td><td style="text-align:left;white-space:normal">Le MD&amp;A ne commente pas le capex. Seule la ligne du tableau de flux existe.</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Conséquence pour un analyste : une comparaison inter-sociétés doit se faire sur la ligne XBRL, homogène ; une comparaison à la guidance d'une société doit se faire sur sa base managériale.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GUIDANCE & ENGAGEMENTS ============ -->
+<section class="panel" id="tab-guid">
+  <div class="grid cols-2">
+    <div class="card full">
+      <h3>Guidance initiale FY2025, figée au 7 février 2025</h3>
+      <h2>Toutes dépassées</h2>
+      <div id="chart-guidance"></div>
+      <div class="tscroll"><table>
+        <thead><tr><th style="cursor:default">Société</th><th style="cursor:default">Date</th><th style="cursor:default">Guidance initiale</th><th style="cursor:default">Base de la guidance</th><th style="cursor:default">Réalisé (même base)</th><th style="cursor:default">Écart</th></tr></thead>
+        <tbody>
+          <tr><td><span class="co"><i class="dot" style="background:var(--amzn)"></i>Amazon</span></td><td>06/02/2025</td><td>≈ 100</td><td>estimation de la direction</td><td>131,8 (XBRL) / 128,3 (cash)</td><td class="delta-up">+32 % / +28 %</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--goog)"></i>Alphabet</span></td><td>04/02/2025</td><td>≈ 75</td><td>capex publié</td><td>91,4</td><td class="delta-up">+22 %</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--meta)"></i>Meta</span></td><td>29/01/2025</td><td>60 – 65</td><td>inclut le principal des baux financiers</td><td>72,2</td><td class="delta-up">+11 % au-dessus du haut de fourchette</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--msft)"></i>Microsoft</span></td><td colspan="5" class="muted" style="text-align:left">Pas de guidance initiale FY2025 dans le pack de sources figé.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--nvda)"></i>NVIDIA</span></td><td colspan="5" class="muted" style="text-align:left">Pas de guidance initiale FY2025 dans le pack de sources figé.</td></tr>
+          <tr><td><span class="co"><i class="dot" style="background:var(--aapl)"></i>Apple</span></td><td colspan="5" class="muted" style="text-align:left">Pas de guidance initiale FY2025 dans le pack de sources figé.</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">L'écart Meta est calculé sur la base managériale (72,2), seule comparable à la guidance. Sur la ligne XBRL (69,7) la comparaison ne serait pas homogène.</p>
+    </div>
+    <div class="card">
+      <h3>Ce que les 10-K disent de 2026</h3>
+      <h2>Une seule fourchette chiffrée</h2>
+      <ul class="tight">
+        <li><b>Meta</b> : « approximately $115 billion to $135 billion in 2026 ». Soit +59 % à +87 % sur la base 72,2.</li>
+        <li><b>Alphabet</b> : « significantly increase, relative to 2025 ». Pas de montant.</li>
+        <li><b>Amazon</b> : « both of which we expect to increase in 2026 ». Pas de montant.</li>
+        <li><b>NVIDIA</b> : « expect to increase capital expenditures in fiscal year 2026 ». Pas de montant.</li>
+        <li><b>Microsoft</b> : « will continue to invest in capital expenditures to support … AI infrastructure ». Pas de montant.</li>
+        <li><b>Apple</b> : rien.</li>
+      </ul>
+      <p class="note">Ces indications 2026 ne doivent pas être confondues avec la guidance initiale FY2025 ci-dessus : objets différents, dates différentes.</p>
+    </div>
+    <div class="card">
+      <h3>Durées d'amortissement des serveurs</h3>
+      <h2>Deux directions opposées en janvier 2025</h2>
+      <div id="lives"></div>
+      <p class="note">Amazon : un sous-ensemble de serveurs et équipements réseau passe de 6 à 5 ans, +1,4 Md$ de dotation, −1,0 Md$ de résultat net. Meta : la plupart des serveurs passent à 5,5 ans, −2,92 Md$ de dotation, +2,59 Md$ de résultat net. Apple ne publie pas de durée pour les serveurs.</p>
+    </div>
+    <div class="card full">
+      <h3>Engagements hors capex de l'exercice</h3>
+      <h2>Baux non commencés et engagements d'achat au bilan de clôture</h2>
+      <div id="chart-commit"></div>
+      <p class="note">Baux non commencés : paiements futurs de baux signés dont la jouissance n'a pas démarré, principalement datacenters. Engagements d'achat : obligations non annulables (infrastructure, énergie, capacité cloud, composants). Microsoft ajoute 32,1 Md$ d'engagements de construction ; NVIDIA 14,3 Md$ d'obligations hors stocks dont 10,9 de services cloud. Apple : pas de montant propre aux datacenters, 16,8 Md$ de baux toutes catégories et 14,8 Md$ d'autres obligations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUALI ============ -->
+<section class="panel" id="tab-quali">
+  <div class="card" style="margin-bottom:16px">
+    <h3>Grille société × thème</h3>
+    <h2>Ce que chaque 10-K divulgue <span class="badge">cliquer une cellule pour lire les citations</span></h2>
+    <div class="legend">
+      <span><i style="background:color-mix(in srgb,var(--ok) 22%,var(--panel))"></i>Chiffré et spécifique</span>
+      <span><i style="background:color-mix(in srgb,var(--accent) 18%,var(--panel))"></i>Qualitatif, spécifique IA / datacenter</span>
+      <span><i style="background:color-mix(in srgb,var(--warn) 20%,var(--panel))"></i>Générique, non spécifique</span>
+      <span><i style="background:color-mix(in srgb,var(--bad) 16%,var(--panel))"></i>Non divulgué</span>
+    </div>
+    <div style="overflow:auto"><table class="matrix" id="matrix"></table></div>
+  </div>
+  <div class="card reader" id="reader">
+    <h4>Sélectionner une cellule</h4>
+    <p class="muted">Les citations sont reproduites mot pour mot depuis le 10-K FY2025, avec l'Item et la section d'origine.</p>
+  </div>
+</section>
+
+<p class="foot">Sources : SEC EDGAR, Company Facts XBRL (us-gaap : Revenues, OperatingIncomeLoss, NetCashProvidedByUsedInOperatingActivities, PaymentsToAcquirePropertyPlantAndEquipment) et Form 10-K FY2025 de chaque société (Amazon 0001018724-26-000004, Alphabet 0001652044-26-000018, Meta 0001628280-26-003942, Microsoft 0000950170-25-100235, NVIDIA 0001045810-25-000023, Apple 0000320193-25-000079). Guidance initiale FY2025 figée au 7 février 2025. Document autonome, aucune ressource externe. Produit le 9 novembre 2026.</p>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+// ---------- DATA ----------
+const YEARS=["FY2020","FY2021","FY2022","FY2023","FY2024","FY2025"];
+const CO=[
+ {id:"amzn",name:"Amazon",fye:"déc.",color:"var(--amzn)"},
+ {id:"goog",name:"Alphabet",fye:"déc.",color:"var(--goog)"},
+ {id:"meta",name:"Meta",fye:"déc.",color:"var(--meta)"},
+ {id:"msft",name:"Microsoft",fye:"juin",color:"var(--msft)"},
+ {id:"nvda",name:"NVIDIA",fye:"janv.",color:"var(--nvda)"},
+ {id:"aapl",name:"Apple",fye:"sept.",color:"var(--aapl)"}
+];
+// Revenue, OpInc, OpMargin %, OCF, Capex, FCF, Capex/OCF %
+const Q={
+ amzn:{rev:[386.1,469.8,514.0,574.8,638.0,716.9],oi:[22.9,24.9,12.2,36.9,68.6,80.0],om:[5.9,5.3,2.4,6.4,10.8,11.2],ocf:[66.1,46.3,46.8,84.9,115.9,139.5],capex:[40.1,61.1,63.6,52.7,83.0,131.8],fcf:[25.9,-14.7,-16.9,32.2,32.9,7.7],int:[61,132,136,62,72,94]},
+ goog:{rev:[182.5,257.6,282.8,307.4,350.0,402.8],oi:[41.2,78.7,74.8,84.3,112.4,129.0],om:[22.6,30.6,26.5,27.4,32.1,32.0],ocf:[65.1,91.7,91.5,101.7,125.3,164.7],capex:[22.3,24.6,31.5,32.3,52.5,91.4],fcf:[42.8,67.0,60.0,69.5,72.8,73.3],int:[34,27,34,32,42,56]},
+ meta:{rev:[86.0,117.9,116.6,134.9,164.5,201.0],oi:[32.7,46.8,28.9,46.8,69.4,83.3],om:[38.0,39.6,24.8,34.7,42.2,41.4],ocf:[38.7,57.7,50.5,71.1,91.3,115.8],capex:[15.2,18.7,31.2,27.0,37.3,69.7],fcf:[23.6,39.0,19.3,44.1,54.1,46.1],int:[39,32,62,38,41,60]},
+ msft:{rev:[143.0,168.1,198.3,211.9,245.1,281.7],oi:[53.0,69.9,83.4,88.5,109.4,128.5],om:[37.0,41.6,42.1,41.8,44.6,45.6],ocf:[60.7,76.7,89.0,87.6,118.5,136.2],capex:[15.4,20.6,23.9,28.1,44.5,64.6],fcf:[45.2,56.1,65.1,59.5,74.1,71.6],int:[25,27,27,32,38,47]},
+ nvda:{rev:[10.9,16.7,26.9,27.0,60.9,130.5],oi:[2.8,4.5,10.0,4.2,33.0,81.5],om:[26.1,27.2,37.3,15.7,54.1,62.4],ocf:[4.8,5.8,9.1,5.6,28.1,64.1],capex:[null,null,1.0,1.8,1.1,3.2],fcf:[null,null,8.1,3.8,27.0,60.9],int:[null,null,11,32,4,5]},
+ aapl:{rev:[274.5,365.8,394.3,383.3,391.0,416.2],oi:[66.3,108.9,119.4,114.3,123.2,133.1],om:[24.1,29.8,30.3,29.8,31.5,32.0],ocf:[80.7,104.0,122.2,110.5,118.3,111.5],capex:[7.3,11.1,10.7,11.0,9.4,12.7],fcf:[73.4,93.0,111.4,99.6,108.8,98.8],int:[9,11,9,10,8,11]}
+};
+const METRICS=[
+ {k:"capex",label:"Capex",unit:"Md$",note:"Achats d'immobilisations corporelles, ligne du tableau de flux (XBRL). NVIDIA : non disponible avant FY2022 dans le corpus."},
+ {k:"int",label:"Intensité capex / OCF",unit:"%",note:"Capex divisé par le flux de trésorerie d'exploitation. Au-dessus de 100 % le capex excède le cash généré (Amazon 2021–2022)."},
+ {k:"fcf",label:"Free cash flow",unit:"Md$",note:"Flux opérationnel moins capex. Négatif pour Amazon en 2021 et 2022."},
+ {k:"ocf",label:"Cash-flow opérationnel",unit:"Md$",note:"Flux net de trésorerie provenant des activités d'exploitation."},
+ {k:"rev",label:"Chiffre d'affaires",unit:"Md$",note:"Revenus consolidés par exercice fiscal."},
+ {k:"oi",label:"Résultat d'exploitation",unit:"Md$",note:"Résultat opérationnel consolidé."},
+ {k:"om",label:"Marge opérationnelle",unit:"%",note:"Résultat d'exploitation / chiffre d'affaires."}
+];
+const MGMT={amzn:128.3,goog:91.4,meta:72.2,msft:64.6,nvda:3.4,aapl:12.7};
+const GUID=[{id:"amzn",lo:100,hi:100,act:131.8,act2:128.3},{id:"goog",lo:75,hi:75,act:91.4},{id:"meta",lo:60,hi:65,act:72.2}];
+const COMMIT=[
+ {id:"amzn",leases:96.4,po:84.8},{id:"goog",leases:58.5,po:149.1},{id:"meta",leases:103.8,po:131.0},
+ {id:"msft",leases:92.7,po:110.0},{id:"nvda",leases:7.6,po:30.8},{id:"aapl",leases:null,po:14.8}
+];
+const LIVES=[
+ {id:"amzn",lo:5,hi:6,lab:"5 à 6 ans ; sous-ensemble 6 → 5 ans au 01/01/2025"},
+ {id:"goog",lo:6,hi:6,lab:"6 ans, inchangé"},
+ {id:"meta",lo:5,hi:5.5,lab:"5 à 5,5 ans ; la plupart → 5,5 ans au 01/01/2025"},
+ {id:"msft",lo:2,hi:6,lab:"2 à 6 ans (équipement informatique), inchangé"},
+ {id:"nvda",lo:2,hi:7,lab:"2 à 7 ans (équipement, matériel de calcul, logiciels)"},
+ {id:"aapl",lo:null,hi:null,lab:"non divulgué pour les serveurs"}
+];
+const THEMES=[
+ {k:"T1",short:"Stratégie IA / infra",long:"Stratégie déclarée : IA et infrastructure datacenter"},
+ {k:"T2",short:"Capex FY2025",long:"Capex FY2025 : montants et moteurs"},
+ {k:"T3",short:"Trajectoire",long:"Trajectoire attendue des investissements"},
+ {k:"T4",short:"Contraintes",long:"Contraintes de capacité, d'approvisionnement et d'énergie"},
+ {k:"T5",short:"Amortissement",long:"Durées d'utilité des serveurs et équipements réseau"},
+ {k:"T6",short:"Baux et engagements",long:"Baux, financement et engagements d'achat datacenters"},
+ {k:"T7",short:"Risques",long:"Risques liés à l'investissement en infrastructure IA (Item 1A)"}
+];
+// status: q = chiffré, t = qualitatif spécifique, g = générique, n = non divulgué
+const G={
+amzn:{
+ T1:{s:"t",sum:"AWS au cœur ; hausse attendue des dépenses d'infrastructure, FCF court terme sacrifié.",q:[
+  ["We expect spending in technology and infrastructure will increase over time, which can negatively impact short-term free cash flow, as we add infrastructure and employees, including to support our artificial intelligence and machine learning initiatives, to support long-term growth.","Item 7, MD&A > Overview"],
+  ["The increase in AWS operating income in 2025, compared to the prior year, is primarily due to increased sales, partially offset by spending on technology infrastructure that was primarily driven by additional investments to support AWS business growth.","Item 7, MD&A > Results of Operations > Operating Income"]]},
+ T2:{s:"q",sum:"128,3 Md$ de capex cash (131,8 bruts) ; additions nettes AWS 96,5 Md$ ; 27,0 Md$ d'immobilisations reçues non payées.",q:[
+  ["Cash capital expenditures were $77.7 billion, and $128.3 billion in 2024 and 2025, which primarily reflect investments in technology infrastructure (the majority of which is to support AWS business growth) and in additional capacity to support our fulfillment network, both of which we expect to increase in 2026.","Item 7, MD&A > Liquidity and Capital Resources"],
+  ["Total net additions to property and equipment are as follows (in millions): AWS 24,843 / 53,267 / 96,496 (2023 / 2024 / 2025).","Item 8, Note 10 — Segment Information"],
+  ["Property and equipment acquired but not yet paid are included within “Accounts payable” and were $16.8 billion and $27.0 billion as of December 31, 2024 and 2025.","Item 8, Note 3 — Property and Equipment"]]},
+ T3:{s:"t",sum:"Hausse attendue en 2026, sans montant.",q:[
+  ["Cash capital expenditures were $77.7 billion, and $128.3 billion in 2024 and 2025, which primarily reflect investments in technology infrastructure (the majority of which is to support AWS business growth) and in additional capacity to support our fulfillment network, both of which we expect to increase in 2026.","Item 7, MD&A > Liquidity and Capital Resources"],
+  ["Further, we expect to continue making additional investments in our artificial intelligence initiatives. We expect some or all of these factors to continue to impact our results of operations into Q1 2026.","Item 7, MD&A > Results of Operations > Overview"]]},
+ T4:{s:"q",sum:"GPU : fournisseurs limités ; contrats d'énergie jusqu'à 20 ans, 200 millions de MWh, durée moyenne 16 ans.",q:[
+  ["For example, we rely on a limited group of suppliers for semiconductor products, including products related to artificial intelligence infrastructure such as graphics processing units. Constraints on the availability of these products could adversely affect our ability to develop and operate artificial intelligence technologies, products, or services.","Item 1A, Risk Factors > Operating Risks"],
+  ["As of December 31, 2025, the energy contract quantities subject to derivative accounting fair value measurements were approximately 200 million megawatt-hours and the weighted-average remaining duration of these contracts is approximately 16 years, with the majority of these megawatt-hours to be delivered beyond the next nine years.","Item 8, Note 1 > Derivative Instruments"]]},
+ T5:{s:"q",sum:"Sous-ensemble de serveurs : 6 → 5 ans au 1er janvier 2025, à cause de l'IA ; +1,4 Md$ de dotation, −1,0 Md$ de résultat net.",q:[
+  ["Effective January 1, 2025 we changed our estimate of the useful lives of a subset of our servers and networking equipment from six years to five years. The shorter useful lives are due to the increased pace of technology development, particularly in the area of artificial intelligence and machine learning. The effect of this change in estimate for the year ended December 31, 2025 […] was an increase in depreciation and amortization expense of $1.4 billion and a reduction in net income of $1.0 billion, or $0.10 per basic share and $0.10 per diluted share, which primarily impacted our AWS segment.","Item 8, Note 1 > Use of Estimates"],
+  ["Depreciation and amortization expense on property and equipment was $30.2 billion, $32.1 billion, and $41.9 billion which includes amortization of property and equipment acquired under finance leases of $5.9 billion, $3.9 billion, and $3.3 billion for 2023, 2024, and 2025.","Item 8, Note 3 — Property and Equipment"]]},
+ T6:{s:"q",sum:"Baux non commencés 96,4 Md$ ; obligations d'achat inconditionnelles 84,8 Md$ ; total engagements 439,7 Md$.",q:[
+  ["Leases not yet commenced | 5,808 | 9,103 | 6,420 | 6,571 | 6,738 | 61,733 | 96,373 — Unconditional purchase obligations | 19,906 | 8,934 | 7,195 | 6,658 | 6,602 | 35,477 | 84,772 — Total commitments | 51,666 | 46,259 | 36,084 | 32,019 | 32,153 | 241,480 | 439,661 (in millions, 2026 / 2027 / 2028 / 2029 / 2030 / Thereafter / Total).","Item 8, Note 7 — Commitments and Contingencies"],
+  ["Includes unconditional purchase obligations related to long-term agreements to acquire and license digital media content, procure energy, acquire property and equipment, and license software that are not reflected on the consolidated balance sheets.","Item 8, Note 7 — Commitments, footnote (2)"]]},
+ T7:{s:"t",sum:"Retour sur investissement IA incertain, risque de dépréciation ; capacité datacenter excédentaire ou insuffisante.",q:[
+  ["Failure to realize the benefits of amounts we invest in new technologies, products, or services could result in the value of those investments being written down or written off.","Item 1A, Risk Factors > Business and Industry Risks"],
+  ["Failures to adequately predict customer demand and consumer spending patterns or otherwise optimize and operate our fulfillment network and data centers successfully from time to time result in excess or insufficient fulfillment or data center capacity, service interruptions, increased costs, and impairment charges, any of which could materially harm our business.","Item 1A, Risk Factors > Operating Risks"]]}
+},
+goog:{
+ T1:{s:"t",sum:"Infrastructure optimisée IA comme différenciateur ; TPU Ironwood ; hausse significative annoncée pour 2026.",q:[
+  ["Increased Investment in Technical Infrastructure: We continue to invest in capital expenditures as we scale our technical infrastructure, in particular for AI, to meet the demand of our users and enterprise customers and to support research internally.","Item 7, MD&A > Trends in Our Business and Financial Effect"],
+  ["Our technical infrastructure allows us to use and offer our customers a range of AI accelerator options, including specialized Graphics Processing Units (GPUs) and our own custom-built Tensor Processing Units (TPUs), such as Ironwood, our seventh-generation TPU.","Item 1, Business > Making AI Helpful for Everyone"]]},
+ T2:{s:"q",sum:"91,4 Md$ (52,5 en 2024), essentiellement infrastructure technique ; dotation 21,1 Md$.",q:[
+  ["During the years ended December 31, 2024 and 2025, we spent $52.5 billion and $91.4 billion on capital expenditures, respectively. In 2026, we expect to significantly increase, relative to 2025, our investment in our technical infrastructure, including servers and network equipment, and data centers. […] For the years ended December 31, 2024 and 2025, our depreciation on property and equipment was $15.3 billion and $21.1 billion, respectively.","Item 7, MD&A > Capital Expenditures and Leases"],
+  ["Purchases of property and equipment | (32,251) | (52,535) | (91,447) (2023 / 2024 / 2025, in millions).","Item 8, Consolidated Statements of Cash Flows"]]},
+ T3:{s:"t",sum:"« Significantly increase » en 2026 ; dette, baux financiers et soutiens de crédit à des contreparties d'infrastructure.",q:[
+  ["In 2026, we expect to significantly increase, relative to 2025, our investment in our technical infrastructure, including servers and network equipment, and data centers.","Item 7, MD&A > Capital Expenditures"],
+  ["In 2025, we raised capital through the issuance of debt and we expect to continue to assess the use of debt and other forms of financing in the future. We expect to continue to enter into finance leases, primarily for data centers. Additionally, in 2025, we provided credit support, such as through backstops and guarantees, to certain infrastructure related counterparties and may continue to provide additional credit support in the future.","Item 7, MD&A > Trends in Our Business and Financial Effect"]]},
+ T4:{s:"q",sum:"Énergie, eau et foncier contraignants ; PPA de 9,9 Md$ signé en janvier 2026 ; acquisition d'Intersect 4,8 Md$.",q:[
+  ["Our ability to scale our technical infrastructure is increasingly constrained by the availability of power, water, and land. For example, energy supply is constrained globally due to the significant increase in demand for and limited availability of energy to power AI compute. Securing this capacity involves entering into complex, long-lead-time arrangements.","Item 1A, Risk Factors > manufacturing and supply chain risks"],
+  ["In January 2026, we executed a power purchase agreement which we expect to be accounted for as a lease resulting in future payments depending on certain agreement terms of $9.9 billion between 2027 and 2047. If certain contractual conditions for the project are not met, we would instead make a one-time payment of approximately $3.5 billion and assume ownership of the power generating assets.","Item 7, MD&A > Leases"],
+  ["In December 2025, we entered into a definitive agreement to acquire Intersect, which provides data center and energy infrastructure solutions, for $4.8 billion in cash, plus the assumption of debt.","Item 7, MD&A > Pending Acquisitions"]]},
+ T5:{s:"q",sum:"Serveurs et réseau : 6 ans, inchangé ; 60 % de l'infrastructure technique est en serveurs et réseau.",q:[
+  ["We depreciate data center and office buildings over periods of seven to 40 years. We depreciate servers and network equipment generally over a period of six years.","Item 8, Note 1 > Property and Equipment"],
+  ["As of December 31, 2024 and 2025, approximately 60% of technical infrastructure assets were comprised of servers and network equipment. The remaining balance was comprised of data center land and buildings and related assets.","Item 8, Note 7 > Property and Equipment, Net"]]},
+ T6:{s:"q",sum:"Baux datacenters non commencés 5,8 + 52,7 Md$ ; engagements 149,1 Md$ dont 113,0 court terme ; backstops 5,7 et 16,9 Md$.",q:[
+  ["As of December 31, 2025, we have entered into leases primarily related to data centers that have not yet commenced with short-term and long-term future lease payments of $5.8 billion and $52.7 billion, respectively. These leases will commence between 2026 and 2031 with non-cancelable lease terms primarily between one and 25 years.","Item 7, MD&A > Leases"],
+  ["As of December 31, 2025, the total for these commitments was $149.1 billion, of which $113.0 billion was short-term, mostly related to technical infrastructure and inventory orders.","Item 7, MD&A > Purchase Commitments and Other Contractual Obligations"],
+  ["As of December 31, 2025, we provided backstops in the form of financial guarantees and credit derivatives with maximum potential amount of future payments of $5.7 billion and $16.9 billion, respectively.","Item 7, MD&A > Purchase Commitments and Other Contractual Obligations"]]},
+ T7:{s:"t",sum:"Baux tiers et contrats longs ; capacité excédentaire non redéployable ; pression sur la marge.",q:[
+  ["To meet the compute capacity demands of AI training and inference, as well as traditional cloud computing services, we are entering into significant leasing arrangements with third party operators, which may increase costs and operational complexity. […] In such nonperformance or an industry downturn, we may incur additional liabilities, have excess capacity that we cannot easily redeploy, and not receive payments from our counterparties or customers.","Item 1A, Risk Factors > Risks Specific to our Company"],
+  ["These include increasing costs for many aspects of our business resulting from a higher level of investment in technical infrastructure, increasing regulations, and increasing competition.","Item 1A, Risk Factors > downward pressure on our operating margin"]]}
+},
+meta:{
+ T1:{s:"t",sum:"IA, IA générative et « superintelligence » ; 30 datacenters détenus ; campus co-développé en Louisiane.",q:[
+  ["In particular, we expect our AI initiatives will require significantly increased investment in infrastructure.","Item 7, MD&A > Executive Overview > Investment Philosophy"],
+  ["We own 30 data center locations globally and we also lease some data centers at selected locations.","Item 2, Properties"],
+  ["In October 2025, we entered into an arrangement to co-develop a data center campus in Louisiana (the Venture). This Venture provides strategic optionality and flexibility, enabling us to effectively meet future infrastructure capacity needs as AI markets and technologies develop.","Item 8, Note 5 — Non-Marketable Equity Investments"]]},
+ T2:{s:"q",sum:"69,69 Md$ d'achats d'immobilisations ; 72,22 Md$ avec principal des baux financiers ; serveurs et réseau 98,0 Md$ nets.",q:[
+  ["Cash used in investing activities during 2025 mostly consisted of $69.69 billion of purchases of property and equipment as we continued to invest in servers, data centers, and network infrastructure, and $18.33 billion of purchases of non-marketable equity investments, and $10.05 billion of net purchases of marketable securities.","Item 7, MD&A > Cash Used in Investing Activities"],
+  ["Capital expenditures, including principal payments on finance leases, were $72.22 billion for the year ended December 31, 2025.","Item 7, MD&A > Executive Overview of Full Year 2025 Results"],
+  ["Purchases of property and equipment | (69,691) | (37,256) | (27,045) — Principal payments on finance leases | (2,524) | (1,969) | (1,058) (2025 / 2024 / 2023, in millions).","Item 8, Consolidated Statements of Cash Flows"]]},
+ T3:{s:"q",sum:"115 à 135 Md$ de capex attendus en 2026.",q:[
+  ["We anticipate making capital expenditures of approximately $115 billion to $135 billion in 2026 to support our AI efforts and core business.","Item 7, MD&A > Cash Used in Investing Activities"],
+  ["In particular, we expect our AI initiatives will require increased investment in infrastructure and headcount. If our investments are not successful longer-term, our business and financial performance could be harmed.","Item 1A, Risk Factors > Risks Related to Our Product Offerings"]]},
+ T4:{s:"t",sum:"Chaîne d'approvisionnement tendue, équipements de quelques fournisseurs asiatiques ; énergie et réseau cités ; PPA 3 à 25 ans sans volume minimum.",q:[
+  ["We have experienced, and expect to continue to experience, various challenges with the supply chain related to supporting our technical infrastructure. As a result, we have adjusted, and may continue to adjust in the future, our procurement practices to adapt to the evolving landscape.","Item 1A, Risk Factors > Business Operations and Financial Results"],
+  ["Additional unanticipated delays or disruptions in the completion of these projects, including due to the availability of components, power or network capacity, or any shortage of labor necessary in building portions of such projects […] may lead to increased project costs, operational inefficiencies, interruptions in the delivery or degradation of the quality or reliability of our products and services, or impairment of assets on our balance sheet.","Item 1A, Risk Factors > Business Operations and Financial Results"]]},
+ T5:{s:"q",sum:"Durée de la plupart des serveurs allongée à 5,5 ans au 1er janvier 2025 : −2,92 Md$ de dotation, +2,59 Md$ de résultat net.",q:[
+  ["In January 2025, we completed an assessment of the useful lives of property and equipment, which resulted in an increase in the estimated useful lives of most servers and network assets to 5.5 years, effective January 1, 2025. Based on the servers and network assets placed in service as of December 31, 2024, the financial impact of this change in estimate included a reduction in depreciation expense of $2.92 billion and an increase in net income of $2.59 billion, or $1.00 per diluted share, for the year ended December 31, 2025.","Item 8, Note 1 > Use of Estimates"],
+  ["Within property and equipment, servers and network assets depreciation expenses were $13.36 billion, $11.34 billion, and $7.32 billion for the years ended December 31, 2025, 2024, and 2023, respectively.","Item 8, Note 6 — Property and Equipment"]]},
+ T6:{s:"q",sum:"Baux non commencés 103,77 Md$ ; engagements 131,05 Md$ ; Venture 27 Md$ et garanties 28 Md$ ; 30 Md$ d'obligations émises.",q:[
+  ["In addition to lease liabilities included in our consolidated balance sheets, we have leases that have not yet commenced, with total lease obligations of approximately $103.77 billion, mostly for data centers, colocations, and network infrastructure, as of December 31, 2025.","Item 7, MD&A > Leases and Contractual Commitments"],
+  ["We have $131.05 billion of non-cancelable contractual commitments as of December 31, 2025. These commitments are mostly related to third-party cloud capacity arrangements and our continued investments in servers and network infrastructure, data centers, and consumer hardware products in Reality Labs.","Item 8, Note 11 — Commitments and Contingencies"],
+  ["The parties have committed to fund their respective pro rata share of approximately $27 billion in total estimated development costs.","Item 8, Note 5 — Non-Marketable Equity Investments"],
+  ["In addition, we have provided residual value guarantees (RVG) with an aggregate threshold of approximately $28 billion that decreases over time.","Item 8, Note 5 — Non-Marketable Equity Investments"],
+  ["In November 2025, we issued an aggregate of $30.0 billion of fixed-rate senior unsecured notes in six series.","Item 8, Note 10 — Long-term Debt"]]},
+ T7:{s:"t",sum:"Investissements IA réduisent la marge ; dépendance aux profits des autres activités ; projets déjà suspendus ou arrêtés.",q:[
+  ["We incur significant expenses in operating our business, and some of our investments, particularly our investments in our artificial intelligence initiatives as well as Reality Labs, have the effect of reducing our operating margin and profitability. If our investments are not successful longer-term, our business and financial performance will be harmed.","Item 1A, Risk Factors > Business Operations and Financial Results"],
+  ["We have changed, suspended, and terminated certain of these projects as a result of various factors, and may continue to do so in the future.","Item 1A, Risk Factors > Business Operations and Financial Results"]]}
+},
+msft:{
+ T1:{s:"t",sum:"Datacenters alignés sur la demande IA ; partenariat OpenAI avec droit de premier refus sur la capacité.",q:[
+  ["We continue to align our datacenter locations and server capacity to meet the evolving needs of our customers, particularly given the growing demand for AI services. Our datacenters depend on the availability of permitted and buildable land, predictable energy, networking supplies, and servers, including graphics processing units (“GPUs”) and other components.","Item 1, Business > Operations"],
+  ["The OpenAI API is exclusive to Azure, runs on Azure, and is available through the Azure OpenAI Service. We also have a right of first refusal on OpenAI's new capacity needs.","Item 7, MD&A > Industry Trends and Opportunities"]]},
+ T2:{s:"q",sum:"Additions aux immobilisations 64,6 Md$ (+20,1) ; marge brute du cloud à 69 % sous l'effet de l'infrastructure IA.",q:[
+  ["Cash used in investing decreased $24.4 billion to $72.6 billion for fiscal year 2025, primarily due to a $63.2 billion decrease in cash used for acquisitions of companies, net of cash acquired and divestitures, and purchases of intangible and other assets, offset in part by a $22.3 billion increase in cash used in net investment purchases, sales, and maturities, and a $20.1 billion increase in additions to property and equipment.","Item 7, MD&A > Cash Flows"],
+  ["Additions to property and equipment | (64,551) | (44,477) (FY2025 / FY2024, in millions).","Item 8, Cash Flows Statements"],
+  ["Microsoft Cloud gross margin percentage decreased to 69% driven by the impact of scaling our AI infrastructure, offset in part by efficiency gains in Azure.","Item 7, MD&A > Summary Results of Operations"]]},
+ T3:{s:"t",sum:"Poursuite des investissements en capex pour le cloud et l'IA ; pression possible sur les marges. Pas de montant.",q:[
+  ["We will continue to invest in capital expenditures to support growth in our cloud offerings and our investments in AI infrastructure and training.","Item 7, MD&A > Other Planned Uses of Capital"],
+  ["The investments we are making in cloud and AI infrastructure and devices will continue to increase our operating costs and may decrease our operating margins.","Item 7, MD&A > Economic Conditions, Challenges, and Risks"]]},
+ T4:{s:"t",sum:"Foncier constructible, énergie prévisible, réseau, GPU ; peu de fournisseurs qualifiés ; concurrents sur les mêmes fournisseurs.",q:[
+  ["There are limited suppliers for certain device and datacenter components. […] Capacity available to us may be affected as competitors use some of the same suppliers and materials for hardware components. If components are delayed or become unavailable […] we may not obtain timely replacement supplies, resulting in reduced sales or inadequate datacenter capacity to support the delivery and continued development of our products and services.","Item 1A, Risk Factors > Operational Risks"],
+  ["Changes in climate where we operate may increase the costs of powering and cooling computer hardware we use to develop software and provide cloud-based services.","Item 1A, Risk Factors > General Risks"]]},
+ T5:{s:"q",sum:"Équipement informatique 2 à 6 ans, inchangé ; dotation 22,0 Md$ (15,2 en FY2024).",q:[
+  ["The estimated useful lives of our property and equipment are generally as follows: software developed or acquired for internal use, three years; computer equipment, two to six years; buildings and improvements, five to 15 years; leasehold improvements, three to 15 years; and furniture and equipment, one to 10 years.","Item 8, Note 1 > Property and Equipment"],
+  ["During fiscal years 2025, 2024, and 2023, depreciation expense was $22.0 billion, $15.2 billion, and $11.0 billion, respectively.","Item 8, Note 6 — Property and Equipment"]]},
+ T6:{s:"q",sum:"Baux datacenters non commencés 92,7 Md$ ; construction engagée 32,1 Md$ ; engagements d'achat 110,0 Md$ ; passifs de baux financiers 46,2 Md$.",q:[
+  ["As of June 30, 2025, we had additional leases, primarily for datacenters, that had not yet commenced of $92.7 billion. These leases will commence between fiscal year 2026 and fiscal year 2031 with lease terms of 1 year to 20 years.","Item 8, Note 13 — Leases"],
+  ["As of June 30, 2025, we have committed $32.1 billion for the construction of new buildings, building improvements, and leasehold improvements, primarily related to datacenters.","Item 8, Note 6 — Property and Equipment"],
+  ["Purchase commitments (d) | 103,940 | 6,013 | 109,953 (FY2026 / Thereafter / Total, in millions). Purchase commitments primarily relate to datacenters and include open purchase orders and take-or-pay contracts that are not presented as construction commitments above.","Item 7, MD&A > Contractual Obligations"],
+  ["Total finance lease liabilities | $ 46,172 | $ 27,145 (June 30, 2025 / 2024, in millions).","Item 8, Note 13 — Leases"]]},
+ T7:{s:"t",sum:"Investissements IA spéculatifs, marges potentiellement inférieures ; dépendance foncier, énergie, eau, GPU.",q:[
+  ["Investments in new technology are speculative. […] New products and services may not be profitable or may not achieve operating margins as high as we have experienced historically.","Item 1A, Risk Factors > Evolution of Our Business"],
+  ["Inefficiencies or operational failures, including temporary or permanent loss of customer data, outages, insufficient Internet connectivity, insufficient or unavailable power or water supply, or inadequate storage and compute capacity could diminish the quality of our products, services, and user experience […].","Item 1A, Risk Factors > Operational Risks"]]}
+},
+nvda:{
+ T1:{s:"t",sum:"Côté offre : le datacenter devient l'unité de calcul ; Hopper puis Blackwell ; revenus Data Center +142 %.",q:[
+  ["While historically the server was the unit of computing, as AI and HPC workloads have become extremely large spanning thousands of compute nodes, the data center has become the new unit of computing, with networking as an integral part.","Item 1, Business > Our Markets > Data Center"],
+  ["Data Center revenue for fiscal year 2025 was up 142% from a year ago. […] We began shipping production systems of the Blackwell architecture in the fourth quarter of fiscal year 2025.","Item 7, MD&A > Fiscal Year 2025 Summary"]]},
+ T2:{s:"q",sum:"3,4 Md$ communiqués (ligne de flux 3,236) ; équipement et matériel de calcul 7,6 Md$ bruts ; pas de ventilation datacenter.",q:[
+  ["During fiscal year 2025 and fiscal year 2024, we spent $3.4 billion and $1.1 billion on capital expenditures, respectively.","Item 7, MD&A > Material Cash Requirements and Other Obligations"],
+  ["Purchases related to property and equipment and intangible assets | (3,236) | (1,069) | (1,833) (FY2025 / FY2024 / FY2023, in millions).","Consolidated Statements of Cash Flows"],
+  ["Equipment, compute hardware, and software | 7,568 | 5,200 (Jan 26, 2025 / Jan 28, 2024, in millions; useful life 2-7 years).","Note 9 — Balance Sheet Components"]]},
+ T3:{s:"t",sum:"Hausse du capex en FY2026 ; baux à venir 7,6 Md$ ; 10,9 Md$ d'accords cloud pluriannuels.",q:[
+  ["We expect to increase capital expenditures in fiscal year 2026 relative to fiscal year 2025 to support the future growth of our business.","Item 7, MD&A > Material Cash Requirements and Other Obligations"],
+  ["Other non-inventory purchase obligations were $14.3 billion, including $10.9 billion of multi-year cloud service agreements. We expect our cloud service agreements to primarily be used to support our research and development efforts, as well as our DGX Cloud offerings.","Note 12 — Commitments and Contingencies"]]},
+ T4:{s:"t",sum:"Chaîne concentrée en Asie (TSMC, Samsung, SK Hynix, Micron, CoWoS) ; délais > 12 mois ; primes et acomptes pour sécuriser la capacité ; énergie des clients.",q:[
+  ["We have previously experienced and may continue to experience extended lead times of more than 12 months. To secure future supply and capacity, we have paid premiums, provided deposits, and entered into long-term supply agreements and capacity commitments, which have increased our product costs and this may continue.","Item 1A, Risk Factors > Demand, Supply, and Manufacturing"],
+  ["Data centers depend on access to clean water and predictable energy. Power or water shortages, land or permitting constraints, or regulations that limit energy, water, or land availability, could impair the ability of our customers to expand their data center capacity and consume our products and services, which may in turn negatively impact our business.","Item 1A, Risk Factors > Global Operating Business"]]},
+ T5:{s:"q",sum:"Immobilisations 2 à 7 ans ; dotation 1,3 Md$.",q:[
+  ["Depreciation of property and equipment is computed using the straight-line method based on the estimated useful lives of the assets of two to seven years.","Note 1 > Property and Equipment"],
+  ["Depreciation expense for fiscal years 2025, 2024, and 2023 was $1.3 billion, $894 million, and $844 million, respectively.","Note 9 — Balance Sheet Components"]]},
+ T6:{s:"q",sum:"Baux à commencer 7,6 Md$ (datacenters et bureaux) ; engagements d'approvisionnement 30,8 Md$ ; hors stocks 14,3 Md$.",q:[
+  ["Between fiscal years 2026 and 2030, we expect to commence leases with future obligations of $7.6 billion primarily of data center and office operating leases, with lease terms of 3 to 15.5 years.","Note 17 — Leases"],
+  ["As of January 26, 2025, we had outstanding inventory purchase and long-term supply and capacity obligations totaling $30.8 billion, an increase from the prior year led by commitments, capacity and components for new product introductions, including our new Blackwell architecture.","Note 12 — Commitments and Contingencies"]]},
+ T7:{s:"t",sum:"Risque de surestimation de la demande avec commandes non annulables ; capacité des clients à investir dans l'infrastructure IA.",q:[
+  ["The risk of these impacts has increased and may continue to increase as our purchase obligations and prepaids have grown and are expected to continue to grow and become a greater portion of our total supply.","Item 1A, Risk Factors > Demand, Supply, and Manufacturing"],
+  ["Factors that have caused and/or could in the future cause us to underestimate or overestimate demand, and impact the timing and volume of our revenue, include: our customers' ability to invest in AI infrastructure.","Item 1A, Risk Factors > Demand, Supply, and Manufacturing"]]}
+},
+aapl:{
+ T1:{s:"n",sum:"Aucune stratégie d'investissement IA ou datacenter décrite. « Apple Intelligence » et « Private Cloud Compute » n'apparaissent pas dans le 10-K.",q:[]},
+ T2:{s:"q",sum:"12,7 Md$ d'acquisitions d'immobilisations ; aucun moteur commenté ; la R&D croît avec des « coûts d'infrastructure ».",q:[
+  ["Payments for acquisition of property, plant and equipment | (12,715) | (9,447) | (10,959) (2025 / 2024 / 2023, in millions).","Item 8, Consolidated Statements of Cash Flows"],
+  ["The growth in R&D expense during 2025 compared to 2024 was primarily driven by increases in headcount-related expenses and infrastructure-related costs.","Item 7, MD&A > Research and Development"]]},
+ T3:{s:"g",sum:"Pas de trajectoire ; seulement 14,8 Md$ d'autres obligations d'achat dont actifs de production.",q:[
+  ["As of September 27, 2025, the Company had other purchase obligations of $14.8 billion, with $7.0 billion payable within 12 months.","Item 7, MD&A > Other Purchase Obligations"]]},
+ T4:{s:"g",sum:"Risques composants et semi-conducteurs pour les produits, pas pour des datacenters.",q:[
+  ["For example, the global semiconductor industry has in the past experienced high demand and shortages of supply, which adversely affected the Company’s ability to obtain sufficient quantities of components and products on commercially reasonable terms, or at all.","Item 1A, Risk Factors > ability to obtain components"]]},
+ T5:{s:"g",sum:"Linéaire, dotation 8,0 Md$ ; aucune durée pour les serveurs.",q:[
+  ["Depreciation expense on property, plant and equipment was $8.0 billion, $8.2 billion and $8.5 billion during 2025, 2024 and 2023, respectively.","Item 8, Note 5 – Property, Plant and Equipment"]]},
+ T6:{s:"g",sum:"Datacenters cités parmi les locaux loués ; 16,8 Md$ de baux fixes toutes catégories.",q:[
+  ["The Company has lease arrangements for certain equipment and facilities, including corporate, data center, manufacturing and retail space. As of September 27, 2025, the Company had fixed lease payment obligations of $16.8 billion, with $2.6 billion payable within 12 months.","Item 7, MD&A > Leases"]]},
+ T7:{s:"g",sum:"IA citée comme risque produit et réglementaire, pas comme risque d'investissement.",q:[
+  ["The introduction of new and complex technologies, such as artificial intelligence features, can increase these and other safety risks, including exposing users to harmful, inaccurate or other negative content and experiences.","Item 1A, Risk Factors > design and manufacturing defects"]]}
+}};
+
+// ---------- HELPERS ----------
+const $=s=>document.querySelector(s);
+const fmt=(v,u)=>v==null?"n.d.":(u==="%"?v.toFixed(0)+" %":(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1)).replace(".",",")+(u==="Md$"?"":""));
+const fmtB=v=>v==null?"n.d.":(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1)).replace(".",",");
+const tip=$("#tip");
+function showTip(e,html){tip.innerHTML=html;tip.style.opacity=1;moveTip(e)}
+function moveTip(e){tip.style.left=(e.clientX+12)+"px";tip.style.top=(e.clientY-10)+"px"}
+function hideTip(){tip.style.opacity=0}
+function svgEl(w,h){const s=document.createElementNS("http://www.w3.org/2000/svg","svg");s.setAttribute("viewBox",`0 0 ${w} ${h}`);s.setAttribute("preserveAspectRatio","xMidYMid meet");return s}
+function el(n,a={},txt){const e=document.createElementNS("http://www.w3.org/2000/svg",n);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e}
+function niceMax(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v)));const n=v/p;const m=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10;return m*p}
+function niceMin(v){if(v>=0)return 0;return -niceMax(-v)}
+
+// theme
+function setTheme(t){const r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);["auto","light","dark"].forEach(x=>$("#th-"+x).setAttribute("aria-pressed",x===t));setTimeout(renderAll,0)}
+
+// tabs
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="tab-"+b.dataset.tab));
+}));
+
+// ---------- KPIs ----------
+function renderKpis(){
+  const total=CO.reduce((a,c)=>a+Q[c.id].capex[5],0);
+  const total24=CO.reduce((a,c)=>a+Q[c.id].capex[4],0);
+  const ocf=CO.reduce((a,c)=>a+Q[c.id].ocf[5],0);
+  const leases=COMMIT.reduce((a,c)=>a+(c.leases||0),0);
+  const k=[
+    {v:fmtB(total)+" Md$",l:"Capex cumulé FY2025, six sociétés (base XBRL)"},
+    {v:"+"+Math.round((total/total24-1)*100)+" %",l:"vs FY2024 ("+fmtB(total24)+" Md$)"},
+    {v:Math.round(total/ocf*100)+" %",l:"du cash-flow opérationnel cumulé réinvesti"},
+    {v:fmtB(leases)+" Md$",l:"de baux signés non commencés, cinq sociétés"},
+    {v:"3 / 6",l:"sociétés dont le capex communiqué diffère de la ligne XBRL"},
+    {v:"1 / 6",l:"société chiffrant 2026 dans son 10-K (Meta, 115–135 Md$)"}
+  ];
+  $("#kpis").innerHTML=k.map(x=>`<div class="kpi"><div class="v">${x.v}</div><div class="l">${x.l}</div></div>`).join("");
+}
+
+// ---------- BAR CHART (grouped) ----------
+function groupedBars(container,groups,series,opts={}){
+  // groups: [{label, color?}], series: [{name, values:[], color?, pattern?}]
+  const W=560,H=opts.h||260,m={t:16,r:12,b:34,l:44};
+  const svg=svgEl(W,H);
+  const vals=series.flatMap(s=>s.values).filter(v=>v!=null);
+  const max=niceMax(Math.max(...vals)*1.08),min=niceMin(Math.min(0,...vals));
+  const y=v=>m.t+(H-m.t-m.b)*(1-(v-min)/(max-min));
+  const gw=(W-m.l-m.r)/groups.length,bw=gw*0.72/series.length;
+  for(let i=0;i<=4;i++){const v=min+(max-min)*i/4;svg.appendChild(el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),class:"gridline"}));svg.appendChild(el("text",{x:m.l-6,y:y(v)+4,"text-anchor":"end",class:"axis",fill:"var(--muted)","font-size":11},fmtB(v)));}
+  groups.forEach((g,gi)=>{
+    const x0=m.l+gi*gw+gw*0.14;
+    series.forEach((s,si)=>{
+      const v=s.values[gi];if(v==null){svg.appendChild(el("text",{x:x0+si*bw+bw/2,y:y(0)-4,"text-anchor":"middle","font-size":10,fill:"var(--muted)"},"n.d."));return}
+      const r=el("rect",{x:x0+si*bw,y:Math.min(y(v),y(0)),width:bw-2,height:Math.abs(y(v)-y(0)),rx:3,fill:s.color||g.color,opacity:s.opacity??1});
+      r.addEventListener("mousemove",e=>showTip(e,`<b>${g.label}</b> · ${s.name}<br>${fmtB(v)} ${opts.unit||"Md$"}`));r.addEventListener("mouseleave",hideTip);
+      svg.appendChild(r);
+      if(opts.labels){svg.appendChild(el("text",{x:x0+si*bw+bw/2-1,y:y(Math.max(v,0))-4,"text-anchor":"middle","font-size":10,fill:"var(--ink)","font-weight":600},fmtB(v)))}
+    });
+    svg.appendChild(el("text",{x:m.l+gi*gw+gw/2,y:H-m.b+16,"text-anchor":"middle","font-size":11,fill:"var(--muted)"},g.label));
+  });
+  svg.appendChild(el("line",{x1:m.l,x2:W-m.r,y1:y(0),y2:y(0),stroke:"var(--muted)"}));
+  container.innerHTML="";container.appendChild(svg);
+  if(series.length>1&&opts.legend!==false){const lg=document.createElement("div");lg.className="legend";lg.innerHTML=series.map(s=>`<span><i style="background:${s.color||'var(--muted)'};opacity:${s.opacity??1}"></i>${s.name}</span>`).join("");container.appendChild(lg)}
+}
+
+// ---------- LINE CHART ----------
+let chartType="line",activeCos=new Set(CO.map(c=>c.id)),metricKey="capex";
+function setChartType(t){chartType=t;$("#ct-line").setAttribute("aria-pressed",t==="line");$("#ct-bar").setAttribute("aria-pressed",t==="bar");renderSeries()}
+function renderSeries(){
+  const met=METRICS.find(m=>m.k===metricKey);$("#metric-note").textContent=met.note;
+  const cos=CO.filter(c=>activeCos.has(c.id));
+  const box=$("#chart-series");
+  if(chartType==="bar"){groupedBars(box,YEARS.map(y=>({label:y})),cos.map(c=>({name:c.name,values:Q[c.id][metricKey],color:c.color})),{unit:met.unit,h:300});return}
+  const W=900,H=320,m={t:16,r:110,b:34,l:48};
+  const svg=svgEl(W,H);
+  const vals=cos.flatMap(c=>Q[c.id][metricKey]).filter(v=>v!=null);
+  if(!vals.length){box.innerHTML='<p class="muted">Sélectionner au moins une société.</p>';return}
+  const max=niceMax(Math.max(...vals)*1.05),min=niceMin(Math.min(0,...vals));
+  const x=i=>m.l+(W-m.l-m.r)*i/(YEARS.length-1),y=v=>m.t+(H-m.t-m.b)*(1-(v-min)/(max-min));
+  for(let i=0;i<=4;i++){const v=min+(max-min)*i/4;svg.appendChild(el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),class:"gridline"}));svg.appendChild(el("text",{x:m.l-6,y:y(v)+4,"text-anchor":"end","font-size":11,fill:"var(--muted)"},fmtB(v)+(met.unit==="%"?" %":"")))}
+  YEARS.forEach((yr,i)=>svg.appendChild(el("text",{x:x(i),y:H-m.b+16,"text-anchor":"middle","font-size":11,fill:"var(--muted)"},yr)));
+  if(min<0)svg.appendChild(el("line",{x1:m.l,x2:W-m.r,y1:y(0),y2:y(0),stroke:"var(--muted)"}));
+  cos.forEach(c=>{
+    const d=Q[c.id][metricKey];let path="",started=false;
+    d.forEach((v,i)=>{if(v==null){started=false;return}path+=(started?"L":"M")+x(i)+" "+y(v)+" ";started=true});
+    svg.appendChild(el("path",{d:path,fill:"none",stroke:c.color,"stroke-width":2.5,"stroke-linejoin":"round"}));
+    d.forEach((v,i)=>{if(v==null)return;const pt=el("circle",{cx:x(i),cy:y(v),r:4,fill:c.color});pt.addEventListener("mousemove",e=>showTip(e,`<b>${c.name}</b> ${YEARS[i]}<br>${met.label} : ${fmtB(v)} ${met.unit}`));pt.addEventListener("mouseleave",hideTip);svg.appendChild(pt)});
+    const last=d[d.length-1];if(last!=null)svg.appendChild(el("text",{x:x(5)+8,y:y(last)+4,"font-size":12,fill:c.color,"font-weight":600},`${c.name} ${fmtB(last)}`));
+  });
+  box.innerHTML="";box.appendChild(svg);
+}
+function renderChips(){
+  $("#chips").innerHTML=CO.map(c=>`<button class="chip" aria-pressed="${activeCos.has(c.id)}" data-id="${c.id}"><i class="dot" style="background:${c.color}"></i>${c.name}</button>`).join("");
+  document.querySelectorAll("#chips .chip").forEach(b=>b.addEventListener("click",()=>{const id=b.dataset.id;if(activeCos.has(id))activeCos.delete(id);else activeCos.add(id);b.setAttribute("aria-pressed",activeCos.has(id));renderSeries()}));
+}
+$("#metric").innerHTML=METRICS.map(m=>`<option value="${m.k}">${m.label}</option>`).join("");
+$("#metric").addEventListener("change",e=>{metricKey=e.target.value;renderSeries()});
+
+// ---------- TABLE ----------
+let sortKey="capex",sortDir=-1;
+function renderTable(){
+  const cols=[{k:"name",l:"Société"},{k:"fye",l:"Clôture"},{k:"rev",l:"CA"},{k:"oi",l:"Rés. expl."},{k:"om",l:"Marge op."},{k:"ocf",l:"OCF"},{k:"capex",l:"Capex"},{k:"fcf",l:"FCF"},{k:"int",l:"Capex/OCF"}];
+  const rows=CO.map(c=>({...c,rev:Q[c.id].rev[5],oi:Q[c.id].oi[5],om:Q[c.id].om[5],ocf:Q[c.id].ocf[5],capex:Q[c.id].capex[5],fcf:Q[c.id].fcf[5],int:Q[c.id].int[5]}));
+  rows.sort((a,b)=>{const va=a[sortKey],vb=b[sortKey];if(typeof va==="string")return va.localeCompare(vb)*sortDir;return (va-vb)*sortDir});
+  const t=$("#tbl");
+  t.innerHTML=`<thead><tr>${cols.map(c=>`<th data-k="${c.k}">${c.l} <span class="arr">${sortKey===c.k?(sortDir<0?"▼":"▲"):"⇅"}</span></th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr><td><span class="co"><i class="dot" style="background:${r.color}"></i>${r.name}</span></td><td>${r.fye}</td><td>${fmtB(r.rev)}</td><td>${fmtB(r.oi)}</td><td>${r.om.toFixed(1).replace(".",",")} %</td><td>${fmtB(r.ocf)}</td><td><b>${fmtB(r.capex)}</b></td><td>${fmtB(r.fcf)}</td><td><b>${r.int} %</b></td></tr>`).join("")}</tbody>`;
+  t.querySelectorAll("th").forEach(h=>h.addEventListener("click",()=>{const k=h.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==="name"||k==="fye")?1:-1}renderTable()}));
+}
+
+// ---------- BASIS ----------
+let basis="xbrl";
+function setBasis(b){basis=b;$("#b-xbrl").setAttribute("aria-pressed",b==="xbrl");$("#b-mgmt").setAttribute("aria-pressed",b==="mgmt");renderBasis()}
+function renderBasis(){
+  const vals=CO.map(c=>basis==="xbrl"?Q[c.id].capex[5]:MGMT[c.id]);
+  groupedBars($("#chart-basis"),CO.map(c=>({label:c.name,color:c.color})),[{name:basis==="xbrl"?"Base XBRL":"Base managériale",values:vals}],{labels:true,legend:false,h:240});
+}
+
+// ---------- GUIDANCE ----------
+function renderGuidance(){
+  const box=$("#chart-guidance");const W=900,H=200,m={t:14,r:30,b:30,l:90};const svg=svgEl(W,H);
+  const max=140;const x=v=>m.l+(W-m.l-m.r)*v/max;const rowH=(H-m.t-m.b)/GUID.length;
+  [0,25,50,75,100,125].forEach(v=>{svg.appendChild(el("line",{x1:x(v),x2:x(v),y1:m.t,y2:H-m.b,class:"gridline"}));svg.appendChild(el("text",{x:x(v),y:H-m.b+16,"text-anchor":"middle","font-size":11,fill:"var(--muted)"},v))});
+  GUID.forEach((g,i)=>{
+    const c=CO.find(k=>k.id===g.id);const yc=m.t+rowH*i+rowH/2;
+    svg.appendChild(el("text",{x:m.l-10,y:yc+4,"text-anchor":"end","font-size":13,fill:"var(--ink)","font-weight":600},c.name));
+    // guidance band
+    const gx1=x(g.lo),gx2=Math.max(x(g.hi),x(g.lo)+4);
+    const band=el("rect",{x:gx1-(g.lo===g.hi?3:0),y:yc-16,width:gx2-gx1+(g.lo===g.hi?6:0),height:32,fill:"var(--muted)",opacity:.35,rx:4});
+    band.addEventListener("mousemove",e=>showTip(e,`<b>${c.name}</b> guidance initiale FY2025<br>${g.lo===g.hi?"≈ "+g.lo:g.lo+" – "+g.hi} Md$`));band.addEventListener("mouseleave",hideTip);svg.appendChild(band);
+    // actual
+    const ax=x(g.act);svg.appendChild(el("line",{x1:x(g.hi),x2:ax,y1:yc,y2:yc,stroke:c.color,"stroke-width":3}));
+    const dot=el("circle",{cx:ax,cy:yc,r:7,fill:c.color});dot.addEventListener("mousemove",e=>showTip(e,`<b>${c.name}</b> réalisé FY2025<br>${fmtB(g.act)} Md$${g.act2?" (XBRL) · "+fmtB(g.act2)+" (cash capex)":""}`));dot.addEventListener("mouseleave",hideTip);svg.appendChild(dot);
+    const pct=Math.round((g.act/g.hi-1)*100);
+    svg.appendChild(el("text",{x:ax+12,y:yc+4,"font-size":12,fill:c.color,"font-weight":700},`${fmtB(g.act)}  (+${pct} %)`));
+    if(g.act2){const d2=el("circle",{cx:x(g.act2),cy:yc,r:5,fill:"var(--panel)",stroke:c.color,"stroke-width":2});d2.addEventListener("mousemove",e=>showTip(e,`<b>Amazon</b> cash capex (base managériale)<br>${fmtB(g.act2)} Md$`));d2.addEventListener("mouseleave",hideTip);svg.appendChild(d2)}
+  });
+  box.innerHTML="";box.appendChild(svg);
+  const lg=document.createElement("div");lg.className="legend";lg.innerHTML=`<span><i style="background:var(--muted);opacity:.35"></i>Guidance initiale (point ou fourchette)</span><span><i style="background:var(--ink);border-radius:50%"></i>Réalisé FY2025, base XBRL</span><span><i style="background:transparent;border:2px solid var(--ink);border-radius:50%"></i>Amazon, cash capex (base managériale)</span>`;box.appendChild(lg);
+}
+
+// ---------- LIVES ----------
+function renderLives(){
+  const box=$("#lives");const lo=1,hi=8;
+  box.innerHTML=LIVES.map(l=>{const c=CO.find(k=>k.id===l.id);
+    const bar=l.lo==null?`<span class="muted" style="font-size:12px;padding-left:8px">non divulgué</span>`:`<span class="range" style="left:${(l.lo-lo)/(hi-lo)*100}%;width:${Math.max((l.hi-l.lo)/(hi-lo)*100,1.5)}%;background:${c.color}"></span>`;
+    return `<div class="lifebar"><span class="name">${c.name}</span><span class="track">${bar}</span><span class="lab">${l.lab}</span></div>`}).join("")+
+    `<div class="lifebar"><span class="name"></span><span class="track" style="background:transparent;height:auto;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)"><span>1 an</span><span>4 ans</span><span>8 ans</span></span><span class="lab"></span></div>`;
+}
+
+// ---------- COMMITMENTS ----------
+function renderCommit(){
+  groupedBars($("#chart-commit"),CO.map(c=>({label:c.name,color:c.color})),[
+    {name:"Baux signés non commencés",values:COMMIT.map(c=>c.leases),color:"var(--accent)"},
+    {name:"Engagements d'achat non annulables",values:COMMIT.map(c=>c.po),color:"var(--warn)"},
+    {name:"Capex FY2025 (XBRL), pour échelle",values:CO.map(c=>Q[c.id].capex[5]),color:"var(--muted)",opacity:.45}
+  ],{labels:true,h:300});
+}
+
+// ---------- MATRIX ----------
+let sel=null;
+function renderMatrix(){
+  const t=$("#matrix");
+  t.innerHTML=`<thead><tr><th style="width:110px"></th>${THEMES.map(th=>`<th title="${th.long}">${th.k}<br><span style="font-weight:400">${th.short}</span></th>`).join("")}</tr></thead><tbody>${CO.map(c=>`<tr><th style="text-align:left"><span class="co"><i class="dot" style="background:${c.color}"></i>${c.name}</span></th>${THEMES.map(th=>{const cell=G[c.id][th.k];const lab={q:"chiffré",t:"qualitatif",g:"générique",n:"non divulgué"}[cell.s];return `<td><button class="cell ${cell.s}${sel&&sel[0]===c.id&&sel[1]===th.k?" sel":""}" data-c="${c.id}" data-t="${th.k}" title="${cell.sum.replace(/"/g,'&quot;')}">${lab}</button></td>`}).join("")}</tr>`).join("")}</tbody>`;
+  t.querySelectorAll(".cell").forEach(b=>b.addEventListener("click",()=>{sel=[b.dataset.c,b.dataset.t];renderMatrix();renderReader();$("#reader").scrollIntoView({behavior:"smooth",block:"nearest"})}));
+}
+function renderReader(){
+  const r=$("#reader");if(!sel)return;
+  const c=CO.find(k=>k.id===sel[0]),th=THEMES.find(k=>k.k===sel[1]),cell=G[sel[0]][sel[1]];
+  const lab={q:"Chiffré et spécifique",t:"Qualitatif, spécifique",g:"Générique",n:"Non divulgué"}[cell.s];
+  r.innerHTML=`<h4><span class="co"><i class="dot" style="background:${c.color}"></i>${c.name}</span> · ${th.k} ${th.long} <span class="badge">${lab}</span></h4><p style="margin:6px 0 10px"><b>${cell.sum}</b></p>${cell.q.length?cell.q.map(q=>`<blockquote class="quote">${q[0]}<span class="loc">${q[1]}, 10-K FY2025</span></blockquote>`).join(""):'<p class="muted">Aucun passage dans le 10-K FY2025.</p>'}`;
+}
+
+// ---------- SYNTH CHARTS ----------
+function renderSynth(){
+  groupedBars($("#chart-capex-bars"),CO.map(c=>({label:c.name,color:c.color})),[
+    {name:"FY2024",values:CO.map(c=>Q[c.id].capex[4]),color:"var(--muted)",opacity:.45},
+    {name:"FY2025",values:CO.map(c=>Q[c.id].capex[5]),color:"var(--accent)"}
+  ],{labels:true,h:250});
+  // intensity: custom colored per company
+  const box=$("#chart-intensity");const W=560,H=250,m={t:16,r:12,b:34,l:44};const svg=svgEl(W,H);
+  const y=v=>m.t+(H-m.t-m.b)*(1-v/100);const gw=(W-m.l-m.r)/CO.length;
+  [0,25,50,75,100].forEach(v=>{svg.appendChild(el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v),class:"gridline"}));svg.appendChild(el("text",{x:m.l-6,y:y(v)+4,"text-anchor":"end","font-size":11,fill:"var(--muted)"},v+" %"))});
+  CO.forEach((c,i)=>{const v=Q[c.id].int[5],v24=Q[c.id].int[4];const x0=m.l+i*gw+gw*0.2,bw=gw*0.6;
+    const r=el("rect",{x:x0,y:y(v),width:bw,height:y(0)-y(v),rx:4,fill:c.color});r.addEventListener("mousemove",e=>showTip(e,`<b>${c.name}</b><br>FY2025 : ${v} % · FY2024 : ${v24} %`));r.addEventListener("mouseleave",hideTip);svg.appendChild(r);
+    svg.appendChild(el("line",{x1:x0-3,x2:x0+bw+3,y1:y(v24),y2:y(v24),stroke:"var(--ink)","stroke-width":2,"stroke-dasharray":"3 2"}));
+    svg.appendChild(el("text",{x:x0+bw/2,y:y(v)-5,"text-anchor":"middle","font-size":12,fill:"var(--ink)","font-weight":700},v+" %"));
+    svg.appendChild(el("text",{x:x0+bw/2,y:H-m.b+16,"text-anchor":"middle","font-size":11,fill:"var(--muted)"},c.name));
+  });
+  box.innerHTML="";box.appendChild(svg);
+  const lg=document.createElement("div");lg.className="legend";lg.innerHTML=`<span><i style="background:var(--accent)"></i>FY2025</span><span><i style="background:transparent;border-top:2px dashed var(--ink);height:0;vertical-align:3px"></i>FY2024</span>`;box.appendChild(lg);
+}
+
+function renderAll(){renderKpis();renderSynth();renderSeries();renderTable();renderBasis();renderGuidance();renderLives();renderCommit();renderMatrix();if(sel)renderReader()}
+renderChips();renderAll();
+</script>
+</body>
+</html>

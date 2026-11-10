@@ -1,0 +1,1114 @@
+{
+  "exercise": "ai-capex-intensity",
+  "mode": "numeric",
+  "score": 100.0,
+  "score_authority": "deterministic_numeric",
+  "qualified": false,
+  "qualification": {
+    "passed": false,
+    "blockers": [
+      "critical requirements failed",
+      "capex_trend_adequacy: fail"
+    ],
+    "critical_requirement_failures": [
+      "guidance release dates and Meta basis"
+    ],
+    "format_blockers": []
+  },
+  "requirements": [
+    {
+      "id": "amazon_revenue",
+      "label": "Amazon Revenue FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 716.9
+    },
+    {
+      "id": "amazon_operating_income",
+      "label": "Amazon Operating income FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 80.0
+    },
+    {
+      "id": "amazon_operating_margin",
+      "label": "Amazon Operating margin FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 11.2
+    },
+    {
+      "id": "amazon_operating_cash_flow",
+      "label": "Amazon Operating cash flow FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 139.5
+    },
+    {
+      "id": "amazon_capex",
+      "label": "Amazon Capex FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 131.8
+    },
+    {
+      "id": "amazon_fcf",
+      "label": "Amazon FCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 7.7
+    },
+    {
+      "id": "amazon_capex_ocf",
+      "label": "Amazon Capex/OCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 94.0
+    },
+    {
+      "id": "alphabet_revenue",
+      "label": "Alphabet Revenue FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 402.8
+    },
+    {
+      "id": "alphabet_operating_income",
+      "label": "Alphabet Operating income FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 129.0
+    },
+    {
+      "id": "alphabet_operating_margin",
+      "label": "Alphabet Operating margin FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 32.0
+    },
+    {
+      "id": "alphabet_operating_cash_flow",
+      "label": "Alphabet Operating cash flow FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 164.7
+    },
+    {
+      "id": "alphabet_capex",
+      "label": "Alphabet Capex FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 91.4
+    },
+    {
+      "id": "alphabet_fcf",
+      "label": "Alphabet FCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 73.3
+    },
+    {
+      "id": "alphabet_capex_ocf",
+      "label": "Alphabet Capex/OCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 56.0
+    },
+    {
+      "id": "meta_revenue",
+      "label": "Meta Revenue FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 201.0
+    },
+    {
+      "id": "meta_operating_income",
+      "label": "Meta Operating income FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 83.3
+    },
+    {
+      "id": "meta_operating_margin",
+      "label": "Meta Operating margin FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 41.4
+    },
+    {
+      "id": "meta_operating_cash_flow",
+      "label": "Meta Operating cash flow FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 115.8
+    },
+    {
+      "id": "meta_capex",
+      "label": "Meta Capex FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 69.7
+    },
+    {
+      "id": "meta_fcf",
+      "label": "Meta FCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 46.1
+    },
+    {
+      "id": "meta_capex_ocf",
+      "label": "Meta Capex/OCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 60.0
+    },
+    {
+      "id": "microsoft_revenue",
+      "label": "Microsoft Revenue FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 281.7
+    },
+    {
+      "id": "microsoft_operating_income",
+      "label": "Microsoft Operating income FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 128.5
+    },
+    {
+      "id": "microsoft_operating_margin",
+      "label": "Microsoft Operating margin FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 45.6
+    },
+    {
+      "id": "microsoft_operating_cash_flow",
+      "label": "Microsoft Operating cash flow FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 136.2
+    },
+    {
+      "id": "microsoft_capex",
+      "label": "Microsoft Capex FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 64.6
+    },
+    {
+      "id": "microsoft_fcf",
+      "label": "Microsoft FCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 71.6
+    },
+    {
+      "id": "microsoft_capex_ocf",
+      "label": "Microsoft Capex/OCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 47.0
+    },
+    {
+      "id": "nvidia_revenue",
+      "label": "NVIDIA Revenue FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 130.5
+    },
+    {
+      "id": "nvidia_operating_income",
+      "label": "NVIDIA Operating income FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 81.5
+    },
+    {
+      "id": "nvidia_operating_margin",
+      "label": "NVIDIA Operating margin FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 62.4
+    },
+    {
+      "id": "nvidia_operating_cash_flow",
+      "label": "NVIDIA Operating cash flow FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 64.1
+    },
+    {
+      "id": "nvidia_capex",
+      "label": "NVIDIA Capex FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 3.2
+    },
+    {
+      "id": "nvidia_fcf",
+      "label": "NVIDIA FCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 60.9
+    },
+    {
+      "id": "nvidia_capex_ocf",
+      "label": "NVIDIA Capex/OCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 5.0
+    },
+    {
+      "id": "apple_revenue",
+      "label": "Apple Revenue FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 416.2
+    },
+    {
+      "id": "apple_operating_income",
+      "label": "Apple Operating income FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 133.1
+    },
+    {
+      "id": "apple_operating_margin",
+      "label": "Apple Operating margin FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 32.0
+    },
+    {
+      "id": "apple_operating_cash_flow",
+      "label": "Apple Operating cash flow FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 111.5
+    },
+    {
+      "id": "apple_capex",
+      "label": "Apple Capex FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 12.7
+    },
+    {
+      "id": "apple_fcf",
+      "label": "Apple FCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 98.8
+    },
+    {
+      "id": "apple_capex_ocf",
+      "label": "Apple Capex/OCF FY2025",
+      "critical": true,
+      "status": "pass",
+      "expected": 11.0
+    },
+    {
+      "id": "metric_definitions",
+      "label": "FCF and capex-intensity definitions",
+      "critical": true,
+      "status": "pass",
+      "evidence": "Revenue and operating income are the corresponding reported financial measures; operating margin equals operating income divided by revenue. OCF means operating cash flow. Capex means capital expenditures, represented in the corpus by purch"
+    },
+    {
+      "id": "fiscal_year_caveat",
+      "label": "different fiscal-year ends are disclosed",
+      "critical": true,
+      "status": "pass",
+      "evidence": "FY2025 denotes each company’s fiscal year 2025, not a common calendar period. Fiscal year-end is December for Amazon, Alphabet, and Meta; June for Microsoft; late January for NVIDIA; and late September for Apple. These differing periods lim"
+    },
+    {
+      "id": "capex_trends",
+      "label": "capex trend direction and magnitude",
+      "critical": true,
+      "status": "pass",
+      "evidence": "Capex rose for all six companies between the earliest available fiscal year and FY2025.\n| Company | Earliest capex | FY2025 capex | Endpoint change |\n|---|---:|---:|---:|\n| Amazon | FY2020: $40.1bn | $131.8bn | +$91.7bn; 3.29× (+228.7%) [S4"
+    },
+    {
+      "id": "guidance_actual_separation",
+      "label": "guidance is separated from reported actuals",
+      "critical": true,
+      "status": "pass",
+      "evidence": "Meta’s $69.7B actual reflects cash paid for property and equipment and excludes finance-lease principal. Because its guidance includes that principal, the two figures are not comparable on a consistent basis; accordingly, no Meta guidance-t"
+    },
+    {
+      "id": "initial_guidance_values",
+      "label": "frozen initial FY2025 guidance values",
+      "critical": true,
+      "status": "pass",
+      "evidence": "### Frozen initial FY2025 guidance\n| Company | Release date | Management wording | Measurement basis |\n|---|---:|---|---|\n| Amazon | 6 Feb. 2025 | “approximately $100B” | Management estimate of capital expenditures [S3] |\n| Alphabet | 4 Feb"
+    },
+    {
+      "id": "guidance_dates_and_basis",
+      "label": "guidance release dates and Meta basis",
+      "critical": true,
+      "status": "missing_or_unsupported",
+      "evidence": null
+    },
+    {
+      "id": "guidance_gaps",
+      "label": "unavailable initial guidance is not estimated",
+      "critical": true,
+      "status": "pass",
+      "evidence": "The completeness audit covers all 42 required FY2025 actual observations: seven metrics—revenue, operating income, operating margin, operating cash flow, capex, free cash flow, and capex/OCF—for Amazon, Alphabet, Meta, Microsoft, NVIDIA, an"
+    },
+    {
+      "id": "data_gaps",
+      "label": "requested source gaps are reported without estimation",
+      "critical": true,
+      "status": "pass",
+      "evidence": "| Company | Release date | Management wording | Measurement basis |\n|---|---:|---|---|\n| Amazon | 6 Feb. 2025 | “approximately $100B” | Management estimate of capital expenditures [S3] |\n| Alphabet | 4 Feb. 2025 | “approximately $75B” | Rep"
+    }
+  ],
+  "coverage": {
+    "hit": 42,
+    "total": 42,
+    "pct": 1.0
+  },
+  "accuracy": {
+    "matching": 48,
+    "wrong": 0,
+    "pct": 1.0,
+    "wrong_details": []
+  },
+  "fabrication": {
+    "count": 0,
+    "items": []
+  },
+  "prose_contradictions": {
+    "count": 0,
+    "items": []
+  },
+  "unverifiable": {
+    "count": 0,
+    "max_for_qualification": 5,
+    "items": []
+  },
+  "grounded_ambiguous": {
+    "count": 1,
+    "attribution_suspects": 0,
+    "items": [
+      {
+        "value": 69.7,
+        "unit": "b",
+        "context": "IA, and $12.7B for Apple [S4].  Meta’s $69.7B actual reflect",
+        "reason": "grounded_ambiguous_attribution",
+        "attribution": "ambiguous"
+      }
+    ]
+  },
+  "agenda_discipline": {
+    "distractors_cited": []
+  },
+  "tone": {
+    "violations": []
+  },
+  "format": {
+    "chapters_present": 7,
+    "chapters_required": 7,
+    "tables": 4,
+    "parseable_tables": 2,
+    "word_count": 1326,
+    "min_words": 500,
+    "max_words": 1800,
+    "max_words_tolerance_pct": 0.05,
+    "effective_max_words": 1890
+  },
+  "source_policy": {
+    "violations": []
+  },
+  "root_cause": {
+    "n_retrieved_sources": 7,
+    "evidence_origin": "raw_chunks",
+    "missing_not_retrieved": [],
+    "missing_retrieved_but_absent_from_report": [],
+    "verdict": "writer/contract: non-numeric report requirements were omitted",
+    "failed_requirements": [
+      "guidance release dates and Meta basis"
+    ],
+    "wrong_claims": 0,
+    "fabricated_claims": 0,
+    "unverifiable_claims": 0,
+    "finance_adequacy": "veto"
+  },
+  "provenance": {
+    "scorer_sha256": "3ec46ed7b7a6f9fbb86ad14a1bf543350a9417bf2fbc00bd1aa34985c31dbdec",
+    "answer_key_sha256": "a41be83f266bbefc49e23e1a23e3f5fda5f3d9fe0d8d7f4ef7fb1f74a2926a63",
+    "spec_sha256": "b60a8460bf48cba44f619fcec0e04be38b4c46eeeff6d3686e01d285e21cfa7b",
+    "corpus_sha256": "39d44a847fe5f92cb2b8fdf4e7f626ce2a3c56d18df73e3075684d64d60781ed",
+    "report_sha256": "add67ce03f22684260c21b0bdc45add6ee208e45c5860329028cb519cf763d83",
+    "sources_sha256": "16779efe3e536c706e2174ad70ef94a817a2ed8312d1fdd295499a70b84d5042",
+    "source_manifest_sha256": "8e91ddfd12f794d2c48f3940e8be333e9967fcd542180e8edfac65287cde9e43",
+    "chunks_sha256": "10ec5d349f0af3e8bfb8d98178495c76e489249147156c0341069924fe88b0a7",
+    "portable_report_sha256": "add67ce03f22684260c21b0bdc45add6ee208e45c5860329028cb519cf763d83",
+    "raw_sources_sha256": "fa85cb76fe8d983d253836ce3c7c062f1682e70ccbc2d49d7358bb0d306e3979",
+    "semantic_judge_sha256": "99873ea9c17ff3892237ae313484ef9e028abfda0f69aa4d1fc7a77c54876fcd",
+    "adjudication_contract_sha256": "031359c61a1cda9d3ce4db15d17826d67bf60a1cd3f1d1c5418db5feda439c4f",
+    "semantic_judge_reused": false
+  },
+  "source_resolution": {
+    "documents": {
+      "967e61d4-de9b-4554-a51c-b286bf9fa8f4": "Agents_1.md",
+      "99217d87-5080-4d11-bb47-f8801a637abc": "How_we_built_our_multi_1.md",
+      "afe96a51-da9c-4f7f-9a4a-b67e4b1cc9b5": "Text_generation.md",
+      "c00805d3-c075-456d-b595-b6cd8a61ff58": "Building_Systems_with_the_ChatGPT_API___by_Farheen_1.md",
+      "d28458c1-fe61-4da1-b159-82ec7cd24739": "Advanced_Retrieval_for_Retrieval-Augmented_Generat_1.md",
+      "doc_2025_Capex_Guidance__management_commentary___forwa.md": "2025_Capex_Guidance__management_commentary___forwa.md",
+      "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md": "Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+      "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K_.md": "Capital-Expenditure_Reference_Data__from_SEC_10-K_.md",
+      "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md": "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+      "doc_Di_te_c_tog_ne___Wikip_dia.md": "Di_te_c_tog_ne___Wikip_dia.md",
+      "doc_Diet_Review__Ketogenic_Diet_for_Weight_Loss___The_.md": "Diet_Review__Ketogenic_Diet_for_Weight_Loss___The_.md",
+      "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md": "Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+      "doc_Ketogenic_Diet_for_Seizures.md": "Ketogenic_Diet_for_Seizures.md",
+      "doc_Ketogenic_diet.md": "Ketogenic_diet.md",
+      "doc_Ketogenic_diets_for_drug-resistant_epilepsy.md": "Ketogenic_diets_for_drug-resistant_epilepsy.md",
+      "doc_Medium.md": "Medium.md",
+      "doc_Miscellaneous_Company_Disclosures.md": "Miscellaneous_Company_Disclosures.md",
+      "doc_Should_you_try_the_keto_diet_.md": "Should_you_try_the_keto_diet_.md",
+      "doc_The_Ketogenic_Diet__Clinical_Applications__Evidenc.md": "The_Ketogenic_Diet__Clinical_Applications__Evidenc.md",
+      "doc_key_metrics.csv.md": "key_metrics.csv.md",
+      "doc_smoke_local_doc.md": "smoke_local_doc.md"
+    },
+    "sources": {
+      "S1": [
+        "Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+        "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md"
+      ],
+      "S2": [
+        "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+        "key_metrics.csv.md"
+      ],
+      "S3": [
+        "Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md"
+      ],
+      "S4": [
+        "Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+        "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md"
+      ],
+      "S5": [
+        "Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+        "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+        "key_metrics.csv.md"
+      ],
+      "S6": [
+        "Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+        "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+        "key_metrics.csv.md"
+      ],
+      "S7": [
+        "Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+        "Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+        "Miscellaneous_Company_Disclosures.md"
+      ]
+    }
+  },
+  "finance_adequacy": {
+    "schema_version": 1,
+    "status": "complete",
+    "qualified": false,
+    "blockers": [
+      "capex_trend_adequacy: fail"
+    ],
+    "counts": {
+      "pass": 5,
+      "fail": 1,
+      "indeterminate": 0,
+      "needs_review": 0
+    },
+    "requirements": [
+      {
+        "id": "definitions_adequacy",
+        "label": "FCF and capex-intensity definitions",
+        "critical": true,
+        "final_status": "pass",
+        "stage": "ok",
+        "primary": {
+          "requirement_id": "definitions_adequacy",
+          "verdict": "pass",
+          "report_quote": "Revenue and operating income are the corresponding reported financial measures; operating margin equals operating income divided by revenue. OCF means operating cash flow. Capex means capital expenditures, represented in the corpus by purchases of property and equipment. Free cash flow (FCF) is cash remaining after capex: **FCF = OCF − capex**. Capex intensity measures the share of operating cash flow absorbed by investment: **capex intensity = capex / OCF**. Amounts are in US$ billions unless expressed as percentages. [S1] [S6]",
+          "cited_source_ids": [
+            "S1",
+            "S6"
+          ],
+          "supporting_chunk_ids": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0"
+          ],
+          "error_type": "none",
+          "reasoning": "The report explicitly defines both requested measures and preserves the correct direction for each formula: FCF as operating cash flow minus capex, and capex intensity as capex divided by operating cash flow. The cited raw chunk supports both definitions directly.",
+          "confidence": "high"
+        },
+        "adversary": {
+          "requirement_id": "definitions_adequacy",
+          "verdict": "uphold_pass",
+          "report_quote": "Revenue and operating income are the corresponding reported financial measures; operating margin equals operating income divided by revenue. OCF means operating cash flow. Capex means capital expenditures, represented in the corpus by purchases of property and equipment. Free cash flow (FCF) is cash remaining after capex: **FCF = OCF − capex**. Capex intensity measures the share of operating cash flow absorbed by investment: **capex intensity = capex / OCF**. Amounts are in US$ billions unless expressed as percentages. [S1] [S6]",
+          "counterevidence_chunk_ids": [],
+          "reasoning": "The report explicitly defines both required measures and preserves the correct direction of each formula. This is directly entailed by the evidence, which states: \"Free cash flow (FCF) = Operating cash flow - Capex.\" and \"Capex intensity = Capex / Operating cash flow.\" No contradiction or omission survives review for this requirement.",
+          "confidence": "high"
+        },
+        "evidence_chunk_count": 11,
+        "protocol_errors": [],
+        "citation_chain": {
+          "quote_localization": "exact",
+          "resolved_source_ids": [
+            "S7"
+          ],
+          "source_mismatch": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0"
+          ]
+        }
+      },
+      {
+        "id": "fiscal_calendar_adequacy",
+        "label": "different fiscal-year ends",
+        "critical": true,
+        "final_status": "pass",
+        "stage": "ok",
+        "primary": {
+          "requirement_id": "fiscal_calendar_adequacy",
+          "verdict": "pass",
+          "report_quote": "FY2025 denotes each company’s fiscal year 2025, not a common calendar period. Fiscal year-end is December for Amazon, Alphabet, and Meta; June for Microsoft; late January for NVIDIA; and late September for Apple. These differing periods limit direct comparability across companies. [S6]",
+          "cited_source_ids": [
+            "S6"
+          ],
+          "supporting_chunk_ids": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0"
+          ],
+          "error_type": "none",
+          "reasoning": "The report explicitly discloses that FY2025 is not a common calendar period, states that differing periods limit comparability, and correctly groups all six companies by fiscal year-end: December for Amazon/Alphabet/Meta, June for Microsoft, late January for NVIDIA, and late September for Apple. The cited source chunk directly supports both the differing year-ends and the warning to compare on a fiscal-year rather than calendar basis.",
+          "confidence": "high"
+        },
+        "adversary": {
+          "requirement_id": "fiscal_calendar_adequacy",
+          "verdict": "uphold_pass",
+          "report_quote": "FY2025 denotes each company’s fiscal year 2025, not a common calendar period. Fiscal year-end is December for Amazon, Alphabet, and Meta; June for Microsoft; late January for NVIDIA; and late September for Apple. These differing periods limit direct comparability across companies. [S6]",
+          "counterevidence_chunk_ids": [],
+          "reasoning": "The quoted report text explicitly states that FY2025 is not a common calendar period, gives the correct year-end grouping for all six companies, and warns that differing periods limit direct comparability. This is directly supported by the evidence chunk stating: 'Fiscal-year-end differs by company: Amazon/Alphabet/Meta = December; Microsoft = June; NVIDIA = late January; Apple = late September. Compare on a fiscal-year basis, not calendar.' No contradiction or omission relevant to this requirement is evident.",
+          "confidence": "high"
+        },
+        "evidence_chunk_count": 12,
+        "protocol_errors": [],
+        "citation_chain": {
+          "quote_localization": "exact",
+          "resolved_source_ids": [
+            "S7"
+          ],
+          "source_mismatch": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0"
+          ]
+        }
+      },
+      {
+        "id": "capex_trend_adequacy",
+        "label": "six-company capex trend analysis",
+        "critical": true,
+        "final_status": "fail",
+        "stage": "writer",
+        "primary": {
+          "requirement_id": "capex_trend_adequacy",
+          "verdict": "fail",
+          "report_quote": "| Company | Earliest capex | FY2025 capex | Endpoint change |\n|---|---:|---:|---:|\n| Amazon | FY2020: $40.1bn | $131.8bn | +$91.7bn; 3.29× (+228.7%) [S4] |\n| Alphabet | FY2020: $22.3bn | $91.4bn | +$69.1bn; 4.10× (+309.9%) [S4] |\n| Meta | FY2020: $15.2bn | $69.7bn | +$54.5bn; 4.59× (+358.6%) [S4] |\n| Microsoft | FY2020: $15.4bn | $64.6bn | +$49.2bn; 4.19× (+319.5%) [S4] |\n| NVIDIA | FY2022: $1.0bn | $3.2bn | +$2.2bn; 3.20× (+220.0%) [S4] |\n| Apple | FY2020: $7.3bn | $12.7bn | +$5.4bn; 1.74× (+74.0%) [S4] |",
+          "cited_source_ids": [
+            "S4"
+          ],
+          "supporting_chunk_ids": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0"
+          ],
+          "error_type": "unsupported",
+          "reasoning": "The report does include all six companies and states direction and magnitude using earliest and FY2025 endpoints. However, the cited source for this section, S4, does not have raw chunks supporting those company-specific capex endpoints and changes. The only resolved S4 chunk provided contains general definitions and fiscal-year-end notes, not the historical capex series or endpoint values. Because a pass requires citation to a supplied source whose raw chunk entails the explanation, this requirement is not adequately supported.",
+          "confidence": "high"
+        },
+        "adversary": null,
+        "evidence_chunk_count": 11,
+        "protocol_errors": [],
+        "citation_chain": {
+          "quote_localization": "exact",
+          "resolved_source_ids": [
+            "S7"
+          ],
+          "source_mismatch": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0"
+          ]
+        }
+      },
+      {
+        "id": "guidance_adequacy",
+        "label": "guidance coverage, dates, basis, and separation",
+        "critical": true,
+        "final_status": "pass",
+        "stage": "ok",
+        "primary": {
+          "requirement_id": "guidance_adequacy",
+          "verdict": "pass",
+          "report_quote": "### Frozen initial FY2025 guidance\n\n| Company | Release date | Management wording | Measurement basis |\n|---|---:|---|---|\n| Amazon | 6 Feb. 2025 | “approximately $100B” | Management estimate of capital expenditures [S3] |\n| Alphabet | 4 Feb. 2025 | “approximately $75B” | Reported capex; timing may vary with cash payments [S3] |\n| Meta | 29 Jan. 2025 | $60–65B | Includes finance-lease principal repayments [S3] |\n| Microsoft | — | unavailable in this source pack | unavailable in this source pack [S3] |\n| NVIDIA | — | unavailable in this source pack | unavailable in this source pack [S3] |\n| Apple | — | unavailable in this source pack | unavailable in this source pack [S3] |\n\n### FY2025 actuals\n\nCash capex reported in the FY2025 consolidated statements was $131.8B for Amazon, $91.4B for Alphabet, $69.7B for Meta, $64.6B for Microsoft, $3.2B for NVIDIA, and $12.7B for Apple [S4].\n\nMeta’s $69.7B actual reflects cash paid for property and equipment and excludes finance-lease principal. Because its guidance includes that principal, the two figures are not comparable on a consistent basis; accordingly, no Meta guidance-to-actual variance is calculated [S3].",
+          "cited_source_ids": [
+            "S3",
+            "S4"
+          ],
+          "supporting_chunk_ids": [
+            "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:1",
+            "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:2",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:0",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:1",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:2",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:3"
+          ],
+          "error_type": "none",
+          "reasoning": "The report has a distinct guidance section separate from actuals, lists the three available companies with release dates and basis, marks Microsoft/NVIDIA/Apple as unavailable in this source pack, and explicitly explains the Meta basis mismatch and states that no variance is calculated. These points are supported by the supplied raw chunks.",
+          "confidence": "high"
+        },
+        "adversary": {
+          "requirement_id": "guidance_adequacy",
+          "verdict": "uphold_pass",
+          "report_quote": "### Frozen initial FY2025 guidance\n\n| Company | Release date | Management wording | Measurement basis |\n|---|---:|---|---|\n| Amazon | 6 Feb. 2025 | “approximately $100B” | Management estimate of capital expenditures [S3] |\n| Alphabet | 4 Feb. 2025 | “approximately $75B” | Reported capex; timing may vary with cash payments [S3] |\n| Meta | 29 Jan. 2025 | $60–65B | Includes finance-lease principal repayments [S3] |\n| Microsoft | — | unavailable in this source pack | unavailable in this source pack [S3] |\n| NVIDIA | — | unavailable in this source pack | unavailable in this source pack [S3] |\n| Apple | — | unavailable in this source pack | unavailable in this source pack [S3] |\n\n### FY2025 actuals\n\nCash capex reported in the FY2025 consolidated statements was $131.8B for Amazon, $91.4B for Alphabet, $69.7B for Meta, $64.6B for Microsoft, $3.2B for NVIDIA, and $12.7B for Apple [S4].\n\nMeta’s $69.7B actual reflects cash paid for property and equipment and excludes finance-lease principal. Because its guidance includes that principal, the two figures are not comparable on a consistent basis; accordingly, no Meta guidance-to-actual variance is calculated [S3].",
+          "counterevidence_chunk_ids": [],
+          "reasoning": "No concrete defect survives review. The report clearly keeps guidance in its own section, lists the three available companies with dates and basis, marks Microsoft/NVIDIA/Apple as unavailable, and explicitly states that Meta’s guidance includes finance-lease principal while the actual cash-capex measure excludes it, so no variance is calculated. These points are directly supported by the supplied chunks in S3, and nothing in the raw evidence contradicts them.",
+          "confidence": "high"
+        },
+        "evidence_chunk_count": 7,
+        "protocol_errors": [],
+        "citation_chain": {
+          "quote_localization": "exact",
+          "resolved_source_ids": [
+            "S3",
+            "S4",
+            "S5",
+            "S6",
+            "S7"
+          ],
+          "source_mismatch": [
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:1",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:2",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:3",
+            "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:1"
+          ]
+        }
+      },
+      {
+        "id": "comparison_adequacy",
+        "label": "factual cross-company comparison",
+        "critical": true,
+        "final_status": "pass",
+        "stage": "ok",
+        "primary": {
+          "requirement_id": "comparison_adequacy",
+          "verdict": "pass",
+          "report_quote": "## Cross-Company Comparison\n\nAmazon has the largest revenue base among the six companies, followed by Apple and Alphabet, while NVIDIA has the smallest. Conversely, NVIDIA records the highest operating margin and Amazon the lowest; Apple and Alphabet are tied between these extremes [S2][S5]. Alphabet generates the most operating cash flow (OCF), whereas NVIDIA generates the least. Amazon reports both the highest capex and the highest capex/OCF ratio, while NVIDIA has the lowest on both measures [S1][S2]. Free cash flow (FCF) is highest at Apple and lowest at Amazon; Alphabet and Microsoft rank next behind Apple [S1][S2].",
+          "cited_source_ids": [
+            "S1",
+            "S2",
+            "S5"
+          ],
+          "supporting_chunk_ids": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:2",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:3",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:4",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:5",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:6",
+            "doc_key_metrics.csv.md:2",
+            "doc_key_metrics.csv.md:5",
+            "doc_key_metrics.csv.md:8",
+            "doc_key_metrics.csv.md:11"
+          ],
+          "error_type": "none",
+          "reasoning": "The report includes multiple substantive cross-company comparisons across requested metrics (revenue, operating margin, OCF, capex, capex/OCF, and FCF). It stays factual and neutral, with no investment recommendation language. It also does not conflate absolute capex with capex intensity; instead, it separately identifies capex and capex/OCF and does not make the prohibited claim that one necessarily implies the other. The cited sources resolve to raw chunks containing the ranked FY2025 values that support these comparisons.",
+          "confidence": "high"
+        },
+        "adversary": {
+          "requirement_id": "comparison_adequacy",
+          "verdict": "uphold_pass",
+          "report_quote": "## Cross-Company Comparison\n\nAmazon has the largest revenue base among the six companies, followed by Apple and Alphabet, while NVIDIA has the smallest. Conversely, NVIDIA records the highest operating margin and Amazon the lowest; Apple and Alphabet are tied between these extremes [S2][S5]. Alphabet generates the most operating cash flow (OCF), whereas NVIDIA generates the least. Amazon reports both the highest capex and the highest capex/OCF ratio, while NVIDIA has the lowest on both measures [S1][S2]. Free cash flow (FCF) is highest at Apple and lowest at Amazon; Alphabet and Microsoft rank next behind Apple [S1][S2].",
+          "counterevidence_chunk_ids": [],
+          "reasoning": "No concrete defect survives review for this rubric item. The report makes multiple substantive cross-company comparisons across requested metrics. It keeps absolute capex distinct from capex intensity by naming both separately rather than asserting one implies the other. The comparisons are supported by the provided chunks: Amazon has the highest FY2025 revenue (716.9) and NVIDIA the lowest (130.5); NVIDIA has the highest operating margin (62.4%) and Amazon the lowest (11.2%); Alphabet has the highest OCF (164.7) and NVIDIA the lowest (64.1); Amazon has the highest capex (131.8) and highest capex/OCF (94%), while NVIDIA has the lowest capex (3.2) and lowest capex/OCF (5%); Apple has the highest FCF (98.8) and Amazon the lowest (7.7). The tone is descriptive and non-recommendatory. I see no omitted required point or citation-entailment problem specific to comparison adequacy.",
+          "confidence": "high"
+        },
+        "evidence_chunk_count": 11,
+        "protocol_errors": [],
+        "citation_chain": {
+          "quote_localization": "exact",
+          "resolved_source_ids": [
+            "S6",
+            "S7"
+          ],
+          "source_mismatch": [
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:2",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:3",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:4",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:5",
+            "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:6",
+            "doc_key_metrics.csv.md:11",
+            "doc_key_metrics.csv.md:2",
+            "doc_key_metrics.csv.md:5",
+            "doc_key_metrics.csv.md:8"
+          ]
+        }
+      },
+      {
+        "id": "data_gap_adequacy",
+        "label": "actual-metric completeness and source gaps",
+        "critical": true,
+        "final_status": "pass",
+        "stage": "ok",
+        "primary": {
+          "requirement_id": "data_gap_adequacy",
+          "verdict": "pass",
+          "report_quote": "The completeness audit covers all 42 required FY2025 actual observations: seven metrics—revenue, operating income, operating margin, operating cash flow, capex, free cash flow, and capex/OCF—for Amazon, Alphabet, Meta, Microsoft, NVIDIA, and Apple. No required FY2025 actual is missing or unavailable [S7]. Supporting extracts collectively provide all operating and cash-flow metrics [S1][S5]. Guidance availability is separate from actual-data completeness: initial FY2025 capex guidance is unavailable for Microsoft, NVIDIA, and Apple and must not be estimated; this does not create gaps in their FY2025 actuals [S3][S7].",
+          "cited_source_ids": [
+            "S1",
+            "S5"
+          ],
+          "supporting_chunk_ids": [
+            "doc_key_metrics.csv.md:2",
+            "doc_key_metrics.csv.md:5",
+            "doc_key_metrics.csv.md:8",
+            "doc_key_metrics.csv.md:11",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:1",
+            "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:2"
+          ],
+          "error_type": "none",
+          "reasoning": "The report makes an explicit completeness conclusion for required FY2025 actuals, states no required actual is missing, and separately notes that some guidance items are unavailable without treating that as an actual-data gap. It does not estimate missing actuals. Although the quoted paragraph cites S7 and S3, those source IDs lack raw chunks, but the same conclusion is substantively supported by supplied raw chunks from S1 and S5 containing the full FY2025 actual set across the companies/metrics referenced in the paragraph.",
+          "confidence": "medium"
+        },
+        "adversary": {
+          "requirement_id": "data_gap_adequacy",
+          "verdict": "uphold_pass",
+          "report_quote": "The completeness audit covers all 42 required FY2025 actual observations: seven metrics—revenue, operating income, operating margin, operating cash flow, capex, free cash flow, and capex/OCF—for Amazon, Alphabet, Meta, Microsoft, NVIDIA, and Apple. No required FY2025 actual is missing or unavailable [S7]. Supporting extracts collectively provide all operating and cash-flow metrics [S1][S5]. Guidance availability is separate from actual-data completeness: initial FY2025 capex guidance is unavailable for Microsoft, NVIDIA, and Apple and must not be estimated; this does not create gaps in their FY2025 actuals [S3][S7].",
+          "counterevidence_chunk_ids": [],
+          "reasoning": "No concrete defect survives review on this rubric item. The report gives an explicit completeness conclusion for required FY2025 actuals, does not estimate any missing actual, and clearly separates unavailable guidance from actual-data completeness. Although some cited source IDs in that paragraph lack raw chunks, the supplied allowed evidence from key_metrics.csv and analyst_prep_notes.md supports the substance of the claim: the raw chunks contain the FY2025 actual metrics across the six companies referenced by the report, and there is no evidence in the supplied chunks of an actual-data gap or of any estimated fill-in.",
+          "confidence": "medium"
+        },
+        "evidence_chunk_count": 8,
+        "protocol_errors": [],
+        "citation_chain": {
+          "quote_localization": "exact",
+          "resolved_source_ids": [
+            "S5",
+            "S6"
+          ],
+          "source_mismatch": [
+            "doc_key_metrics.csv.md:11",
+            "doc_key_metrics.csv.md:2",
+            "doc_key_metrics.csv.md:5",
+            "doc_key_metrics.csv.md:8"
+          ]
+        }
+      }
+    ],
+    "contract": {
+      "matched": true,
+      "errors": [],
+      "request_file": "/Users/pierrebittner/Documents/GitHub/DeepResearch/claude/agentic-research/evaluations/exercises/ai-capex-intensity/syllabus.md",
+      "expected_request_sha256": "a36b0687e628f8053eed9c2b62ebf09db716befaef20a264530ff7592d21a238",
+      "actual_request_sha256": "a36b0687e628f8053eed9c2b62ebf09db716befaef20a264530ff7592d21a238",
+      "contract_version": 2,
+      "answer_key_sha256": "a41be83f266bbefc49e23e1a23e3f5fda5f3d9fe0d8d7f4ef7fb1f74a2926a63",
+      "spec_sha256": "b60a8460bf48cba44f619fcec0e04be38b4c46eeeff6d3686e01d285e21cfa7b",
+      "source_manifest_sha256": "8e91ddfd12f794d2c48f3940e8be333e9967fcd542180e8edfac65287cde9e43",
+      "report_sha256": "add67ce03f22684260c21b0bdc45add6ee208e45c5860329028cb519cf763d83",
+      "sources_sha256": "16779efe3e536c706e2174ad70ef94a817a2ed8312d1fdd295499a70b84d5042",
+      "stats_sha256": "32ae51d26e7818a7e5bcd29b37d353f7d4f8277c4b8cdb55c1f36c14af7e2d21",
+      "raw_sources_sha256": "21f5c0f9b10412cd3df964d49bd462a026dde84330fdecd5a1112f29788349dd",
+      "candidate_models": [
+        "openai/gpt-5.6-sol"
+      ],
+      "dimension_requirements": {
+        "adequacy_requirements": [
+          "definitions_adequacy",
+          "fiscal_calendar_adequacy",
+          "capex_trend_adequacy",
+          "guidance_adequacy",
+          "comparison_adequacy",
+          "data_gap_adequacy"
+        ]
+      },
+      "chunks_sha256": "10ec5d349f0af3e8bfb8d98178495c76e489249147156c0341069924fe88b0a7"
+    },
+    "chunk_validation": {
+      "valid_chunks": {
+        "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:0": {
+          "chunk_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:0",
+          "document_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+          "chunk_index": 0,
+          "filename": "analyst_prep_notes.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md",
+          "text": "# Analyst Prep Notes - Capex & Cash Generation\n\n**Source:** https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md\n\n## Contenu\n\n# Analyst Prep Notes - Capex & Cash Generation\n\n*Neutral, factual notes compiled from 10-K figures. No positioning.*\n\n## Amazon\nFor its most recent fiscal year (FY2025, FYE Dec), Amazon reported revenue of $716.9B, an operating margin of 11.2%, operating cash flow of $139.5B, and capital expenditures of $131.8B. Free cash flow was $7.7B and capex represented 94% of operating cash flow. Over FY2020-FY2025, reported capex moved from $40.1B to $131.8B.",
+          "sha256": "f34e0c6e23ced6e55a0fade9f51ad35b1d822eabbef6c9a23c1ec98e5e527871",
+          "resolved": true
+        },
+        "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:1": {
+          "chunk_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:1",
+          "document_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+          "chunk_index": 1,
+          "filename": "analyst_prep_notes.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md",
+          "text": "$7.7B and capex represented 94% of operating cash flow. Over FY2020-FY2025, reported capex moved from $40.1B to $131.8B.\n\n## Alphabet\nFor its most recent fiscal year (FY2025, FYE Dec), Alphabet reported revenue of $402.8B, an operating margin of 32.0%, operating cash flow of $164.7B, and capital expenditures of $91.4B. Free cash flow was $73.3B and capex represented 56% of operating cash flow. Over FY2020-FY2025, reported capex moved from $22.3B to $91.4B.\n\n## Meta\nFor its most recent fiscal year (FY2025, FYE Dec), Meta reported revenue of $201.0B, an operating margin of 41.4%, operating cash flow of $115.8B, and capital expenditures of $69.7B. Free cash flow was $46.1B and capex represented 60% of operating cash flow. Over FY2020-FY2025, reported capex moved from $15.2B to $69.7B.",
+          "sha256": "7634739cb82c77f6739bc6247793c24fbd3abef650de406a6f7e4955127799c0",
+          "resolved": true
+        },
+        "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:2": {
+          "chunk_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:2",
+          "document_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+          "chunk_index": 2,
+          "filename": "analyst_prep_notes.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md",
+          "text": "$46.1B and capex represented 60% of operating cash flow. Over FY2020-FY2025, reported capex moved from $15.2B to $69.7B.\n\n## Microsoft\nFor its most recent fiscal year (FY2025, FYE Jun), Microsoft reported revenue of $281.7B, an operating margin of 45.6%, operating cash flow of $136.2B, and capital expenditures of $64.6B. Free cash flow was $71.6B and capex represented 47% of operating cash flow. Over FY2020-FY2025, reported capex moved from $15.4B to $64.6B.\n\n## NVIDIA\nFor its most recent fiscal year (FY2025, FYE Jan), NVIDIA reported revenue of $130.5B, an operating margin of 62.4%, operating cash flow of $64.1B, and capital expenditures of $3.2B. Free cash flow was $60.9B and capex represented 5% of operating cash flow. Over FY2022-FY2025, reported capex moved from $1.0B to $3.2B.",
+          "sha256": "6de72533c866e7cee5b5358034c19f043aa61d3982850ddb01c82972631eb7b4",
+          "resolved": true
+        },
+        "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:3": {
+          "chunk_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md:3",
+          "document_id": "doc_Analyst_Prep_Notes_-_Capex___Cash_Generation.md",
+          "chunk_index": 3,
+          "filename": "analyst_prep_notes.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/d8467469871e1b57101c0121ab8ee6aad0d7ea78/analyst_prep_notes.md",
+          "text": "as $60.9B and capex represented 5% of operating cash flow. Over FY2022-FY2025, reported capex moved from $1.0B to $3.2B.\n\n## Apple\nFor its most recent fiscal year (FY2025, FYE Sep), Apple reported revenue of $416.2B, an operating margin of 32.0%, operating cash flow of $111.5B, and capital expenditures of $12.7B. Free cash flow was $98.8B and capex represented 11% of operating cash flow. Over FY2020-FY2025, reported capex moved from $7.3B to $12.7B.\n\n---",
+          "sha256": "e71f57c3d0e39059a4c54829cb4205378b961fd799ec03c6df97f49e07cce44e",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:0",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 0,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "# Capital-Expenditure Reference Data (from SEC 10-K filings)\n\n**Source:** https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md\n\n## Contenu\n\n# Capital-Expenditure Reference Data (from SEC 10-K filings)\n\nAll figures in US$ billions unless noted. Sourced from each company's annual\nreport (Form 10-K), consolidated statements. **Fiscal-year-end differs by company**:\nAmazon/Alphabet/Meta = December; Microsoft = June; NVIDIA = late January;\nApple = late September. Compare on a fiscal-year basis, not calendar.\n\nMetric definitions: Operating margin = Operating income / Revenue.\nFree cash flow (FCF) = Operating cash flow - Capex.\nCapex intensity = Capex / Operating cash flow.\n\n## Amazon (FYE Dec)",
+          "sha256": "46b091f79ef2c2cfc0cde192b14ea4ee57f42f2f7a09be07e231560e572faf45",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:1": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:1",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 1,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "Free cash flow (FCF) = Operating cash flow - Capex.\nCapex intensity = Capex / Operating cash flow.\n\n## Amazon (FYE Dec)\n\n| Fiscal Year | Revenue | Operating income | Operating margin | Operating cash flow | Capex | FCF | Capex/OCF |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| FY2020 | 386.1 | 22.9 | 5.9% | 66.1 | 40.1 | 25.9 | 61% |\n| FY2021 | 469.8 | 24.9 | 5.3% | 46.3 | 61.1 | -14.7 | 132% |\n| FY2022 | 514.0 | 12.2 | 2.4% | 46.8 | 63.6 | -16.9 | 136% |\n| FY2023 | 574.8 | 36.9 | 6.4% | 84.9 | 52.7 | 32.2 | 62% |\n| FY2024 | 638.0 | 68.6 | 10.8% | 115.9 | 83.0 | 32.9 | 72% |\n| FY2025 | 716.9 | 80.0 | 11.2% | 139.5 | 131.8 | 7.7 | 94% |\n\n## Alphabet (FYE Dec)",
+          "sha256": "3640060d26e9997cfe464a7d81b9508bc54f15b3b28f8b5936c4d989b0bb8068",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:2": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:2",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 2,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "10.8% | 115.9 | 83.0 | 32.9 | 72% |\n| FY2025 | 716.9 | 80.0 | 11.2% | 139.5 | 131.8 | 7.7 | 94% |\n\n## Alphabet (FYE Dec)\n\n| Fiscal Year | Revenue | Operating income | Operating margin | Operating cash flow | Capex | FCF | Capex/OCF |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| FY2020 | 182.5 | 41.2 | 22.6% | 65.1 | 22.3 | 42.8 | 34% |\n| FY2021 | 257.6 | 78.7 | 30.6% | 91.7 | 24.6 | 67.0 | 27% |\n| FY2022 | 282.8 | 74.8 | 26.5% | 91.5 | 31.5 | 60.0 | 34% |\n| FY2023 | 307.4 | 84.3 | 27.4% | 101.7 | 32.3 | 69.5 | 32% |\n| FY2024 | 350.0 | 112.4 | 32.1% | 125.3 | 52.5 | 72.8 | 42% |\n| FY2025 | 402.8 | 129.0 | 32.0% | 164.7 | 91.4 | 73.3 | 56% |\n\n## Meta (FYE Dec)",
+          "sha256": "d1d2f48bd096c510f18f9bba8874310c6fa0887152d0cd25a2616425a8cfd521",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:3": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:3",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 3,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "| 32.1% | 125.3 | 52.5 | 72.8 | 42% |\n| FY2025 | 402.8 | 129.0 | 32.0% | 164.7 | 91.4 | 73.3 | 56% |\n\n## Meta (FYE Dec)\n\n| Fiscal Year | Revenue | Operating income | Operating margin | Operating cash flow | Capex | FCF | Capex/OCF |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| FY2020 | 86.0 | 32.7 | 38.0% | 38.7 | 15.2 | 23.6 | 39% |\n| FY2021 | 117.9 | 46.8 | 39.6% | 57.7 | 18.7 | 39.0 | 32% |\n| FY2022 | 116.6 | 28.9 | 24.8% | 50.5 | 31.2 | 19.3 | 62% |\n| FY2023 | 134.9 | 46.8 | 34.7% | 71.1 | 27.0 | 44.1 | 38% |\n| FY2024 | 164.5 | 69.4 | 42.2% | 91.3 | 37.3 | 54.1 | 41% |\n| FY2025 | 201.0 | 83.3 | 41.4% | 115.8 | 69.7 | 46.1 | 60% |\n\n## Microsoft (FYE Jun)",
+          "sha256": "255537a9629c3f4d89b7e90aac3cec93b94606b4ab64853b34417745c98487a8",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:4": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:4",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 4,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "42.2% | 91.3 | 37.3 | 54.1 | 41% |\n| FY2025 | 201.0 | 83.3 | 41.4% | 115.8 | 69.7 | 46.1 | 60% |\n\n## Microsoft (FYE Jun)\n\n| Fiscal Year | Revenue | Operating income | Operating margin | Operating cash flow | Capex | FCF | Capex/OCF |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| FY2020 | 143.0 | 53.0 | 37.0% | 60.7 | 15.4 | 45.2 | 25% |\n| FY2021 | 168.1 | 69.9 | 41.6% | 76.7 | 20.6 | 56.1 | 27% |\n| FY2022 | 198.3 | 83.4 | 42.1% | 89.0 | 23.9 | 65.1 | 27% |\n| FY2023 | 211.9 | 88.5 | 41.8% | 87.6 | 28.1 | 59.5 | 32% |\n| FY2024 | 245.1 | 109.4 | 44.6% | 118.5 | 44.5 | 74.1 | 38% |\n| FY2025 | 281.7 | 128.5 | 45.6% | 136.2 | 64.6 | 71.6 | 47% |\n\n## NVIDIA (FYE Jan)",
+          "sha256": "5c67baaa079c07c05c9ebc7ddb27b84efb76dee6aee13559867b6e76b5e8aabf",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:5": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:5",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 5,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "44.6% | 118.5 | 44.5 | 74.1 | 38% |\n| FY2025 | 281.7 | 128.5 | 45.6% | 136.2 | 64.6 | 71.6 | 47% |\n\n## NVIDIA (FYE Jan)\n\n| Fiscal Year | Revenue | Operating income | Operating margin | Operating cash flow | Capex | FCF | Capex/OCF |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| FY2020 | 10.9 | 2.8 | 26.1% | 4.8 | None | None | |\n| FY2021 | 16.7 | 4.5 | 27.2% | 5.8 | None | None | |\n| FY2022 | 26.9 | 10.0 | 37.3% | 9.1 | 1.0 | 8.1 | 11% |\n| FY2023 | 27.0 | 4.2 | 15.7% | 5.6 | 1.8 | 3.8 | 32% |\n| FY2024 | 60.9 | 33.0 | 54.1% | 28.1 | 1.1 | 27.0 | 4% |\n| FY2025 | 130.5 | 81.5 | 62.4% | 64.1 | 3.2 | 60.9 | 5% |\n\n## Apple (FYE Sep)",
+          "sha256": "dce00bd5536a93cecae4e874cf13c2c89e486263e9f6c93bac535ef8c66fc3cb",
+          "resolved": true
+        },
+        "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:6": {
+          "chunk_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md:6",
+          "document_id": "doc_Capital-Expenditure_Reference_Data__from_SEC_10-K__1.md",
+          "chunk_index": 6,
+          "filename": "capex_reference_data.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/f7b25eb7a37ba6a09db409ae958e150488abbd82/capex_reference_data.md",
+          "text": "| 33.0 | 54.1% | 28.1 | 1.1 | 27.0 | 4% |\n| FY2025 | 130.5 | 81.5 | 62.4% | 64.1 | 3.2 | 60.9 | 5% |\n\n## Apple (FYE Sep)\n\n| Fiscal Year | Revenue | Operating income | Operating margin | Operating cash flow | Capex | FCF | Capex/OCF |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| FY2020 | 274.5 | 66.3 | 24.1% | 80.7 | 7.3 | 73.4 | 9% |\n| FY2021 | 365.8 | 108.9 | 29.8% | 104.0 | 11.1 | 93.0 | 11% |\n| FY2022 | 394.3 | 119.4 | 30.3% | 122.2 | 10.7 | 111.4 | 9% |\n| FY2023 | 383.3 | 114.3 | 29.8% | 110.5 | 11.0 | 99.6 | 10% |\n| FY2024 | 391.0 | 123.2 | 31.5% | 118.3 | 9.4 | 108.8 | 8% |\n| FY2025 | 416.2 | 133.1 | 32.0% | 111.5 | 12.7 | 98.8 | 11% |\n\n---",
+          "sha256": "dbaaf717ce7419aaba717b6915bb83c9d77dde6380c595e0fba867ebdd7155bb",
+          "resolved": true
+        },
+        "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:0": {
+          "chunk_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:0",
+          "document_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+          "chunk_index": 0,
+          "filename": "capex_guidance_2025.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md",
+          "text": "# Initial FY2025 Capex Guidance - Frozen as of February 7, 2025\n\n**Source:** https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md\n\n## Contenu\n\n# Initial FY2025 Capex Guidance - Frozen as of February 7, 2025\n\nThis table records the first full-year 2025 guidance available after the companies'\nFY2024 results. It is a historical snapshot, not the latest guidance. Later revisions\nmust not be substituted. Guidance is forward-looking and must remain separate from\nreported FY2025 actuals.",
+          "sha256": "0c69d872d39e839583e777f2b499ca7829a43ceb9a87db6da9f70495a6304e38",
+          "resolved": true
+        },
+        "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:1": {
+          "chunk_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:1",
+          "document_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+          "chunk_index": 1,
+          "filename": "capex_guidance_2025.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md",
+          "text": "er revisions\nmust not be substituted. Guidance is forward-looking and must remain separate from\nreported FY2025 actuals.\n\n| Company | Release date | Initial FY2025 guidance | Basis |\n| --- | --- | --- | --- |\n| Amazon | 2025-02-06 | approximately $100B | management estimate of capital expenditures |\n| Alphabet | 2025-02-04 | approximately $75B | reported capex; cash-payment timing can cause variability |\n| Meta | 2025-01-29 | $60B-$65B | includes principal payments on finance leases |",
+          "sha256": "d7a69aadd47bf519da2b55b91f43fcdf2f440edb4cf819fe8696e4908369a457",
+          "resolved": true
+        },
+        "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:2": {
+          "chunk_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:2",
+          "document_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+          "chunk_index": 2,
+          "filename": "capex_guidance_2025.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md",
+          "text": "payment timing can cause variability |\n| Meta | 2025-01-29 | $60B-$65B | includes principal payments on finance leases |\n\nThe corpus actual for Meta is cash paid to acquire property and equipment. It excludes\nfinance-lease principal, so a percentage variance against Meta's guidance is not\nlike-for-like and must not be calculated. The FY2025 Meta company-reported capex measure\nincluding finance-lease principal was $72.215B ($69.691B cash PP&E plus $2.524B of\nfinance-lease principal).\n\nNo initial FY2025 capex guidance is provided in this frozen source pack for Microsoft,\nNVIDIA, or Apple. Report it as unavailable rather than estimating it.\n\nPrimary releases used to validate this frozen source:",
+          "sha256": "5092f7c56a13bf82ddd4cb48276b00ee5affca7c75ba76f3b379492d7a05016d",
+          "resolved": true
+        },
+        "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:3": {
+          "chunk_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md:3",
+          "document_id": "doc_Initial_FY2025_Capex_Guidance_-_Frozen_as_of_Febru.md",
+          "chunk_index": 3,
+          "filename": "capex_guidance_2025.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/e957e35b04eacff5b403eb57725a6a34c1601949/capex_guidance_2025.md",
+          "text": "IA, or Apple. Report it as unavailable rather than estimating it.\n\nPrimary releases used to validate this frozen source:\n\n- Amazon Q4 2024 earnings call, February 6, 2025:\nhttps://ir.aboutamazon.com/events/event-details/2025/Q4-2024-Amazoncom-Inc-Earnings-Conference-Call/default.aspx\n- Alphabet Q4 2024 earnings call, February 4, 2025:\nhttps://abc.xyz/investor/events/event-details/2025/2024-Q4-Earnings-Call/default.aspx\n- Meta Q4 and full-year 2024 results, January 29, 2025:\nhttps://investor.atmeta.com/investor-news/press-release-details/2025/Meta-Reports-Fourth-Quarter-and-Full-Year-2024-Results/\n\n---",
+          "sha256": "6b45502774d5387b2add8fa8df90f3f9ca6538776ee72a75384bbe19f72d2aa3",
+          "resolved": true
+        },
+        "doc_Miscellaneous_Company_Disclosures.md:0": {
+          "chunk_id": "doc_Miscellaneous_Company_Disclosures.md:0",
+          "document_id": "doc_Miscellaneous_Company_Disclosures.md",
+          "chunk_index": 0,
+          "filename": "misc_disclosures.md",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md",
+          "text": "# Miscellaneous Company Disclosures\n\n**Source:** https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/fa8a6f75a922b36d3db71c396d229616e365f914/misc_disclosures.md\n\n## Contenu\n\n# Miscellaneous Company Disclosures\n\n*Assorted figures from the same 10-K filings, unrelated to capital-expenditure\nintensity. Included for completeness of the knowledge base.*\n\n- **Apple** — Research & development expense (FY2025): **$34.5B**.\n- **Apple** — Dividends paid (FY2025): **$15.4B**.\n- **Microsoft** — Research & development expense (FY2025): **$32.5B**.\n- **Microsoft** — Share of full-time employees located outside the United States\n(FY2024): **44.7%**.\n\n---",
+          "sha256": "e89f535d9ebb52abc87866e80f55f1e8561baacf2bd4854c6dfa5c6897b51ec9",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:0": {
+          "chunk_id": "doc_key_metrics.csv.md:0",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 0,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "Company,FYE_basis,Metric,FiscalYear,Value,Unit\nAmazon,Dec,Revenue,FY2020,386.1,USD_billions\nAmazon,Dec,Operating income,FY2020,22.9,USD_billions\nAmazon,Dec,Operating margin,FY2020,5.9,percent\nAmazon,Dec,Operating cash flow,FY2020,66.1,USD_billions\nAmazon,Dec,Capex,FY2020,40.1,USD_billions\nAmazon,Dec,FCF,FY2020,25.9,USD_billions\nAmazon,Dec,Capex/OCF,FY2020,61,percent\nAmazon,Dec,Revenue,FY2021,469.8,USD_billions\nAmazon,Dec,Operating income,FY2021,24.9,USD_billions\nAmazon,Dec,Operating margin,FY2021,5.3,percent\nAmazon,Dec,Operating cash flow,FY2021,46.3,USD_billions\nAmazon,Dec,Capex,FY2021,61.1,USD_billions\nAmazon,Dec,FCF,FY2021,-14.7,USD_billions\nAmazon,Dec,Capex/OCF,FY2021,132,percent\nAmazon,Dec,Revenue,FY2022,514.0,USD_billions\nAmazon,Dec,Operating income,FY2022,12.2,USD_billions\nAmazon,De",
+          "sha256": "37d6cab526e8ce198600516d1644dac60f9c677a52c4349ccfe4ea4715c16a97",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:10": {
+          "chunk_id": "doc_key_metrics.csv.md:10",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 10,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "9,USD_billions\nMicrosoft,Jun,FCF,FY2022,65.1,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2022,27,percent\nMicrosoft,Jun,Revenue,FY2023,211.9,USD_billions\nMicrosoft,Jun,Operating income,FY2023,88.5,USD_billions\nMicrosoft,Jun,Operating margin,FY2023,41.8,percent\nMicrosoft,Jun,Operating cash flow,FY2023,87.6,USD_billions\nMicrosoft,Jun,Capex,FY2023,28.1,USD_billions\nMicrosoft,Jun,FCF,FY2023,59.5,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2023,32,percent\nMicrosoft,Jun,Revenue,FY2024,245.1,USD_billions\nMicrosoft,Jun,Operating income,FY2024,109.4,USD_billions\nMicrosoft,Jun,Operating margin,FY2024,44.6,percent\nMicrosoft,Jun,Operating cash flow,FY2024,118.5,USD_billions\nMicrosoft,Jun,Capex,FY2024,44.5,USD_billions\nMicrosoft,Jun,FCF,FY2024,74.1,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2024,38,percent\nMicrosoft,",
+          "sha256": "bdd93287641ee2f1386c3a4bfebb585e8f410e202e57505523122c5b7249fb0d",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:11": {
+          "chunk_id": "doc_key_metrics.csv.md:11",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 11,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "FY2024,44.5,USD_billions\nMicrosoft,Jun,FCF,FY2024,74.1,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2024,38,percent\nMicrosoft,Jun,Revenue,FY2025,281.7,USD_billions\nMicrosoft,Jun,Operating income,FY2025,128.5,USD_billions\nMicrosoft,Jun,Operating margin,FY2025,45.6,percent\nMicrosoft,Jun,Operating cash flow,FY2025,136.2,USD_billions\nMicrosoft,Jun,Capex,FY2025,64.6,USD_billions\nMicrosoft,Jun,FCF,FY2025,71.6,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2025,47,percent\nNVIDIA,Jan,Revenue,FY2020,10.9,USD_billions\nNVIDIA,Jan,Operating income,FY2020,2.8,USD_billions\nNVIDIA,Jan,Operating margin,FY2020,26.1,percent\nNVIDIA,Jan,Operating cash flow,FY2020,4.8,USD_billions\nNVIDIA,Jan,Revenue,FY2021,16.7,USD_billions\nNVIDIA,Jan,Operating income,FY2021,4.5,USD_billions\nNVIDIA,Jan,Operating margin,FY2021,27.2,percent\nN",
+          "sha256": "8b1965b6a5f53dfab064616040ea10f7716ecd2d9fc6ae222f8e2d3031dfa24a",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:14": {
+          "chunk_id": "doc_key_metrics.csv.md:14",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 14,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": ",USD_billions\nNVIDIA,Jan,FCF,FY2025,60.9,USD_billions\nNVIDIA,Jan,Capex/OCF,FY2025,5,percent\nApple,Sep,Revenue,FY2020,274.5,USD_billions\nApple,Sep,Operating income,FY2020,66.3,USD_billions\nApple,Sep,Operating margin,FY2020,24.1,percent\nApple,Sep,Operating cash flow,FY2020,80.7,USD_billions\nApple,Sep,Capex,FY2020,7.3,USD_billions\nApple,Sep,FCF,FY2020,73.4,USD_billions\nApple,Sep,Capex/OCF,FY2020,9,percent\nApple,Sep,Revenue,FY2021,365.8,USD_billions\nApple,Sep,Operating income,FY2021,108.9,USD_billions\nApple,Sep,Operating margin,FY2021,29.8,percent\nApple,Sep,Operating cash flow,FY2021,104.0,USD_billions\nApple,Sep,Capex,FY2021,11.1,USD_billions\nApple,Sep,FCF,FY2021,93.0,USD_billions\nApple,Sep,Capex/OCF,FY2021,11,percent\nApple,Sep,Revenue,FY2022,394.3,USD_billions\nApple,Sep,Operating income,FY202",
+          "sha256": "bc119c3faa252581a421e0e92c809ba30487a66f9a6fe574aeb2eb70b032b7bd",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:15": {
+          "chunk_id": "doc_key_metrics.csv.md:15",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 15,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "lions\nApple,Sep,Capex/OCF,FY2021,11,percent\nApple,Sep,Revenue,FY2022,394.3,USD_billions\nApple,Sep,Operating income,FY2022,119.4,USD_billions\nApple,Sep,Operating margin,FY2022,30.3,percent\nApple,Sep,Operating cash flow,FY2022,122.2,USD_billions\nApple,Sep,Capex,FY2022,10.7,USD_billions\nApple,Sep,FCF,FY2022,111.4,USD_billions\nApple,Sep,Capex/OCF,FY2022,9,percent\nApple,Sep,Revenue,FY2023,383.3,USD_billions\nApple,Sep,Operating income,FY2023,114.3,USD_billions\nApple,Sep,Operating margin,FY2023,29.8,percent\nApple,Sep,Operating cash flow,FY2023,110.5,USD_billions\nApple,Sep,Capex,FY2023,11.0,USD_billions\nApple,Sep,FCF,FY2023,99.6,USD_billions\nApple,Sep,Capex/OCF,FY2023,10,percent\nApple,Sep,Revenue,FY2024,391.0,USD_billions\nApple,Sep,Operating income,FY2024,123.2,USD_billions\nApple,Sep,Operating mar",
+          "sha256": "4a18311901c787f080cbe924b6fe84dd48a22a095d1f130bdcbd34ff6047f337",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:16": {
+          "chunk_id": "doc_key_metrics.csv.md:16",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 16,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "Apple,Sep,Revenue,FY2024,391.0,USD_billions\nApple,Sep,Operating income,FY2024,123.2,USD_billions\nApple,Sep,Operating margin,FY2024,31.5,percent\nApple,Sep,Operating cash flow,FY2024,118.3,USD_billions\nApple,Sep,Capex,FY2024,9.4,USD_billions\nApple,Sep,FCF,FY2024,108.8,USD_billions\nApple,Sep,Capex/OCF,FY2024,8,percent\nApple,Sep,Revenue,FY2025,416.2,USD_billions\nApple,Sep,Operating income,FY2025,133.1,USD_billions\nApple,Sep,Operating margin,FY2025,32.0,percent\nApple,Sep,Operating cash flow,FY2025,111.5,USD_billions\nApple,Sep,Capex,FY2025,12.7,USD_billions\nApple,Sep,FCF,FY2025,98.8,USD_billions\nApple,Sep,Capex/OCF,FY2025,11,percent",
+          "sha256": "ef67a53624c4fe04bee5ff02f91b42226642f99c8ed1d6af4c2b58556861954e",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:2": {
+          "chunk_id": "doc_key_metrics.csv.md:2",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 2,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "2024,638.0,USD_billions\nAmazon,Dec,Operating income,FY2024,68.6,USD_billions\nAmazon,Dec,Operating margin,FY2024,10.8,percent\nAmazon,Dec,Operating cash flow,FY2024,115.9,USD_billions\nAmazon,Dec,Capex,FY2024,83.0,USD_billions\nAmazon,Dec,FCF,FY2024,32.9,USD_billions\nAmazon,Dec,Capex/OCF,FY2024,72,percent\nAmazon,Dec,Revenue,FY2025,716.9,USD_billions\nAmazon,Dec,Operating income,FY2025,80.0,USD_billions\nAmazon,Dec,Operating margin,FY2025,11.2,percent\nAmazon,Dec,Operating cash flow,FY2025,139.5,USD_billions\nAmazon,Dec,Capex,FY2025,131.8,USD_billions\nAmazon,Dec,FCF,FY2025,7.7,USD_billions\nAmazon,Dec,Capex/OCF,FY2025,94,percent\nAlphabet,Dec,Revenue,FY2020,182.5,USD_billions\nAlphabet,Dec,Operating income,FY2020,41.2,USD_billions\nAlphabet,Dec,Operating margin,FY2020,22.6,percent\nAlphabet,Dec,Operatin",
+          "sha256": "09c0e0628b06e5cf32ccdd77afa6be96707018c184a3ac98df8d61d310d6df54",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:5": {
+          "chunk_id": "doc_key_metrics.csv.md:5",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 5,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "ating income,FY2024,112.4,USD_billions\nAlphabet,Dec,Operating margin,FY2024,32.1,percent\nAlphabet,Dec,Operating cash flow,FY2024,125.3,USD_billions\nAlphabet,Dec,Capex,FY2024,52.5,USD_billions\nAlphabet,Dec,FCF,FY2024,72.8,USD_billions\nAlphabet,Dec,Capex/OCF,FY2024,42,percent\nAlphabet,Dec,Revenue,FY2025,402.8,USD_billions\nAlphabet,Dec,Operating income,FY2025,129.0,USD_billions\nAlphabet,Dec,Operating margin,FY2025,32.0,percent\nAlphabet,Dec,Operating cash flow,FY2025,164.7,USD_billions\nAlphabet,Dec,Capex,FY2025,91.4,USD_billions\nAlphabet,Dec,FCF,FY2025,73.3,USD_billions\nAlphabet,Dec,Capex/OCF,FY2025,56,percent\nMeta,Dec,Revenue,FY2020,86.0,USD_billions\nMeta,Dec,Operating income,FY2020,32.7,USD_billions\nMeta,Dec,Operating margin,FY2020,38.0,percent\nMeta,Dec,Operating cash flow,FY2020,38.7,USD_bi",
+          "sha256": "1dbc235c41e102ce5a27931a2239dc235759e472860889ed32ac7c89d1747a53",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:8": {
+          "chunk_id": "doc_key_metrics.csv.md:8",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 8,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "ns\nMeta,Dec,Capex,FY2024,37.3,USD_billions\nMeta,Dec,FCF,FY2024,54.1,USD_billions\nMeta,Dec,Capex/OCF,FY2024,41,percent\nMeta,Dec,Revenue,FY2025,201.0,USD_billions\nMeta,Dec,Operating income,FY2025,83.3,USD_billions\nMeta,Dec,Operating margin,FY2025,41.4,percent\nMeta,Dec,Operating cash flow,FY2025,115.8,USD_billions\nMeta,Dec,Capex,FY2025,69.7,USD_billions\nMeta,Dec,FCF,FY2025,46.1,USD_billions\nMeta,Dec,Capex/OCF,FY2025,60,percent\nMicrosoft,Jun,Revenue,FY2020,143.0,USD_billions\nMicrosoft,Jun,Operating income,FY2020,53.0,USD_billions\nMicrosoft,Jun,Operating margin,FY2020,37.0,percent\nMicrosoft,Jun,Operating cash flow,FY2020,60.7,USD_billions\nMicrosoft,Jun,Capex,FY2020,15.4,USD_billions\nMicrosoft,Jun,FCF,FY2020,45.2,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2020,25,percent\nMicrosoft,Jun,Revenue,FY2021",
+          "sha256": "7f32530041bbcc544fc68b88f255eb17973c6fa9fef40cf8060f4d6bd34e41e1",
+          "resolved": true
+        },
+        "doc_key_metrics.csv.md:9": {
+          "chunk_id": "doc_key_metrics.csv.md:9",
+          "document_id": "doc_key_metrics.csv.md",
+          "chunk_index": 9,
+          "filename": "key_metrics.csv",
+          "source": "https://gist.githubusercontent.com/BittnerPierre/555a92f661d3113bee781ba0f793c26a/raw/52ac99a5970bab03242aa6e796b45221dd966b75/key_metrics.csv",
+          "text": "llions\nMicrosoft,Jun,FCF,FY2020,45.2,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2020,25,percent\nMicrosoft,Jun,Revenue,FY2021,168.1,USD_billions\nMicrosoft,Jun,Operating income,FY2021,69.9,USD_billions\nMicrosoft,Jun,Operating margin,FY2021,41.6,percent\nMicrosoft,Jun,Operating cash flow,FY2021,76.7,USD_billions\nMicrosoft,Jun,Capex,FY2021,20.6,USD_billions\nMicrosoft,Jun,FCF,FY2021,56.1,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2021,27,percent\nMicrosoft,Jun,Revenue,FY2022,198.3,USD_billions\nMicrosoft,Jun,Operating income,FY2022,83.4,USD_billions\nMicrosoft,Jun,Operating margin,FY2022,42.1,percent\nMicrosoft,Jun,Operating cash flow,FY2022,89.0,USD_billions\nMicrosoft,Jun,Capex,FY2022,23.9,USD_billions\nMicrosoft,Jun,FCF,FY2022,65.1,USD_billions\nMicrosoft,Jun,Capex/OCF,FY2022,27,percent\nMicrosoft,Jun,Revenu",
+          "sha256": "82fa7105fa9c460cc0e8541ece459d9cb98e6ee89188cea48e238d1b658b0b2c",
+          "resolved": true
+        }
+      },
+      "unresolved_chunks": [],
+      "nonportable_chunks": [],
+      "violations": []
+    },
+    "judge": {
+      "model": "gpt-5.4-2026-03-05",
+      "reasoning_effort": "none",
+      "protocol": "judge_then_contradictor",
+      "accepted_languages": [
+        "English",
+        "French"
+      ],
+      "authority": "adequacy_veto",
+      "primary_prompt_sha256": "fc7b8497b48e818f745b787524a8655686cb2e87f148ef2b120b8b3f9e5af5a8",
+      "adversary_prompt_sha256": "10d905f4d78fe6df6eb70462f56aa19c7f810c22de0e5784dd4497a18acb8334",
+      "confidence_used_for_decision": false
+    }
+  }
+}

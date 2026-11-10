@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cloud &amp; AI Infrastructure — FY2025 Capex Dashboard</title>
+<style>
+:root{
+  --ink:#17233a;--muted:#667085;--line:#d9e0ea;--paper:#f5f7fb;--card:#fff;
+  --navy:#183153;--blue:#3478c9;--teal:#149c91;--orange:#e07a35;--red:#c94a4a;
+  --green:#2b8a63;--purple:#7357b8;--soft:#eef3f8;--shadow:0 8px 24px rgba(23,35,58,.07)
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.48 Inter,Segoe UI,Arial,sans-serif}
+button,select{font:inherit}
+button{cursor:pointer}
+header{background:linear-gradient(125deg,#11243f,#1e4168 65%,#17605f);color:white;padding:30px 0 24px}
+.wrap{width:min(1440px,calc(100% - 36px));margin:auto}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#a9d8d4}
+h1{font-size:31px;line-height:1.12;margin:7px 0 8px;letter-spacing:-.025em}
+header p{max-width:950px;margin:0;color:#d7e3ef;font-size:15px}
+.header-grid{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end}
+.asof{text-align:right;color:#d7e3ef;font-size:12px}
+.asof b{display:block;color:white;font-size:14px}
+nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+.nav-inner{display:flex;align-items:center;gap:5px;overflow:auto;padding:8px 0}
+.nav-btn{border:0;background:transparent;color:#526071;padding:8px 12px;border-radius:7px;font-weight:700;white-space:nowrap}
+.nav-btn:hover,.nav-btn.active{background:#eaf0f6;color:var(--navy)}
+.nav-spacer{flex:1}
+.print-btn{border:1px solid #cad4e0;background:white;color:var(--navy);padding:7px 11px;border-radius:7px;font-weight:700;white-space:nowrap}
+main{padding:22px 0 55px}
+section{scroll-margin-top:64px;margin-bottom:22px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin:0 0 10px}
+.section-head h2{font-size:21px;margin:0;letter-spacing:-.015em}
+.section-head p{margin:3px 0 0;color:var(--muted);max-width:850px}
+.card{background:var(--card);border:1px solid #e0e6ee;border-radius:12px;box-shadow:var(--shadow)}
+.pad{padding:18px}
+.grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+.kpi{padding:14px;border-top:4px solid var(--blue)}
+.kpi:nth-child(2){border-color:var(--teal)}.kpi:nth-child(3){border-color:var(--orange)}
+.kpi:nth-child(4){border-color:var(--purple)}.kpi:nth-child(5){border-color:var(--green)}.kpi:nth-child(6){border-color:#77849a}
+.kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.kpi .value{font-size:25px;font-weight:800;margin:4px 0 0;letter-spacing:-.03em}
+.kpi .sub{font-size:11px;color:var(--muted)}
+.callout{padding:17px;border-left:4px solid var(--orange);background:#fffaf4}
+.callout h3,.reading h3{margin:0 0 7px;font-size:15px}
+.callout ul,.reading ul,.risk-list{margin:5px 0 0;padding-left:18px}
+.callout li,.reading li,.risk-list li{margin:5px 0}
+.reading{background:#f7f9fc;border:1px solid #e1e7ef;border-radius:9px;padding:14px;margin-top:14px}
+.reading strong{color:var(--navy)}
+.risk{border-left:4px solid var(--red)}
+.watch{border-left:4px solid var(--teal)}
+.control-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:9px 0 13px}
+.control-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800;margin-right:3px}
+.pill{border:1px solid #cdd7e3;background:white;color:#526071;border-radius:18px;padding:6px 11px;font-weight:700;font-size:12px}
+.pill.active{background:var(--navy);border-color:var(--navy);color:white}
+.legend{display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.chart{padding:4px 0}
+.bar-row{display:grid;grid-template-columns:105px 1fr 66px;align-items:center;gap:10px;margin:10px 0}
+.bar-label b{display:block}.bar-label small{color:var(--muted)}
+.bar-track{height:21px;background:#edf1f5;border-radius:4px;overflow:hidden;position:relative}
+.bar{height:100%;border-radius:4px;background:var(--blue);min-width:2px;transition:width .35s}
+.bar.teal{background:var(--teal)}.bar.orange{background:var(--orange)}.bar.purple{background:var(--purple)}
+.bar-value{text-align:right;font-variant-numeric:tabular-nums;font-weight:800}
+.dual-track{height:26px;background:#edf1f5;border-radius:4px;position:relative;overflow:visible}
+.dual-track .ocf{position:absolute;top:3px;left:0;height:20px;background:#cfd8e4;border-radius:4px}
+.dual-track .capex{position:absolute;top:7px;left:0;height:12px;background:var(--orange);border-radius:3px}
+.axis-note{text-align:right;color:var(--muted);font-size:11px;margin-top:4px}
+.table-wrap{overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#f1f4f8;color:#536174;text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.055em;white-space:nowrap}
+th.sortable{cursor:pointer}
+th.sortable:hover{color:var(--navy);background:#e7edf4}
+td{padding:10px;border-bottom:1px solid #e5eaf0;vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.company{font-weight:800;color:var(--navy)}
+.fye{color:var(--muted);font-size:11px;white-space:nowrap}
+.badge{display:inline-block;border-radius:12px;padding:3px 7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.badge.high{color:#8a2f2f;background:#fdeaea}.badge.med{color:#8a5a17;background:#fff2d9}
+.badge.low{color:#236449;background:#e4f4ec}.badge.nd{color:#5c6675;background:#eef1f4}
+.badge.up{color:#245e50;background:#dcf2eb}.badge.mixed{color:#755019;background:#fff0d3}
+.definition{font-size:12px;color:#4d5b6c}
+.definition b{color:var(--ink)}
+.commit-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.commit-card{padding:14px;min-height:214px}
+.commit-card h3{font-size:15px;margin:0 0 2px}
+.commit-card .fye{display:block;margin-bottom:11px}
+.commit-line{margin:9px 0}
+.commit-line .top{display:flex;justify-content:space-between;gap:8px}
+.commit-line b{font-variant-numeric:tabular-nums}
+.mini-track{height:6px;background:#edf1f5;border-radius:5px;margin-top:4px;overflow:hidden}
+.mini-track span{display:block;height:100%;background:var(--purple);border-radius:5px}
+.mini-track.purchase span{background:var(--teal)}
+.note{font-size:11px;color:var(--muted)}
+.signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.signal-card{padding:16px}
+.signal-card h3{margin:0;font-size:16px}
+.signal-head{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.signal-card p{margin:10px 0;color:#435065}
+.signal-card .quote{font-size:12px;padding:10px;background:#f5f7fa;border-radius:7px;color:#344054}
+.signal-card .quote:before{content:"“";font-size:22px;color:var(--teal);line-height:0;vertical-align:-4px;margin-right:3px}
+.detail-controls{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+select{border:1px solid #cad4e0;border-radius:7px;background:white;padding:8px 30px 8px 10px;color:var(--ink)}
+.detail-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:14px}
+.metric-stack{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.metric-box{background:#f5f8fb;border-radius:8px;padding:11px}
+.metric-box span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800}
+.metric-box b{font-size:19px}
+.source{font-size:10px;color:#778397;margin-top:7px}
+.scope-box{padding:15px;background:#eef5f7;border:1px solid #d6e5e7;border-radius:9px}
+.scope-box h3{margin:0 0 6px;font-size:14px}
+.footnotes{font-size:12px;color:#566274}
+.footnotes h3{color:var(--ink);font-size:14px;margin:15px 0 5px}
+.footnotes ol{margin:5px 0;padding-left:20px}
+.footnotes li{margin:5px 0}
+.hidden-company{display:none!important}
+.mobile-only{display:none}
+@media(max-width:1100px){
+  .kpi-grid,.commit-grid{grid-template-columns:repeat(3,1fr)}
+  .signal-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .wrap{width:min(100% - 22px,1440px)}
+  .header-grid,.grid-2,.detail-grid{grid-template-columns:1fr}
+  .asof{text-align:left}.kpi-grid,.commit-grid,.signal-grid{grid-template-columns:1fr 1fr}
+  .bar-row{grid-template-columns:85px 1fr 57px}
+  h1{font-size:25px}.section-head{display:block}
+}
+@media(max-width:500px){
+  .kpi-grid,.commit-grid,.signal-grid,.metric-stack{grid-template-columns:1fr}
+}
+@media print{
+  body{background:white;font-size:11px}.wrap{width:100%;padding:0 12px}
+  nav,.control-row,.print-btn{display:none!important}header{padding:18px;background:#183153!important;-webkit-print-color-adjust:exact}
+  section{break-inside:avoid;margin-bottom:14px}.card{box-shadow:none}.signal-grid,.commit-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap header-grid">
+    <div>
+      <div class="eyebrow">Investment thesis dashboard · FY2025 filings</div>
+      <h1>The AI capex wave is broad; funding pressure and off-line commitments are not</h1>
+      <p>Amazon is absorbing nearly all operating cash flow in cash capex, while Alphabet, Meta and Microsoft retain materially larger post-capex cash cushions. The next leg is already contracted through leases, purchase obligations and construction commitments—particularly at Meta, Alphabet, Microsoft and Amazon.</p>
+    </div>
+    <div class="asof"><b>Six-company view</b>Fiscal-year basis · US$bn<br>FY2025 year-ends remain company-specific</div>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap nav-inner">
+    <button class="nav-btn active" data-target="thesis">Thesis</button>
+    <button class="nav-btn" data-target="spend">Spend &amp; funding</button>
+    <button class="nav-btn" data-target="definitions">Definitions</button>
+    <button class="nav-btn" data-target="commitments">Commitments</button>
+    <button class="nav-btn" data-target="guidance">Guidance</button>
+    <button class="nav-btn" data-target="signals">10-K signals</button>
+    <button class="nav-btn" data-target="company-detail">Company view</button>
+    <button class="nav-btn" data-target="method">Method</button>
+    <div class="nav-spacer"></div>
+    <button class="print-btn" onclick="window.print()">Print / PDF</button>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="thesis">
+  <div class="section-head">
+    <div><h2>Partner view: where the cycle stands</h2><p>What the FY2025 cash flows, contractual commitments and filing language collectively imply.</p></div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="card kpi"><div class="label">Largest cash-flow capex</div><div class="value">$131.8bn</div><div class="sub">Amazon · FYE Dec.</div></div>
+    <div class="card kpi"><div class="label">Highest intensity</div><div class="value">94%</div><div class="sub">Amazon capex / OCF</div></div>
+    <div class="card kpi"><div class="label">Largest FCF cushion</div><div class="value">$98.8bn</div><div class="sub">Apple · OCF less capex</div></div>
+    <div class="card kpi"><div class="label">Largest disclosed future leases</div><div class="value">$103.77bn</div><div class="sub">Meta · not yet commenced</div></div>
+    <div class="card kpi"><div class="label">Highest margin</div><div class="value">62.4%</div><div class="sub">NVIDIA operating margin</div></div>
+    <div class="card kpi"><div class="label">Broadest acceleration</div><div class="value">6 / 6</div><div class="sub">Capex higher at endpoint</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card pad">
+      <h3 style="margin-top:0">Investment conclusions</h3>
+      <ol style="margin:0;padding-left:20px">
+        <li><b>Physical infrastructure remains an accelerating demand pool.</b> Amazon expects technology infrastructure and fulfillment investment to rise in 2026; Alphabet expects technical-infrastructure investment to increase significantly; Meta guides to $115–135bn; Microsoft and NVIDIA indicate continued or higher investment. Apple gives no capex trajectory.</li>
+        <li><b>Amazon carries the tightest cash-funding profile.</b> Its $131.8bn cash-flow capex consumed 94% of $139.5bn OCF, leaving $7.7bn of dashboard-defined FCF. Alphabet, Meta and Microsoft consumed 47–60% and retained $46.1–73.3bn.</li>
+        <li><b>The capex line understates economic commitment.</b> Large leases not yet commenced and purchase or construction commitments sit outside current-period cash capex. These categories differ and may overlap; they should not be mechanically summed.</li>
+        <li><b>Demand broadens beyond GPUs.</b> Filings repeatedly identify power, water, land, permitting, networking, memory, specialized chips, construction labor, cloud capacity and long-lead equipment as constraints.</li>
+        <li><b>Accounting policy is becoming an earnings variable.</b> Amazon shortened useful lives for a subset of servers; Meta extended most server and network lives. These changes moved FY2025 depreciation and net income in opposite directions.</li>
+      </ol>
+      <div class="source">Sources: quantitative data pack [S1–S7]; FY2025 10-K extracts T1–T7.</div>
+    </div>
+    <div>
+      <div class="card callout">
+        <h3>Where to look next in the value chain</h3>
+        <ul>
+          <li><b>Power and grid-enablement:</b> global energy availability is explicitly constrained; contracts extend for years or decades.</li>
+          <li><b>Data-center development and financing:</b> large not-yet-commenced leases, construction commitments, guarantees and residual-value structures indicate continued use of third-party capital.</li>
+          <li><b>Networking, memory and packaging:</b> the constraint set extends beyond accelerators to networking supplies, memory chips, CoWoS packaging and specialized components.</li>
+          <li><b>Cooling, water and efficiency:</b> higher compute density and constrained power/water increase the value of infrastructure efficiency.</li>
+        </ul>
+      </div>
+      <div class="reading risk">
+        <h3>Principal thesis risks</h3>
+        <ul class="risk-list">
+          <li>Demand or monetization fails to justify fixed capacity, leading to underutilization, impairment or margin compression.</li>
+          <li>Useful-life assumptions defer or accelerate reported costs without changing cash economics.</li>
+          <li>Supply, power or permitting bottlenecks delay revenue conversion even when commitments remain binding.</li>
+          <li>Fiscal-year misalignment creates false cross-company timing comparisons.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="spend">
+  <div class="section-head">
+    <div><h2>Who is spending—and how sustainably?</h2><p>Cash-flow capex is compared with operating cash flow. FCF is defined consistently as OCF less capex, not each company’s non-GAAP measure.</p></div>
+    <div class="legend"><span><i class="dot" style="background:#cfd8e4"></i>OCF</span><span><i class="dot" style="background:#e07a35"></i>Capex</span></div>
+  </div>
+
+  <div class="control-row company-filter">
+    <span class="control-label">Company filter</span>
+    <button class="pill active" data-company-filter="all">All</button>
+    <button class="pill" data-company-filter="Amazon">Amazon</button>
+    <button class="pill" data-company-filter="Alphabet">Alphabet</button>
+    <button class="pill" data-company-filter="Meta">Meta</button>
+    <button class="pill" data-company-filter="Microsoft">Microsoft</button>
+    <button class="pill" data-company-filter="NVIDIA">NVIDIA</button>
+    <button class="pill" data-company-filter="Apple">Apple</button>
+  </div>
+
+  <div class="grid-2">
+    <div class="card pad">
+      <h3 style="margin:0 0 5px">FY2025 OCF and capex</h3>
+      <div class="note">Scale: $0–165bn. Company fiscal years; not calendar-aligned.</div>
+      <div class="chart" id="cashChart"></div>
+    </div>
+    <div class="card pad">
+      <h3 style="margin:0 0 5px">Cash absorption and residual FCF</h3>
+      <div class="table-wrap">
+        <table id="cashTable">
+          <thead><tr>
+            <th class="sortable" data-type="text">Company</th>
+            <th>FYE</th>
+            <th class="sortable num" data-type="number">OCF</th>
+            <th class="sortable num" data-type="number">Capex</th>
+            <th class="sortable num" data-type="number">Capex / OCF</th>
+            <th class="sortable num" data-type="number">FCF</th>
+          </tr></thead>
+          <tbody>
+            <tr data-company="Amazon"><td class="company">Amazon</td><td class="fye">Dec.</td><td class="num" data-sort="139.5">$139.5</td><td class="num" data-sort="131.8">$131.8</td><td class="num" data-sort="94">94%</td><td class="num" data-sort="7.7">$7.7</td></tr>
+            <tr data-company="Alphabet"><td class="company">Alphabet</td><td class="fye">Dec.</td><td class="num" data-sort="164.7">$164.7</td><td class="num" data-sort="91.4">$91.4</td><td class="num" data-sort="56">56%</td><td class="num" data-sort="73.3">$73.3</td></tr>
+            <tr data-company="Meta"><td class="company">Meta</td><td class="fye">Dec.</td><td class="num" data-sort="115.8">$115.8</td><td class="num" data-sort="69.7">$69.7</td><td class="num" data-sort="60">60%</td><td class="num" data-sort="46.1">$46.1</td></tr>
+            <tr data-company="Microsoft"><td class="company">Microsoft</td><td class="fye">June</td><td class="num" data-sort="136.2">$136.2</td><td class="num" data-sort="64.6">$64.6</td><td class="num" data-sort="47">47%</td><td class="num" data-sort="71.6">$71.6</td></tr>
+            <tr data-company="NVIDIA"><td class="company">NVIDIA</td><td class="fye">Jan.</td><td class="num" data-sort="64.1">$64.1</td><td class="num" data-sort="3.2">$3.2</td><td class="num" data-sort="5">5%</td><td class="num" data-sort="60.9">$60.9</td></tr>
+            <tr data-company="Apple"><td class="company">Apple</td><td class="fye">Sept.</td><td class="num" data-sort="111.5">$111.5</td><td class="num" data-sort="12.7">$12.7</td><td class="num" data-sort="11">11%</td><td class="num" data-sort="98.8">$98.8</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="reading">
+    <h3>Reading</h3>
+    <ul>
+      <li><strong>What it shows:</strong> Amazon is the outlier on both absolute capex and cash absorption. Alphabet is the largest OCF generator; Apple retains the most FCF; NVIDIA’s asset-light supplier role produces the lowest capex intensity.</li>
+      <li><strong>Why it matters:</strong> OCF coverage is the clearest common measure of near-term self-funding capacity. It does not capture future leases, purchase commitments, financing or acquired infrastructure.</li>
+      <li><strong>What to watch:</strong> whether revenue and OCF growth keep pace with the next investment step-up, and whether depreciation begins to compress operating margins after assets enter service.</li>
+    </ul>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px">
+    <div class="card pad">
+      <h3 style="margin-top:0">Endpoint capex growth</h3>
+      <div class="note">Consolidated Form 10-K cash-flow capex. NVIDIA starts at FY2022; all others at FY2020.</div>
+      <div id="trendChart"></div>
+    </div>
+    <div class="card pad">
+      <h3 style="margin-top:0">Profitability context</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>FYE</th><th class="num">Revenue</th><th class="num">Operating income</th><th class="num">Margin</th></tr></thead>
+          <tbody>
+            <tr data-company="Amazon"><td class="company">Amazon</td><td class="fye">Dec.</td><td class="num">$716.9</td><td class="num">$80.0</td><td class="num">11.2%</td></tr>
+            <tr data-company="Alphabet"><td class="company">Alphabet</td><td class="fye">Dec.</td><td class="num">$402.8</td><td class="num">$129.0</td><td class="num">32.0%</td></tr>
+            <tr data-company="Meta"><td class="company">Meta</td><td class="fye">Dec.</td><td class="num">$201.0</td><td class="num">$83.3</td><td class="num">41.4%</td></tr>
+            <tr data-company="Microsoft"><td class="company">Microsoft</td><td class="fye">June</td><td class="num">$281.7</td><td class="num">$128.5</td><td class="num">45.6%</td></tr>
+            <tr data-company="NVIDIA"><td class="company">NVIDIA</td><td class="fye">Jan.</td><td class="num">$130.5</td><td class="num">$81.5</td><td class="num">62.4%</td></tr>
+            <tr data-company="Apple"><td class="company">Apple</td><td class="fye">Sept.</td><td class="num">$416.2</td><td class="num">$133.1</td><td class="num">32.0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="reading watch">
+        <h3>Interpretation</h3>
+        <p style="margin:0">Microsoft and Meta combine high margins with substantial cash generation, providing more near-term room to absorb higher infrastructure costs. Amazon’s scale is largest, but its 11.2% margin and $7.7bn post-capex cash residual make execution and utilization more consequential.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="definitions">
+  <div class="section-head">
+    <div><h2>Capex is not one definition</h2><p>The dashboard comparison uses the quantitative pack’s consolidated cash-flow measure. Company management definitions can include different assets or finance-lease principal.</p></div>
+  </div>
+  <div class="card pad table-wrap">
+    <table>
+      <thead><tr><th>Company</th><th>Comparable dashboard line</th><th>Company-stated alternative</th><th>Analytical treatment</th></tr></thead>
+      <tbody>
+        <tr data-company="Amazon">
+          <td><span class="company">Amazon</span><div class="fye">FYE Dec.</div></td>
+          <td><b>$131.8bn</b><div class="definition">Quantitative pack: purchases of property and equipment / consolidated capex.</div></td>
+          <td><b>$128.3bn</b><div class="definition">10-K management measure: “cash capital expenditures,” primarily technology infrastructure and fulfillment capacity.</div></td>
+          <td class="definition">Use $131.8bn for cross-company cash-flow comparison. Retain $128.3bn when discussing management’s stated spending mix and 2026 trajectory.</td>
+        </tr>
+        <tr data-company="Alphabet">
+          <td><span class="company">Alphabet</span><div class="fye">FYE Dec.</div></td>
+          <td><b>$91.4bn</b><div class="definition">Purchases of property and equipment; reported capex.</div></td>
+          <td><b>$91.4bn</b><div class="definition">Management capex aligns with the cash-flow line; exact cash-flow amount $91.447bn.</div></td>
+          <td class="definition">Directly comparable within rounding.</td>
+        </tr>
+        <tr data-company="Meta">
+          <td><span class="company">Meta</span><div class="fye">FYE Dec.</div></td>
+          <td><b>$69.7bn</b><div class="definition">Cash purchases of property and equipment.</div></td>
+          <td><b>$72.22bn</b><div class="definition">Company-defined capital expenditures include $2.524bn of finance-lease principal payments.</div></td>
+          <td class="definition">Use $69.7bn for cross-company comparison. Do not compare initial guidance with $69.7bn because guidance includes finance-lease principal.</td>
+        </tr>
+        <tr data-company="Microsoft">
+          <td><span class="company">Microsoft</span><div class="fye">FYE June</div></td>
+          <td><b>$64.6bn</b><div class="definition">Additions to property and equipment; exact disclosed amount $64.551bn.</div></td>
+          <td><span class="badge nd">No alternative disclosed</span></td>
+          <td class="definition">Use additions to property and equipment.</td>
+        </tr>
+        <tr data-company="NVIDIA">
+          <td><span class="company">NVIDIA</span><div class="fye">FYE Jan. 26</div></td>
+          <td><b>$3.2bn</b><div class="definition">Purchases related to property and equipment and intangible assets; exact cash-flow amount $3.236bn.</div></td>
+          <td><b>$3.4bn</b><div class="definition">10-K narrative states capital expenditures of $3.4bn.</div></td>
+          <td class="definition">Use $3.2bn for the pack’s cross-company comparison; preserve $3.4bn for management’s FY2026 “increase” indication.</td>
+        </tr>
+        <tr data-company="Apple">
+          <td><span class="company">Apple</span><div class="fye">FYE Sept. 27</div></td>
+          <td><b>$12.7bn</b><div class="definition">Payments for acquisition of property, plant and equipment; exact amount $12.715bn.</div></td>
+          <td><span class="badge nd">No alternative disclosed</span></td>
+          <td class="definition">Use cash payments for PP&amp;E. The 10-K does not identify an AI- or data-center-specific capex amount.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="reading risk">
+    <h3>Definition risk</h3>
+    <p style="margin:0">A single “capex” ranking can mix cash PP&amp;E, company-defined capital expenditures, finance-lease principal and purchases that include intangible assets. This dashboard does not normalize beyond the source basis and labels each exception explicitly.</p>
+  </div>
+</section>
+
+<section id="commitments">
+  <div class="section-head">
+    <div><h2>The commitment stack outside current cash capex</h2><p>Selected disclosed obligations at each FY2025 year-end. Categories are not uniform and may overlap; totals are displayed separately rather than aggregated.</p></div>
+  </div>
+  <div class="commit-grid">
+    <div class="card commit-card" data-company="Amazon">
+      <h3>Amazon</h3><span class="fye">31 Dec. 2025</span>
+      <div class="commit-line"><div class="top"><span>Leases not commenced</span><b>$96.373</b></div><div class="mini-track"><span style="width:92.9%"></span></div></div>
+      <div class="commit-line"><div class="top"><span>Purchase obligations</span><b>$84.772</b></div><div class="mini-track purchase"><span style="width:56.9%"></span></div></div>
+      <div class="note">Purchase obligations include energy, PP&amp;E, software and digital content. Financing obligations include fulfillment and data-center facilities: $9.615bn including interest.</div>
+    </div>
+    <div class="card commit-card" data-company="Alphabet">
+      <h3>Alphabet</h3><span class="fye">31 Dec. 2025</span>
+      <div class="commit-line"><div class="top"><span>Leases not commenced</span><b>$58.5</b></div><div class="mini-track"><span style="width:56.4%"></span></div></div>
+      <div class="commit-line"><div class="top"><span>Purchase commitments</span><b>$149.1</b></div><div class="mini-track purchase"><span style="width:100%"></span></div></div>
+      <div class="note">Leases are primarily data centers. Commitments are primarily energy, licenses, technical infrastructure and inventory; $113.0bn is short-term.</div>
+    </div>
+    <div class="card commit-card" data-company="Meta">
+      <h3>Meta</h3><span class="fye">31 Dec. 2025</span>
+      <div class="commit-line"><div class="top"><span>Leases not commenced</span><b>$103.77</b></div><div class="mini-track"><span style="width:100%"></span></div></div>
+      <div class="commit-line"><div class="top"><span>Contractual commitments</span><b>$131.05</b></div><div class="mini-track purchase"><span style="width:87.9%"></span></div></div>
+      <div class="note">Mostly data centers, colocation and network infrastructure; commitments mostly cloud capacity, servers, network infrastructure, data centers and Reality Labs hardware.</div>
+    </div>
+    <div class="card commit-card" data-company="Microsoft">
+      <h3>Microsoft</h3><span class="fye">30 June 2025</span>
+      <div class="commit-line"><div class="top"><span>Leases not commenced</span><b>$92.7</b></div><div class="mini-track"><span style="width:89.3%"></span></div></div>
+      <div class="commit-line"><div class="top"><span>Purchase commitments</span><b>$109.953</b></div><div class="mini-track purchase"><span style="width:73.7%"></span></div></div>
+      <div class="note">Additional $32.149bn construction commitments, primarily datacenters. Purchase commitments primarily relate to datacenters.</div>
+    </div>
+    <div class="card commit-card" data-company="NVIDIA">
+      <h3>NVIDIA</h3><span class="fye">26 Jan. 2025</span>
+      <div class="commit-line"><div class="top"><span>Future lease starts</span><b>$7.6</b></div><div class="mini-track"><span style="width:7.3%"></span></div></div>
+      <div class="commit-line"><div class="top"><span>Inventory / capacity</span><b>$30.8</b></div><div class="mini-track purchase"><span style="width:20.7%"></span></div></div>
+      <div class="note">Other non-inventory obligations: $14.3bn, including $10.9bn multi-year cloud agreements. Future leases are primarily data-center and office leases.</div>
+    </div>
+    <div class="card commit-card" data-company="Apple">
+      <h3>Apple</h3><span class="fye">27 Sept. 2025</span>
+      <div class="commit-line"><div class="top"><span>Fixed lease obligations</span><b>$16.8</b></div><div class="mini-track"><span style="width:16.2%"></span></div></div>
+      <div class="commit-line"><div class="top"><span>Purchase obligations</span><b>$14.8</b></div><div class="mini-track purchase"><span style="width:9.9%"></span></div></div>
+      <div class="note">Not disclosed: leases not yet commenced or data-center-specific amount. Purchase obligations mix capital assets, manufacturing, suppliers, IP, content and distribution.</div>
+    </div>
+  </div>
+
+  <div class="reading">
+    <h3>Reading</h3>
+    <ul>
+      <li><strong>What it shows:</strong> the build cycle extends well beyond cash paid in FY2025. Meta, Amazon and Microsoft each disclose roughly $93–104bn of leases not yet commenced; Alphabet discloses $58.5bn.</li>
+      <li><strong>Why it matters:</strong> committed capacity can support growth but reduces the ability to slow spending quickly if demand changes. Lease, guarantee and third-party capacity structures also shift part of infrastructure financing outside PP&amp;E cash purchases.</li>
+      <li><strong>What to watch:</strong> lease commencement dates, short-term purchase obligations, cancellation rights, counterparty credit exposure, and whether contracted capacity enters service on time.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="guidance">
+  <div class="section-head">
+    <div><h2>Guidance discipline: initial FY2025 promises versus actuals</h2><p>Initial guidance is frozen at its original release date and kept separate from FY2025 actuals and FY2026 indications.</p></div>
+  </div>
+  <div class="card pad table-wrap">
+    <table>
+      <thead><tr><th>Company</th><th>Initial FY2025 guidance</th><th>FY2025 actual</th><th>Assessment</th><th>FY2026 indication</th></tr></thead>
+      <tbody>
+        <tr data-company="Amazon">
+          <td><span class="company">Amazon</span><div class="fye">FYE Dec.</div></td>
+          <td><b>≈$100bn</b><div class="note">6 Feb. 2025 · management estimate of capital expenditures.</div></td>
+          <td><b>$131.8bn</b><div class="note">Dashboard cash-flow capex. 10-K management cash capex: $128.3bn.</div></td>
+          <td><span class="badge high">Above</span><div class="definition">+$31.8bn versus dashboard actual. Basis should be read with the disclosed $128.3bn management measure.</div></td>
+          <td><span class="badge up">Increase</span><div class="definition">Technology infrastructure and fulfillment capacity both expected to increase; no amount disclosed.</div></td>
+        </tr>
+        <tr data-company="Alphabet">
+          <td><span class="company">Alphabet</span><div class="fye">FYE Dec.</div></td>
+          <td><b>≈$75bn</b><div class="note">4 Feb. 2025 · reported capex; cash-payment timing may vary.</div></td>
+          <td><b>$91.4bn</b></td>
+          <td><span class="badge high">Above</span><div class="definition">+$16.4bn versus initial indication.</div></td>
+          <td><span class="badge up">Significant increase</span><div class="definition">Technical infrastructure, including servers, networking and data centers; no amount disclosed.</div></td>
+        </tr>
+        <tr data-company="Meta">
+          <td><span class="company">Meta</span><div class="fye">FYE Dec.</div></td>
+          <td><b>$60–65bn</b><div class="note">29 Jan. 2025 · includes finance-lease principal.</div></td>
+          <td><b>$69.7bn cash PP&amp;E</b><div class="note">Company-defined capex including finance-lease principal: $72.22bn.</div></td>
+          <td><span class="badge nd">Not comparable</span><div class="definition">No variance calculated against the cash PP&amp;E line because guidance included lease principal.</div></td>
+          <td><b>$115–135bn</b><div class="definition">To support AI efforts and core business.</div></td>
+        </tr>
+        <tr data-company="Microsoft">
+          <td><span class="company">Microsoft</span><div class="fye">FYE June</div></td>
+          <td><span class="badge nd">Not disclosed in pack</span></td>
+          <td><b>$64.6bn</b></td>
+          <td>Not disclosed</td>
+          <td><span class="badge up">Continue investing</span><div class="definition">Cloud offerings, AI infrastructure and training; no amount disclosed.</div></td>
+        </tr>
+        <tr data-company="NVIDIA">
+          <td><span class="company">NVIDIA</span><div class="fye">FYE Jan.</div></td>
+          <td><span class="badge nd">Not disclosed in pack</span></td>
+          <td><b>$3.2bn</b><div class="note">10-K narrative capex: $3.4bn.</div></td>
+          <td>Not disclosed</td>
+          <td><span class="badge up">Increase</span><div class="definition">Relative to FY2025; no amount disclosed.</div></td>
+        </tr>
+        <tr data-company="Apple">
+          <td><span class="company">Apple</span><div class="fye">FYE Sept.</div></td>
+          <td><span class="badge nd">Not disclosed in pack</span></td>
+          <td><b>$12.7bn</b></td>
+          <td>Not disclosed</td>
+          <td><span class="badge nd">Not disclosed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="reading risk">
+    <h3>Takeaway and risk</h3>
+    <p style="margin:0">Amazon and Alphabet materially exceeded their initial indications, while Meta’s initial range cannot be tested against the common cash PP&amp;E line. The pattern supports acceleration, but not necessarily weak control: timing of equipment payments and capacity delivery can move annual capex. The key 2026 test is whether capacity additions translate into revenue before depreciation, lease and energy costs pressure margins.</p>
+  </div>
+</section>
+
+<section id="signals">
+  <div class="section-head">
+    <div><h2>Signals from the FY2025 10-Ks</h2><p>Direction of travel, evidence and the investment implication. “Accelerating” refers to filing language, not a forecast generated by this dashboard.</p></div>
+  </div>
+  <div class="signal-grid">
+    <article class="card signal-card" data-company="Amazon">
+      <div class="signal-head"><div><h3>Amazon</h3><span class="fye">FYE 31 Dec. 2025</span></div><span class="badge up">Accelerating</span></div>
+      <p>Technology infrastructure and fulfillment capacity are expected to increase in 2026. The majority of cash capex supports AWS growth, while AI and machine-learning investment is expected to continue.</p>
+      <div class="quote">We expect spending in technology and infrastructure to increase over time.</div>
+      <div class="reading risk"><b>Watch:</b> 94% cash absorption, GPU and memory availability, capacity optimization and the shorter five-year life for a subset of servers.</div>
+    </article>
+
+    <article class="card signal-card" data-company="Alphabet">
+      <div class="signal-head"><div><h3>Alphabet</h3><span class="fye">FYE 31 Dec. 2025</span></div><span class="badge up">Accelerating</span></div>
+      <p>Alphabet explicitly expects a significant 2026 increase in servers, network equipment and data centers. AI workloads require more compute than historical offerings.</p>
+      <div class="quote">In 2026, we expect to significantly increase, relative to 2025, our investment in our technical infrastructure.</div>
+      <div class="reading risk"><b>Watch:</b> power, water and land constraints; $149.1bn commitments; margin pressure; lease and credit-support exposure.</div>
+    </article>
+
+    <article class="card signal-card" data-company="Meta">
+      <div class="signal-head"><div><h3>Meta</h3><span class="fye">FYE 31 Dec. 2025</span></div><span class="badge up">Step-up quantified</span></div>
+      <p>Meta guides to $115–135bn for 2026 and says generative AI and superintelligence require significantly more infrastructure. The commitment stack is already large.</p>
+      <div class="quote">We anticipate making capital expenditures of approximately $115 billion to $135 billion in 2026.</div>
+      <div class="reading risk"><b>Watch:</b> monetization, third-party cloud dependence, $103.77bn future leases, and the earnings effect of longer server lives.</div>
+    </article>
+
+    <article class="card signal-card" data-company="Microsoft">
+      <div class="signal-head"><div><h3>Microsoft</h3><span class="fye">FYE 30 June 2025</span></div><span class="badge up">Continuing</span></div>
+      <p>Microsoft plans continued cloud and AI infrastructure investment. FY2025 already showed gross-margin pressure from scaling AI infrastructure despite Azure efficiency gains.</p>
+      <div class="quote">We will continue to invest in capital expenditures to support growth in our cloud offerings and our investments in AI infrastructure and training.</div>
+      <div class="reading risk"><b>Watch:</b> AI utilization, power and GPU access, $92.7bn future leases, and whether efficiency offsets depreciation and operating costs.</div>
+    </article>
+
+    <article class="card signal-card" data-company="NVIDIA">
+      <div class="signal-head"><div><h3>NVIDIA</h3><span class="fye">FYE 26 Jan. 2025</span></div><span class="badge up">Demand strong</span></div>
+      <p>Data Center revenue rose 142% and Blackwell systems began shipping in Q4. NVIDIA expects capex to increase, but its larger economic commitments are in supply capacity and cloud services.</p>
+      <div class="quote">We expect to increase capital expenditures in fiscal year 2026 relative to fiscal year 2025.</div>
+      <div class="reading risk"><b>Watch:</b> customer power and data-center capacity, CoWoS and memory supply, long lead times, inventory commitments and demand forecasting.</div>
+    </article>
+
+    <article class="card signal-card" data-company="Apple">
+      <div class="signal-head"><div><h3>Apple</h3><span class="fye">FYE 27 Sept. 2025</span></div><span class="badge nd">No trajectory disclosed</span></div>
+      <p>The filing does not state an AI or data-center infrastructure investment strategy or forward capex trajectory. R&amp;D growth included infrastructure costs, but no AI-specific amount is provided.</p>
+      <div class="quote">The growth in R&amp;D expense…was primarily driven by increases in headcount-related expenses and infrastructure-related costs.</div>
+      <div class="reading risk"><b>Watch:</b> whether future filings identify Private Cloud Compute or AI infrastructure separately; current lease and purchase totals are mixed-purpose.</div>
+    </article>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px">
+    <div class="card pad">
+      <h3 style="margin-top:0">Useful lives and depreciation signals</h3>
+      <table>
+        <thead><tr><th>Company</th><th>Policy / change</th><th>FY2025 effect</th></tr></thead>
+        <tbody>
+          <tr data-company="Amazon"><td class="company">Amazon</td><td>Subset of servers/network equipment shortened from six to five years.</td><td>Depreciation +$1.4bn; net income −$1.0bn.</td></tr>
+          <tr data-company="Alphabet"><td class="company">Alphabet</td><td>Servers/network equipment generally six years.</td><td>PP&amp;E depreciation $21.1bn.</td></tr>
+          <tr data-company="Meta"><td class="company">Meta</td><td>Most server/network lives extended to 5.5 years.</td><td>Depreciation −$2.92bn; net income +$2.59bn.</td></tr>
+          <tr data-company="Microsoft"><td class="company">Microsoft</td><td>Computer equipment generally two to six years.</td><td>Depreciation $22.0bn.</td></tr>
+          <tr data-company="NVIDIA"><td class="company">NVIDIA</td><td>PP&amp;E generally two to seven years.</td><td>Depreciation $1.3bn.</td></tr>
+          <tr data-company="Apple"><td class="company">Apple</td><td>Straight-line; server/network lives not disclosed.</td><td>PP&amp;E depreciation $8.0bn.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card pad">
+      <h3 style="margin-top:0">Constraint map</h3>
+      <table>
+        <thead><tr><th>Constraint</th><th>Explicitly identified by</th><th>Investment reading</th></tr></thead>
+        <tbody>
+          <tr><td><b>Power / energy</b></td><td>All six</td><td>Grid access, generation, storage and efficiency are gating factors.</td></tr>
+          <tr><td><b>Land / permitting / water</b></td><td>Alphabet, Meta, Microsoft, NVIDIA</td><td>Site control and approvals can determine time to revenue.</td></tr>
+          <tr><td><b>GPUs / specialized chips</b></td><td>Amazon, Alphabet, Meta, Microsoft</td><td>Accelerator supply remains concentrated.</td></tr>
+          <tr><td><b>Networking / components</b></td><td>Amazon, Alphabet, Meta, Microsoft, NVIDIA, Apple</td><td>The bottleneck extends beyond compute silicon.</td></tr>
+          <tr><td><b>Construction / labor</b></td><td>Meta; long-lead build risk across others</td><td>Execution capacity matters alongside equipment supply.</td></tr>
+        </tbody>
+      </table>
+      <div class="note" style="margin-top:9px">“All six” for energy includes Apple’s disclosed power-shortage and facility interruption risks; Apple does not provide an AI-infrastructure-specific constraint discussion.</div>
+    </div>
+  </div>
+</section>
+
+<section id="company-detail">
+  <div class="section-head">
+    <div><h2>Company lens</h2><p>Select a company for a concise underwriting summary.</p></div>
+  </div>
+  <div class="detail-controls">
+    <label class="control-label" for="companySelect">Company</label>
+    <select id="companySelect">
+      <option>Amazon</option><option>Alphabet</option><option>Meta</option><option>Microsoft</option><option>NVIDIA</option><option>Apple</option>
+    </select>
+  </div>
+  <div class="detail-grid">
+    <div class="card pad">
+      <h3 id="detailTitle" style="margin-top:0"></h3>
+      <div class="metric-stack" id="detailMetrics"></div>
+      <div class="source">FY2025 quantitative data pack [S1, S5, S6].</div>
+    </div>
+    <div class="card pad" id="detailNarrative"></div>
+  </div>
+</section>
+
+<section id="method">
+  <div class="section-head">
+    <div><h2>Method, comparability and source discipline</h2><p>Designed to preserve the basis supplied by the quantitative report and each FY2025 10-K extract.</p></div>
+  </div>
+  <div class="grid-2">
+    <div class="scope-box">
+      <h3>Core conventions</h3>
+      <ul style="margin:0;padding-left:18px">
+        <li>All monetary amounts are US$ billions unless stated otherwise.</li>
+        <li>Capex for the common comparison is the quantitative pack’s purchases of property and equipment measure.</li>
+        <li>FCF = OCF − capex. Capex intensity = capex / OCF.</li>
+        <li>Initial FY2025 guidance, FY2025 actuals and FY2026 indications are separate.</li>
+        <li>No missing guidance or commitment amount is estimated; it is shown as “not disclosed.”</li>
+      </ul>
+    </div>
+    <div class="scope-box">
+      <h3>Fiscal-year calendar</h3>
+      <table>
+        <tbody>
+          <tr><td>Amazon, Alphabet, Meta</td><td><b>December year-end</b></td></tr>
+          <tr><td>Microsoft</td><td><b>June year-end</b></td></tr>
+          <tr><td>NVIDIA</td><td><b>Late January year-end</b></td></tr>
+          <tr><td>Apple</td><td><b>Late September year-end</b></td></tr>
+        </tbody>
+      </table>
+      <p class="note">FY2025 is each company’s fiscal year, not a common calendar period. Cross-company values therefore compare reported fiscal years rather than synchronized economic periods.</p>
+    </div>
+  </div>
+
+  <div class="card pad footnotes" style="margin-top:14px">
+    <h3>Source map</h3>
+    <ol>
+      <li><b>Quantitative report [S1–S7]:</b> FY2025 revenue, operating income, operating margin, OCF, cash-flow capex, FCF, capex intensity, endpoint capex trends and frozen initial FY2025 guidance.</li>
+      <li><b>FY2025 10-K extracts T1–T7:</b> strategy, spending purpose, forward investment language, physical constraints, useful lives and depreciation, leases and contractual commitments, and risk factors.</li>
+      <li><b>Commitment caution:</b> displayed categories use each issuer’s terminology and scope. Purchase commitments may include energy, inventory, content, software, hardware or other items; lease figures may include offices as well as data centers. They are not normalized or added into a single “total exposure.”</li>
+      <li><b>Rounding:</b> dashboard figures retain the source pack’s rounding. More precise 10-K amounts are shown where needed to explain a definition.</li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<script>
+const companies = [
+ {name:"Amazon",fye:"Dec.",ocf:139.5,capex:131.8,fcf:7.7,intensity:94,revenue:716.9,margin:11.2,earlyYear:"FY2020",early:40.1,multiple:"3.29×",delta:"+228.7%",
+ thesis:"Largest spender and tightest cash-funded profile. The majority of management-defined cash capex supports AWS growth, but fulfillment capacity is also included.",
+ watch:"AWS utilization and monetization; GPU and memory supply; power commitments; data-center optimization; shorter server useful lives.",
+ forward:"Technology infrastructure and fulfillment capacity are expected to increase in 2026; no amount disclosed."},
+ {name:"Alphabet",fye:"Dec.",ocf:164.7,capex:91.4,fcf:73.3,intensity:56,revenue:402.8,margin:32.0,earlyYear:"FY2020",early:22.3,multiple:"4.10×",delta:"+309.9%",
+ thesis:"Second-largest cash-flow capex with substantial OCF coverage. The filing ties spending primarily to AI-optimized technical infrastructure.",
+ watch:"Power, water and land access; $149.1bn commitments; margin pressure; lease and counterparty backstop exposure.",
+ forward:"Technical-infrastructure investment is expected to increase significantly in 2026."},
+ {name:"Meta",fye:"Dec.",ocf:115.8,capex:69.7,fcf:46.1,intensity:60,revenue:201.0,margin:41.4,earlyYear:"FY2020",early:15.2,multiple:"4.59×",delta:"+358.6%",
+ thesis:"Fastest endpoint growth among the six and a quantified 2026 step-up. Cash PP&E understates company-defined capex because finance-lease principal is excluded.",
+ watch:"AI monetization, third-party cloud dependency, future lease starts, infrastructure execution and the impact of longer server lives.",
+ forward:"Approximately $115–135bn of 2026 capital expenditures to support AI and the core business."},
+ {name:"Microsoft",fye:"June",ocf:136.2,capex:64.6,fcf:71.6,intensity:47,revenue:281.7,margin:45.6,earlyYear:"FY2020",early:15.4,multiple:"4.19×",delta:"+319.5%",
+ thesis:"High margins and OCF provide a comparatively strong funding cushion, but AI scaling is already reducing cloud gross-margin percentage.",
+ watch:"AI capacity utilization, Azure efficiency, power and GPU access, future lease commencement and depreciation growth.",
+ forward:"Continued investment in cloud offerings, AI infrastructure and training; no amount disclosed."},
+ {name:"NVIDIA",fye:"Jan.",ocf:64.1,capex:3.2,fcf:60.9,intensity:5,revenue:130.5,margin:62.4,earlyYear:"FY2022",early:1.0,multiple:"3.20×",delta:"+220.0%",
+ thesis:"The asset-light beneficiary: only 5% capex intensity, but economic commitments sit in foundry capacity, inventory, components and multi-year cloud services.",
+ watch:"Customer power and data-center capacity; CoWoS, memory and foundry supply; long lead times; inventory and demand mismatch.",
+ forward:"Capital expenditures expected to increase in FY2026; no amount disclosed."},
+ {name:"Apple",fye:"Sept.",ocf:111.5,capex:12.7,fcf:98.8,intensity:11,revenue:416.2,margin:32.0,earlyYear:"FY2020",early:7.3,multiple:"1.74×",delta:"+74.0%",
+ thesis:"Largest post-capex cash cushion and limited disclosed infrastructure intensity. The 10-K does not state an AI/data-center investment strategy or capex trajectory.",
+ watch:"Future disclosure of AI infrastructure, mixed-purpose lease and purchase obligations, component supply and capital-asset obsolescence.",
+ forward:"Not disclosed."}
+];
+
+function renderCashChart(){
+ const el=document.getElementById("cashChart"); el.innerHTML="";
+ const max=165;
+ companies.forEach(c=>{
+   const row=document.createElement("div"); row.className="bar-row"; row.dataset.company=c.name;
+   row.innerHTML=`<div class="bar-label"><b>${c.name}</b><small>FYE ${c.fye}</small></div>
+   <div class="dual-track" title="OCF $${c.ocf}bn; capex $${c.capex}bn">
+     <div class="ocf" style="width:${c.ocf/max*100}%"></div>
+     <div class="capex" style="width:${c.capex/max*100}%"></div>
+   </div><div class="bar-value">${c.intensity}%</div>`;
+   el.appendChild(row);
+ });
+ el.insertAdjacentHTML("beforeend",'<div class="axis-note">Right label = capex / OCF</div>');
+}
+function renderTrend(){
+ const el=document.getElementById("trendChart"); el.innerHTML="";
+ const max=132;
+ companies.forEach(c=>{
+  let row=document.createElement("div"); row.className="bar-row"; row.dataset.company=c.name;
+  row.innerHTML=`<div class="bar-label"><b>${c.name}</b><small>${c.earlyYear}: $${c.early.toFixed(1)}</small></div>
+  <div class="bar-track" title="${c.earlyYear} $${c.early}bn to FY2025 $${c.capex}bn"><div class="bar teal" style="width:${c.capex/max*100}%"></div></div>
+  <div class="bar-value">${c.multiple}</div>`;
+  el.appendChild(row);
+ });
+ el.insertAdjacentHTML("beforeend",'<div class="axis-note">Bar = FY2025 capex · label = endpoint multiple</div>');
+}
+function applyCompanyFilter(name){
+ document.querySelectorAll(".company-filter .pill").forEach(b=>b.classList.toggle("active",b.dataset.companyFilter===name));
+ document.querySelectorAll("[data-company]").forEach(el=>{
+   el.classList.toggle("hidden-company",name!=="all" && el.dataset.company!==name);
+ });
+}
+document.querySelectorAll(".company-filter .pill").forEach(b=>b.addEventListener("click",()=>applyCompanyFilter(b.dataset.companyFilter)));
+
+document.querySelectorAll("th.sortable").forEach(th=>{
+ let asc=true;
+ th.addEventListener("click",()=>{
+   const table=th.closest("table"), tbody=table.tBodies[0], idx=[...th.parentNode.children].indexOf(th);
+   const rows=[...tbody.rows];
+   rows.sort((a,b)=>{
+     let av=a.cells[idx].dataset.sort ?? a.cells[idx].innerText.replace(/[$,%]/g,"");
+     let bv=b.cells[idx].dataset.sort ?? b.cells[idx].innerText.replace(/[$,%]/g,"");
+     if(th.dataset.type==="number"){av=parseFloat(av);bv=parseFloat(bv);return asc?av-bv:bv-av}
+     return asc?av.localeCompare(bv):bv.localeCompare(av);
+   });
+   rows.forEach(r=>tbody.appendChild(r)); asc=!asc;
+ });
+});
+
+function renderDetail(name){
+ const c=companies.find(x=>x.name===name);
+ document.getElementById("detailTitle").innerHTML=`${c.name} <span class="fye">· FYE ${c.fye}</span>`;
+ document.getElementById("detailMetrics").innerHTML=`
+  <div class="metric-box"><span>Revenue</span><b>$${c.revenue.toFixed(1)}bn</b></div>
+  <div class="metric-box"><span>Operating margin</span><b>${c.margin.toFixed(1)}%</b></div>
+  <div class="metric-box"><span>OCF</span><b>$${c.ocf.toFixed(1)}bn</b></div>
+  <div class="metric-box"><span>Cash-flow capex</span><b>$${c.capex.toFixed(1)}bn</b></div>
+  <div class="metric-box"><span>Capex / OCF</span><b>${c.intensity}%</b></div>
+  <div class="metric-box"><span>FCF</span><b>$${c.fcf.toFixed(1)}bn</b></div>`;
+ document.getElementById("detailNarrative").innerHTML=`
+  <h3 style="margin-top:0">Underwriting read</h3><p>${c.thesis}</p>
+  <div class="reading watch"><h3>Forward signal</h3><p style="margin:0">${c.forward}</p></div>
+  <div class="reading risk"><h3>Named risks / what to watch</h3><p style="margin:0">${c.watch}</p></div>
+  <p class="note">${c.earlyYear} to FY2025 capex: $${c.early.toFixed(1)}bn to $${c.capex.toFixed(1)}bn; ${c.multiple} (${c.delta}). Fiscal-year comparison.</p>`;
+}
+document.getElementById("companySelect").addEventListener("change",e=>renderDetail(e.target.value));
+
+document.querySelectorAll(".nav-btn").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  document.getElementById(btn.dataset.target).scrollIntoView({behavior:"smooth"});
+ });
+});
+const sections=[...document.querySelectorAll("main section")];
+const navButtons=[...document.querySelectorAll(".nav-btn")];
+const observer=new IntersectionObserver(entries=>{
+ entries.forEach(entry=>{
+  if(entry.isIntersecting){
+   navButtons.forEach(b=>b.classList.toggle("active",b.dataset.target===entry.target.id));
+  }
+ });
+},{rootMargin:"-25% 0px -65% 0px",threshold:0});
+sections.forEach(s=>observer.observe(s));
+
+renderCashChart();
+renderTrend();
+renderDetail("Amazon");
+</script>
+</body>
+</html>
