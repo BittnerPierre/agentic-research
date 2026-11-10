@@ -1,0 +1,9 @@
+/privatedashboard.html (inline <script>):115
+    {label:'Meta',value:103.77,color:'#0866ff',note:'not yet commenced, mostly data centers/colo/network'},\n    {label:'Amazon',value:96.373,color:'#ff9900',note:'not yet commenced; 2026 $5.808B … thereafter $61.733B'},\n    {label:'Microsoft',value:92.7,color:'#00a4ef',note:'primarily datacenters; commence FY2026–FY2031'},\n    {label:'Alphabet',value:58.5,color:'#4285f4',note:'computed from disclosed $5.8B short + $52.7B long; commence 2026–2031'},\n    {label:'NVIDIA',value:7.6,color:'#76b900',note:'FY2026–FY2030; primarily data-center/office operating leases'},\n    {label:'Apple',value:0,display:'not disclosed',color:'#a2aaad',note:'fixed lease payment obligations $16.8B disclosed separately; data-center-specific amount not disclosed'}\n  ]);
+                                                                                                           ^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1713:18)
+    at checkSyntax (node:internal/main/check_syntax:78:3)
+
+Node.js v22.23.2

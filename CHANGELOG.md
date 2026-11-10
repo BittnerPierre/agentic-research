@@ -17,6 +17,11 @@ first; entries reconstructed after the fact may group closely related PRs. Earli
   ([#246](https://github.com/BittnerPierre/agentic-research/pull/246), fixes #245)
 
 ### Added
+- Spike 262, benchmark v2 visual: five-model HTML dashboard trial on a frozen investment brief
+  (GPT-5.6-sol, Claude Fable 5.1, Mistral Large 4, DeepSeek V4.1 Flash, GLM 5.3), the FY2025
+  10-K extracts corpus, and a programmatic annotated viewer of the finance report (numbers,
+  tables, structure, margin, execution block) under `spikes/262-benchmark-v2-visual/`.
+  Not merged into the pipeline. (relates to #262)
 - Three post-review exceptions for the 13 October campaign (gpt-5.6-sol capex-2 and capex-5,
   Mistral Large 4 capex-5) recorded in `evaluations/adjustments.yaml`: grader false positives on a
   mixed guidance heading, a spelled-out ratio label, the French revenue label and exact derived
